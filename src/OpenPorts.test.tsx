@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => ({ rpc: { call: vi.fn() } }));
 vi.mock("@get-bb/plugin-sdk/app", () => ({ useRpc: () => mocks.rpc, UrlLink: "a" }));
 import { OpenPortsProvider, OpenPortsIndicator } from "./OpenPorts";
 const thread = { id: "thr_a", environment: { id: "env_a" } } as PluginSidebarThread;
-const snapshot = (ownerThreadId = "thr_a") => ({ groups: [{ environmentId: "env_a", ports: [{ port: 3000, ownerThreadId }] }] });
+const snapshot = (ownerThreadId = "thr_a") => ({
+  groups: [{ environmentId: "env_a", ports: [{ port: 3000, ownerThreadId }] }],
+});
 let visibility: DocumentVisibilityState;
 beforeEach(() => {
   vi.useFakeTimers();
@@ -15,15 +17,34 @@ beforeEach(() => {
   vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
   mocks.rpc.call.mockReset().mockImplementation(async () => snapshot());
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 async function show() {
   const commits = vi.fn();
-  await act(async () => { render(<OpenPortsProvider><Profiler id="indicator" onRender={commits}><OpenPortsIndicator thread={thread} /></Profiler></OpenPortsProvider>); });
+  await act(async () => {
+    render(
+      <OpenPortsProvider>
+        <Profiler id="indicator" onRender={commits}>
+          <OpenPortsIndicator thread={thread} />
+        </Profiler>
+      </OpenPortsProvider>,
+    );
+  });
   return commits;
 }
-async function tick(ms = 10_000) { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); }
+async function tick(ms = 10_000) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
 async function changeVisibility(next: DocumentVisibilityState) {
-  await act(async () => { visibility = next; document.dispatchEvent(new Event("visibilitychange")); });
+  await act(async () => {
+    visibility = next;
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
 }
 describe("port polling", () => {
   it("does not rerender consumers for equal results, but publishes ownership changes and failures", async () => {
@@ -65,17 +86,26 @@ describe("port polling", () => {
 
   it("does not overlap requests across visibility changes or restart after unmount", async () => {
     let resolve!: (value: ReturnType<typeof snapshot>) => void;
-    mocks.rpc.call.mockImplementation(() => new Promise((done) => { resolve = done; }));
+    mocks.rpc.call.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
     await show();
     await changeVisibility("hidden");
     await changeVisibility("visible");
     await tick(60_000);
     expect(mocks.rpc.call).toHaveBeenCalledTimes(1);
-    await act(async () => { resolve(snapshot()); });
+    await act(async () => {
+      resolve(snapshot());
+    });
     await tick();
     expect(mocks.rpc.call).toHaveBeenCalledTimes(2);
     cleanup();
-    await act(async () => { resolve(snapshot()); });
+    await act(async () => {
+      resolve(snapshot());
+    });
     await changeVisibility("visible");
     await tick(60_000);
     expect(mocks.rpc.call).toHaveBeenCalledTimes(2);

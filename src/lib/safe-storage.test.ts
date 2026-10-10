@@ -14,18 +14,12 @@ const settings = "bb-sidebar:settings-cache:v1";
 
 function limitStorage(characters: number) {
   const setItem = Storage.prototype.setItem;
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
-    this: Storage,
-    key,
-    value,
-  ) {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
     const size = Object.keys(this).reduce(
-      (total, storedKey) =>
-        total + (storedKey === key ? 0 : this.getItem(storedKey)!.length),
+      (total, storedKey) => total + (storedKey === key ? 0 : this.getItem(storedKey)!.length),
       value.length,
     );
-    if (size > characters)
-      throw new DOMException("Storage full", "QuotaExceededError");
+    if (size > characters) throw new DOMException("Storage full", "QuotaExceededError");
     setItem.call(this, key, value);
   });
   return vi.spyOn(Storage.prototype, "removeItem");

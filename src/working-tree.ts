@@ -34,9 +34,15 @@ export function isWorkingTree(
     const child = pending.pop()!;
     if (child.isArchived || seen.has(child.id)) continue;
     seen.add(child.id);
-    if (childStatusKind(child) === "working" ||
-        (child.indicator !== "unread-error" && child.indicator !== "waiting-for-input" &&
-         !child.hasPendingInteraction && child.queuedWork !== "failed" && isThreadWorking(child))) return true;
+    if (
+      childStatusKind(child) === "working" ||
+      (child.indicator !== "unread-error" &&
+        child.indicator !== "waiting-for-input" &&
+        !child.hasPendingInteraction &&
+        child.queuedWork !== "failed" &&
+        isThreadWorking(child))
+    )
+      return true;
     pending.push(...(childrenByParent.get(child.id) ?? []));
   }
   return false;

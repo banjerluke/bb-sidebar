@@ -33,9 +33,7 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
   const candidates = parentCandidates(threads, thread)
     .map((candidate) => {
       const isOtherProject = candidate.projectId !== thread.projectId;
-      const projectName = isOtherProject
-        ? projectNameById.get(candidate.projectId) ?? candidate.projectId
-        : null;
+      const projectName = isOtherProject ? (projectNameById.get(candidate.projectId) ?? candidate.projectId) : null;
       const threadTitle = threadDisplayTitle(candidate);
       return {
         id: candidate.id,
@@ -47,18 +45,14 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
         updatedAt: candidate.updatedAt,
       };
     })
-    .filter((candidate) =>
-      candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-    )
-    .sort((left, right) =>
-      Number(left.isOtherProject) - Number(right.isOtherProject) ||
-      right.updatedAt - left.updatedAt ||
-      left.id.localeCompare(right.id),
+    .filter((candidate) => candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+    .sort(
+      (left, right) =>
+        Number(left.isOtherProject) - Number(right.isOtherProject) ||
+        right.updatedAt - left.updatedAt ||
+        left.id.localeCompare(right.id),
     );
-  const choices = [
-    { id: "", title: "None", projectName: null, threadTitle: "None", isPinned: false },
-    ...candidates,
-  ];
+  const choices = [{ id: "", title: "None", projectName: null, threadTitle: "None", isPinned: false }, ...candidates];
   const updateParent = async (parentThreadId: string | null) => {
     if (inFlight.current || parentThreadId === thread.parentThreadId) return;
     inFlight.current = true;
@@ -82,10 +76,13 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
     }
   };
   return (
-    <ContextMenu.Sub open={open} onOpenChange={(nextOpen) => {
-      setOpen(nextOpen);
-      if (nextOpen) setQuery("");
-    }}>
+    <ContextMenu.Sub
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setQuery("");
+      }}
+    >
       <ContextMenu.SubTrigger
         disabled={saving}
         className="flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[disabled]:opacity-50"
@@ -115,7 +112,9 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
                 event.stopPropagation();
                 if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                   event.preventDefault();
-                  const items = contentRef.current?.querySelectorAll<HTMLElement>('[role="menuitemradio"]:not([data-disabled])');
+                  const items = contentRef.current?.querySelectorAll<HTMLElement>(
+                    '[role="menuitemradio"]:not([data-disabled])',
+                  );
                   const item = event.key === "ArrowDown" ? items?.[0] : items?.[items.length - 1];
                   item?.focus();
                 }
@@ -144,14 +143,20 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
                 textValue={candidate.title}
                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[disabled]:opacity-50"
               >
-                {candidate.isPinned ? <Icon name="Pin" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
+                {candidate.isPinned ? (
+                  <Icon name="Pin" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                ) : null}
                 <span className="flex-1 truncate">
                   {candidate.projectName === null ? null : (
-                    <><span className="font-semibold">{candidate.projectName}</span> · </>
+                    <>
+                      <span className="font-semibold">{candidate.projectName}</span> ·{" "}
+                    </>
                   )}
                   {candidate.threadTitle}
                 </span>
-                <ContextMenu.ItemIndicator><Icon name="Check" className="size-4" /></ContextMenu.ItemIndicator>
+                <ContextMenu.ItemIndicator>
+                  <Icon name="Check" className="size-4" />
+                </ContextMenu.ItemIndicator>
               </ContextMenu.RadioItem>
             ))}
           </ContextMenu.RadioGroup>

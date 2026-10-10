@@ -17,11 +17,7 @@ import {
 import { runThreadTasks } from "./thread-tasks";
 import { threadTreeIds } from "./thread-tree";
 import { sortPinnedThreads } from "./pinned-order";
-import {
-  EMPTY_RECLAIM,
-  planTerminalReclaim,
-  type ReclaimSummary,
-} from "./reclaim";
+import { EMPTY_RECLAIM, planTerminalReclaim, type ReclaimSummary } from "./reclaim";
 import { createTitleRegenerator } from "./regenerate-title";
 import { AUTO_TITLE_RECOVERY_MIGRATION, createAutoTitleRecovery } from "./auto-title";
 import {
@@ -184,12 +180,14 @@ const cleanupIssueSchema = z.object({
 });
 const cleanupPreviewSchema = z.object({
   token: z.string(),
-  threads: z.array(z.object({
-    threadId: z.string(),
-    title: z.string(),
-    terminalCount: z.number().int().nonnegative(),
-    ports: z.array(z.number().int()),
-  })),
+  threads: z.array(
+    z.object({
+      threadId: z.string(),
+      title: z.string(),
+      terminalCount: z.number().int().nonnegative(),
+      ports: z.array(z.number().int()),
+    }),
+  ),
   skipped: z.array(cleanupIssueSchema),
 });
 const cleanupResultSchema = z.object({
@@ -242,10 +240,7 @@ const uploadFilenameSchema = z
   .min(1)
   .max(255)
   .refine(
-    (filename) =>
-      !filename.includes("/") &&
-      !filename.includes("\\") &&
-      normalizeProjectIconPath(filename) !== null,
+    (filename) => !filename.includes("/") && !filename.includes("\\") && normalizeProjectIconPath(filename) !== null,
     { message: "Choose a supported image file" },
   );
 const iconBase64Schema = z
@@ -284,10 +279,13 @@ export const bbSidebarRpcContract = defineRpcContract({
   },
   getThreadExecutionDetails: {
     input: threadIdSchema.strict(),
-    output: z.object({
-      model: z.string(),
-      reasoningLevel: z.string(),
-    }).strict().nullable(),
+    output: z
+      .object({
+        model: z.string(),
+        reasoningLevel: z.string(),
+      })
+      .strict()
+      .nullable(),
   },
   setThreadParent: {
     input: threadIdSchema.extend({ parentThreadId: z.string().trim().min(1).nullable() }).strict(),
@@ -306,10 +304,16 @@ export const bbSidebarRpcContract = defineRpcContract({
     output: z.object({ colors: z.record(z.string(), z.string()) }),
   },
   setProjectColor: {
-    input: z.object({
-      projectId: z.string().trim().min(1),
-      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).transform((value) => value.toLowerCase()).nullable(),
-    }).strict(),
+    input: z
+      .object({
+        projectId: z.string().trim().min(1),
+        color: z
+          .string()
+          .regex(/^#[0-9a-fA-F]{6}$/)
+          .transform((value) => value.toLowerCase())
+          .nullable(),
+      })
+      .strict(),
     output: z.object({ ok: z.boolean() }),
   },
   getSidebarSettings: {
@@ -430,11 +434,13 @@ export const bbSidebarRpcContract = defineRpcContract({
     output: z.object({ hosts: z.array(z.object({ id: z.string(), name: z.string() }).strict()) }).strict(),
   },
   addProjectPath: {
-    input: z.object({
-      projectId: projectIdSchema,
-      hostId: z.string().trim().min(1),
-      path: z.string().trim().min(1).max(4096),
-    }).strict(),
+    input: z
+      .object({
+        projectId: projectIdSchema,
+        hostId: z.string().trim().min(1),
+        path: z.string().trim().min(1).max(4096),
+      })
+      .strict(),
     output: z.object({ ok: z.literal(true) }).strict(),
   },
   removeProject: {
@@ -538,8 +544,7 @@ function isMissingFileError(error: unknown): boolean {
   return (
     status === 404 ||
     code === "ENOENT" ||
-    (typeof message === "string" &&
-      /ENOENT|not found|does not exist/i.test(message))
+    (typeof message === "string" && /ENOENT|not found|does not exist/i.test(message))
   );
 }
 
@@ -583,8 +588,7 @@ export default async function plugin(bb: BbPluginApi) {
           snoozePresets: row.snooze_presets,
           inactiveThreadsEnabled: row.inactive_threads_enabled === 1,
           inactiveAfterHours: row.inactive_after_hours,
-          showRunningChildrenWhenCollapsed:
-            row.show_running_children_when_collapsed === 1,
+          showRunningChildrenWhenCollapsed: row.show_running_children_when_collapsed === 1,
           autoSettleInactive: row.auto_settle_inactive === 1,
           autoSettleAfterDays: row.auto_settle_after_days,
           autoSettleOnMerge: row.auto_settle_on_merge === 1,
@@ -648,9 +652,7 @@ export default async function plugin(bb: BbPluginApi) {
     );
   };
 
-  const hasStoredSidebarSettings =
-    db.prepare(`SELECT 1 FROM sidebar_settings WHERE id = 1`).get() !==
-    undefined;
+  const hasStoredSidebarSettings = db.prepare(`SELECT 1 FROM sidebar_settings WHERE id = 1`).get() !== undefined;
   if (!hasStoredSidebarSettings) {
     try {
       const legacy = await bb.sdk.plugins.getSettings({
@@ -668,9 +670,7 @@ export default async function plugin(bb: BbPluginApi) {
       ].some((key) => key in values);
       const migrated = sidebarSettingsSchema.safeParse({
         snoozePresets:
-          typeof values.snoozePresets === "string"
-            ? values.snoozePresets
-            : DEFAULT_SIDEBAR_SETTINGS.snoozePresets,
+          typeof values.snoozePresets === "string" ? values.snoozePresets : DEFAULT_SIDEBAR_SETTINGS.snoozePresets,
         inactiveThreadsEnabled:
           typeof values.inactiveThreadsEnabled === "boolean"
             ? values.inactiveThreadsEnabled
@@ -712,14 +712,8 @@ export default async function plugin(bb: BbPluginApi) {
     }
   }
 
-  const projectIconCache = new Map<
-    string,
-    { expiresAt: number; icon: ResolvedProjectIcon | null }
-  >();
-  const pendingProjectIconResolutions = new Map<
-    string,
-    Promise<ResolvedProjectIcon | null>
-  >();
+  const projectIconCache = new Map<string, { expiresAt: number; icon: ResolvedProjectIcon | null }>();
+  const pendingProjectIconResolutions = new Map<string, Promise<ResolvedProjectIcon | null>>();
   const projectIconGenerations = new Map<string, number>();
   const defaultProjectHostIds = new Map<string, Promise<string | null>>();
   const readProjectIconOverride = (projectId: string): string | null =>
@@ -732,9 +726,7 @@ export default async function plugin(bb: BbPluginApi) {
         )
         .get(projectId) as StoredProjectIconRow | undefined
     )?.path ?? null;
-  const readProjectIconUpload = (
-    projectId: string,
-  ): StoredProjectIconUploadRow | null =>
+  const readProjectIconUpload = (projectId: string): StoredProjectIconUploadRow | null =>
     (db
       .prepare(
         `SELECT project_id, filename, mime_type, content_base64,
@@ -744,10 +736,7 @@ export default async function plugin(bb: BbPluginApi) {
       )
       .get(projectId) as StoredProjectIconUploadRow | undefined) ?? null;
   const clearProjectIconCache = (projectId: string): void => {
-    projectIconGenerations.set(
-      projectId,
-      (projectIconGenerations.get(projectId) ?? 0) + 1,
-    );
+    projectIconGenerations.set(projectId, (projectIconGenerations.get(projectId) ?? 0) + 1);
     for (const key of projectIconCache.keys()) {
       if (key.startsWith(`${projectId}\0`)) projectIconCache.delete(key);
     }
@@ -758,31 +747,23 @@ export default async function plugin(bb: BbPluginApi) {
     }
   };
 
-  const projectIconGeneration = (projectId: string): number =>
-    projectIconGenerations.get(projectId) ?? 0;
+  const projectIconGeneration = (projectId: string): number => projectIconGenerations.get(projectId) ?? 0;
 
-  const defaultProjectHostId = async (
-    projectId: string,
-  ): Promise<string | null> => {
+  const defaultProjectHostId = async (projectId: string): Promise<string | null> => {
     let pending = defaultProjectHostIds.get(projectId);
     if (!pending) {
-      pending = bb.sdk.projects.get({ projectId }).then(
-        (project) =>
-          project.sources.find((source) => source.isDefault)?.hostId ??
-          project.sources[0]?.hostId ??
-          null,
-      );
+      pending = bb.sdk.projects
+        .get({ projectId })
+        .then(
+          (project) => project.sources.find((source) => source.isDefault)?.hostId ?? project.sources[0]?.hostId ?? null,
+        );
       defaultProjectHostIds.set(projectId, pending);
       void pending.catch(() => defaultProjectHostIds.delete(projectId));
     }
     return pending;
   };
 
-  const readProjectFile = async (
-    projectId: string,
-    environmentId: string | null,
-    path: string,
-  ) => {
+  const readProjectFile = async (projectId: string, environmentId: string | null, path: string) => {
     if (environmentId) {
       return bb.sdk.projects.fileContent({ projectId, environmentId, path });
     }
@@ -856,15 +837,8 @@ export default async function plugin(bb: BbPluginApi) {
     if (!icon) {
       for (const sourcePath of PROJECT_ICON_SOURCE_FILES) {
         try {
-          const source = await readProjectFile(
-            projectId,
-            environmentId,
-            sourcePath,
-          );
-          if (
-            source.contentEncoding !== "utf8" ||
-            source.sizeBytes > PROJECT_ICON_MAX_BYTES
-          ) {
+          const source = await readProjectFile(projectId, environmentId, sourcePath);
+          if (source.contentEncoding !== "utf8" || source.sizeBytes > PROJECT_ICON_MAX_BYTES) {
             continue;
           }
           const href = extractProjectIconHref(source.content);
@@ -886,18 +860,14 @@ export default async function plugin(bb: BbPluginApi) {
 
     if (projectIconGeneration(projectId) === generation) {
       projectIconCache.set(cacheKey, {
-        expiresAt:
-          Date.now() + (icon ? PROJECT_ICON_CACHE_MS : PROJECT_ICON_MISS_CACHE_MS),
+        expiresAt: Date.now() + (icon ? PROJECT_ICON_CACHE_MS : PROJECT_ICON_MISS_CACHE_MS),
         icon,
       });
     }
     return icon;
   };
 
-  const resolveProjectIcon = (
-    projectId: string,
-    environmentId: string | null,
-  ): Promise<ResolvedProjectIcon | null> => {
+  const resolveProjectIcon = (projectId: string, environmentId: string | null): Promise<ResolvedProjectIcon | null> => {
     const cacheKey = `${projectId}\0${environmentId ?? ""}`;
     const cached = projectIconCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -906,11 +876,7 @@ export default async function plugin(bb: BbPluginApi) {
     const pending = pendingProjectIconResolutions.get(cacheKey);
     if (pending) return pending;
     const generation = projectIconGeneration(projectId);
-    const resolution = resolveProjectIconUncached(
-      projectId,
-      environmentId,
-      generation,
-    ).finally(() => {
+    const resolution = resolveProjectIconUncached(projectId, environmentId, generation).finally(() => {
       if (pendingProjectIconResolutions.get(cacheKey) === resolution) {
         pendingProjectIconResolutions.delete(cacheKey);
       }
@@ -931,14 +897,11 @@ export default async function plugin(bb: BbPluginApi) {
     }
     if (!icon) return context.body(null, 404, { "cache-control": "no-store" });
     const body =
-      icon.contentEncoding === "base64"
-        ? Uint8Array.from(Buffer.from(icon.content, "base64")).buffer
-        : icon.content;
+      icon.contentEncoding === "base64" ? Uint8Array.from(Buffer.from(icon.content, "base64")).buffer : icon.content;
     return new Response(body, {
       headers: {
         "cache-control": "private, max-age=0, must-revalidate",
-        "content-security-policy":
-          "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
         "content-type": icon.mimeType,
         "x-content-type-options": "nosniff",
       },
@@ -995,14 +958,7 @@ export default async function plugin(bb: BbPluginApi) {
          snoozed_until = excluded.snoozed_until,
          snoozed_at = excluded.snoozed_at,
          parked_at = excluded.parked_at`,
-    ).run(
-      row.threadId,
-      row.settledAt,
-      row.settledOverride,
-      row.snoozedUntil,
-      row.snoozedAt,
-      row.parkedAt ?? null,
-    );
+    ).run(row.threadId, row.settledAt, row.settledOverride, row.snoozedUntil, row.snoozedAt, row.parkedAt ?? null);
     if (publish) {
       bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId: row.threadId });
     }
@@ -1018,24 +974,17 @@ export default async function plugin(bb: BbPluginApi) {
   };
 
   const clear = (threadId: string): void => {
-    db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(
-      threadId,
-    );
+    db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
     bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId });
   };
 
   const clearSettlingState = (threadId: string): boolean => {
     const row = readOne(threadId);
-    if (
-      row === null ||
-      (row.settledAt === null && row.settledOverride === null && row.parkedAt == null)
-    ) {
+    if (row === null || (row.settledAt === null && row.settledOverride === null && row.parkedAt == null)) {
       return false;
     }
     if (row.snoozedUntil === null) {
-      db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(
-        threadId,
-      );
+      db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
     } else {
       write(
         {
@@ -1053,12 +1002,17 @@ export default async function plugin(bb: BbPluginApi) {
   const sameLifecycle = (left: StoredLifecycleRow | null, right: StoredLifecycleRow | null) =>
     JSON.stringify(left) === JSON.stringify(right);
 
-  type AncestorThread = Pick<Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>>,
-    "id" | "parentThreadId" | "archivedAt" | "deletedAt">;
+  type AncestorThread = Pick<
+    Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>>,
+    "id" | "parentThreadId" | "archivedAt" | "deletedAt"
+  >;
 
   const wakeAncestors = async (
     thread: { id: string; parentThreadId: string | null },
-    { automaticOnly = false, threadsById }: {
+    {
+      automaticOnly = false,
+      threadsById,
+    }: {
       automaticOnly?: boolean;
       threadsById?: ReadonlyMap<string, AncestorThread>;
     } = {},
@@ -1066,7 +1020,7 @@ export default async function plugin(bb: BbPluginApi) {
     if (thread.parentThreadId === null) return [];
     // Capture all shelves before the first lookup, including ancestors whose
     // IDs we will only learn after an earlier request finishes.
-    const previousRows = new Map(readAll().map(row => [row.threadId, row]));
+    const previousRows = new Map(readAll().map((row) => [row.threadId, row]));
     const visited = new Set([thread.id]);
     const ancestors: string[] = [];
     let parentId: string | null = thread.parentThreadId;
@@ -1121,8 +1075,7 @@ export default async function plugin(bb: BbPluginApi) {
       threadIds.forEach((id) => pinParentChanges.delete(id));
     }
   };
-  const withPinParentChange = <T>(threadId: string, change: () => Promise<T>) =>
-    withThreadChanges([threadId], change);
+  const withPinParentChange = <T>(threadId: string, change: () => Promise<T>) => withThreadChanges([threadId], change);
 
   const readInboxOrder = (): string[] =>
     (
@@ -1137,9 +1090,7 @@ export default async function plugin(bb: BbPluginApi) {
 
   const replaceInboxOrder = db.transaction((inboxThreadIds: string[]) => {
     db.prepare(`DELETE FROM inbox_order`).run();
-    const insert = db.prepare(
-      `INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)`,
-    );
+    const insert = db.prepare(`INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)`);
     inboxThreadIds.forEach((threadId, index) => insert.run(threadId, index));
   });
 
@@ -1150,9 +1101,13 @@ export default async function plugin(bb: BbPluginApi) {
   const loadPolicyThreads = async (includeHidden = false) => {
     if (!includeHidden) {
       const projects = await bb.sdk.projects.list({ include: "threads", includePersonal: true });
-      return projects.flatMap((project) => "threads" in project
-        ? project.threads.filter((thread) => thread.archivedAt === null && thread.deletedAt === null && thread.visibility === "visible")
-        : []);
+      return projects.flatMap((project) =>
+        "threads" in project
+          ? project.threads.filter(
+              (thread) => thread.archivedAt === null && thread.deletedAt === null && thread.visibility === "visible",
+            )
+          : [],
+      );
     }
     const byId = new Map<string, Awaited<ReturnType<typeof bb.sdk.threads.list>>[number]>();
     const limit = 100;
@@ -1171,13 +1126,16 @@ export default async function plugin(bb: BbPluginApi) {
   const threadSignals = (thread: CleanupThread) => ({
     hasPendingInteraction: thread.hasPendingInteraction,
     hasQueuedWork: thread.queuedWork !== "none",
-    isWorking: hasLiveWork({
-      workflows: thread.activity.activeWorkflowCount,
-      backgroundAgents: thread.activity.activeBackgroundAgentCount,
-      backgroundCommands: thread.activity.activeBackgroundCommandCount,
-      planMode: thread.activity.activePlanModeCount,
-      goals: thread.activity.activeGoalCount,
-    }, isTurnInFlight(thread.status)),
+    isWorking: hasLiveWork(
+      {
+        workflows: thread.activity.activeWorkflowCount,
+        backgroundAgents: thread.activity.activeBackgroundAgentCount,
+        backgroundCommands: thread.activity.activeBackgroundCommandCount,
+        planMode: thread.activity.activePlanModeCount,
+        goals: thread.activity.activeGoalCount,
+      },
+      isTurnInFlight(thread.status),
+    ),
     isUnread: thread.lastReadAt === null || thread.latestAttentionAt > thread.lastReadAt,
     latestAttentionAt: thread.latestAttentionAt,
   });
@@ -1192,17 +1150,23 @@ export default async function plugin(bb: BbPluginApi) {
   const loadSettleTree = async (threadId: string) => settleTree(await loadPolicyThreads(true), threadId);
   // Undo belongs to one completed action, not to a later Return to Active.
   // Toasts are short-lived; bound snapshots and expire them after five minutes.
-  const settleUndos = new Map<string, {
-    threadId: string;
-    settledAt: number;
-    expiresAt: number;
-    previous: Array<{ threadId: string; parentThreadId: string | null; row: StoredLifecycleRow | null }>;
-  }>();
+  const settleUndos = new Map<
+    string,
+    {
+      threadId: string;
+      settledAt: number;
+      expiresAt: number;
+      previous: Array<{ threadId: string; parentThreadId: string | null; row: StoredLifecycleRow | null }>;
+    }
+  >();
   bb.onDispose(() => settleUndos.clear());
   let lastManualSettleAt = 0;
   const matchesSettle = (row: StoredLifecycleRow | null, settledAt: number) =>
-    row?.settledAt === settledAt && row.settledOverride === "settled" &&
-    row.parkedAt == null && row.snoozedUntil === null && row.snoozedAt === null;
+    row?.settledAt === settledAt &&
+    row.settledOverride === "settled" &&
+    row.parkedAt == null &&
+    row.snoozedUntil === null &&
+    row.snoozedAt === null;
 
   type CleanupIssue = z.infer<typeof cleanupIssueSchema>;
   type CleanupPlanThread = {
@@ -1211,53 +1175,73 @@ export default async function plugin(bb: BbPluginApi) {
     ports: Array<z.infer<typeof ownedPortTargetSchema>>;
     workspace: { environmentId: string; hostId: string; path: string } | null;
   };
-  const sameCleanupWorkspace = (
-    left: CleanupPlanThread["workspace"],
-    right: CleanupPlanThread["workspace"],
-  ) => left === null ? right === null : right !== null &&
-    left.environmentId === right.environmentId && left.hostId === right.hostId && left.path === right.path;
+  const sameCleanupWorkspace = (left: CleanupPlanThread["workspace"], right: CleanupPlanThread["workspace"]) =>
+    left === null
+      ? right === null
+      : right !== null &&
+        left.environmentId === right.environmentId &&
+        left.hostId === right.hostId &&
+        left.path === right.path;
   const terminalInCleanupWorkspace = (
     session: { environmentId: string | null; hostId: string | null },
     workspace: CleanupPlanThread["workspace"],
-  ) => workspace === null ? session.environmentId === null :
-    session.environmentId === workspace.environmentId && session.hostId === workspace.hostId;
+  ) =>
+    workspace === null
+      ? session.environmentId === null
+      : session.environmentId === workspace.environmentId && session.hostId === workspace.hostId;
   const cleanupPlans = new Map<string, { expiresAt: number; threads: CleanupPlanThread[]; skipped: CleanupIssue[] }>();
   bb.onDispose(() => cleanupPlans.clear());
 
   const canCleanSettledThread = (thread: CleanupThread, row: StoredLifecycleRow | null) => {
-    if (!row || thread.visibility !== "visible" || row.settledAt === null || row.parkedAt != null ||
-        row.snoozedUntil !== null || thread.pinnedAt !== null ||
-        thread.latestAttentionAt > row.settledAt) return false;
+    if (
+      !row ||
+      thread.visibility !== "visible" ||
+      row.settledAt === null ||
+      row.parkedAt != null ||
+      row.snoozedUntil !== null ||
+      thread.pinnedAt !== null ||
+      thread.latestAttentionAt > row.settledAt
+    )
+      return false;
     const activity = thread.activity;
     return canPark({
       hasPendingInteraction: thread.hasPendingInteraction,
       hasQueuedWork: thread.queuedWork !== "none",
-      isWorking: hasLiveWork({
-        workflows: activity.activeWorkflowCount,
-        backgroundAgents: activity.activeBackgroundAgentCount,
-        backgroundCommands: activity.activeBackgroundCommandCount,
-        planMode: activity.activePlanModeCount,
-        goals: activity.activeGoalCount,
-      }, isTurnInFlight(thread.status)),
+      isWorking: hasLiveWork(
+        {
+          workflows: activity.activeWorkflowCount,
+          backgroundAgents: activity.activeBackgroundAgentCount,
+          backgroundCommands: activity.activeBackgroundCommandCount,
+          planMode: activity.activePlanModeCount,
+          goals: activity.activeGoalCount,
+        },
+        isTurnInFlight(thread.status),
+      ),
     });
   };
   const cleanupContext = async (targetThreadId?: string) => {
     const beforeLookup = await loadPolicyThreads(true);
     const target = targetThreadId ? beforeLookup.find((thread) => thread.id === targetThreadId) : undefined;
-    const lookupThreads = target ? beforeLookup.filter((thread) =>
-      thread.environmentId === target.environmentId ||
-      (target.environmentHostId && thread.environmentHostId === target.environmentHostId),
-    ) : beforeLookup;
+    const lookupThreads = target
+      ? beforeLookup.filter(
+          (thread) =>
+            thread.environmentId === target.environmentId ||
+            (target.environmentHostId && thread.environmentHostId === target.environmentHostId),
+        )
+      : beforeLookup;
     const { paths, failedHosts } = await threadPortActions.canonicalWorkspacePaths(lookupThreads);
     // Host path lookup can take seconds. Policy and activity must be read
     // again after it, before any cleanup decision is made.
     const threads = await loadPolicyThreads(true);
     const byId = new Map(threads.map((thread) => [thread.id, thread] as const));
     const currentTarget = targetThreadId ? byId.get(targetThreadId) : undefined;
-    const relevant = currentTarget ? threads.filter((thread) =>
-      thread.environmentId === currentTarget.environmentId ||
-      (currentTarget.environmentHostId && thread.environmentHostId === currentTarget.environmentHostId),
-    ) : threads;
+    const relevant = currentTarget
+      ? threads.filter(
+          (thread) =>
+            thread.environmentId === currentTarget.environmentId ||
+            (currentTarget.environmentHostId && thread.environmentHostId === currentTarget.environmentHostId),
+        )
+      : threads;
     const workspaceKeys = (thread: CleanupThread): string[] => {
       if (!thread.environmentId) return [];
       const path = paths.get(thread.environmentId);
@@ -1266,23 +1250,36 @@ export default async function plugin(bb: BbPluginApi) {
         ...(thread.environmentHostId && path ? [`path:${thread.environmentHostId}\0${path}`] : []),
       ];
     };
-    const protectedWorkspaces = new Set(relevant.flatMap((thread) => {
-      if (canCleanSettledThread(thread, readOne(thread.id))) return [];
-      return workspaceKeys(thread);
-    }));
-    const unresolvedProtectedHosts = new Set(relevant.flatMap((thread) => {
-      if (canCleanSettledThread(thread, readOne(thread.id))) return [];
-      if (!thread.environmentHostId || !thread.environmentPath ||
-          !thread.environmentId || !paths.has(thread.environmentId)) {
-        return thread.environmentHostId ? [thread.environmentHostId] : [];
-      }
-      return [];
-    }));
+    const protectedWorkspaces = new Set(
+      relevant.flatMap((thread) => {
+        if (canCleanSettledThread(thread, readOne(thread.id))) return [];
+        return workspaceKeys(thread);
+      }),
+    );
+    const unresolvedProtectedHosts = new Set(
+      relevant.flatMap((thread) => {
+        if (canCleanSettledThread(thread, readOne(thread.id))) return [];
+        if (
+          !thread.environmentHostId ||
+          !thread.environmentPath ||
+          !thread.environmentId ||
+          !paths.has(thread.environmentId)
+        ) {
+          return thread.environmentHostId ? [thread.environmentHostId] : [];
+        }
+        return [];
+      }),
+    );
     const isProtectedWorkspace = (thread: CleanupThread) => {
       if (!thread.environmentId) return false;
-      if (!thread.environmentHostId || !thread.environmentPath ||
-          failedHosts.has(thread.environmentHostId) || !paths.has(thread.environmentId) ||
-          unresolvedProtectedHosts.has(thread.environmentHostId)) return true;
+      if (
+        !thread.environmentHostId ||
+        !thread.environmentPath ||
+        failedHosts.has(thread.environmentHostId) ||
+        !paths.has(thread.environmentId) ||
+        unresolvedProtectedHosts.has(thread.environmentHostId)
+      )
+        return true;
       return workspaceKeys(thread).some((key) => protectedWorkspaces.has(key));
     };
     return { byId, isProtectedWorkspace };
@@ -1293,32 +1290,29 @@ export default async function plugin(bb: BbPluginApi) {
   const loadPullRequests = async (environmentIds: readonly string[]) => {
     const results = new Map<string, AutoSettlePullRequest>();
     let nextIndex = 0;
-    const workers = Array.from(
-      { length: Math.min(4, environmentIds.length) },
-      async () => {
-        while (nextIndex < environmentIds.length) {
-          const environmentId = environmentIds[nextIndex++]!;
-          try {
-            const result = await bb.sdk.environments.pullRequest({
-              environmentId,
+    const workers = Array.from({ length: Math.min(4, environmentIds.length) }, async () => {
+      while (nextIndex < environmentIds.length) {
+        const environmentId = environmentIds[nextIndex++]!;
+        try {
+          const result = await bb.sdk.environments.pullRequest({
+            environmentId,
+          });
+          if (result.outcome === "available") {
+            results.set(environmentId, {
+              outcome: "available",
+              state: result.pullRequest.state,
+              updatedAt: result.pullRequest.updatedAt,
             });
-            if (result.outcome === "available") {
-              results.set(environmentId, {
-                outcome: "available",
-                state: result.pullRequest.state,
-                updatedAt: result.pullRequest.updatedAt,
-              });
-            } else if (result.outcome === "absent") {
-              results.set(environmentId, { outcome: "absent" });
-            } else {
-              results.set(environmentId, { outcome: "unknown" });
-            }
-          } catch {
+          } else if (result.outcome === "absent") {
+            results.set(environmentId, { outcome: "absent" });
+          } else {
             results.set(environmentId, { outcome: "unknown" });
           }
+        } catch {
+          results.set(environmentId, { outcome: "unknown" });
         }
-      },
-    );
+      }
+    });
     await Promise.all(workers);
     return results;
   };
@@ -1333,18 +1327,26 @@ export default async function plugin(bb: BbPluginApi) {
     owner?: { threadId: string; row: StoredLifecycleRow | null },
     stillEligible?: (thread: CleanupThread) => boolean,
   ): Promise<ReclaimSummary> => {
-    const ownsRow = () => expectedRow !== null && sameLifecycle(readOne(threadId), expectedRow) &&
+    const ownsRow = () =>
+      expectedRow !== null &&
+      sameLifecycle(readOne(threadId), expectedRow) &&
       (!owner || sameLifecycle(readOne(owner.threadId), owner.row));
     const canReclaim = async () => {
       if (!ownsRow()) return false;
       const thread = (await loadPolicyThreads(snapshot?.visibility === "hidden")).find((item) => item.id === threadId);
-      return ownsRow() && thread !== undefined && thread.pinnedAt === null &&
-        canPark(threadSignals(thread)) && (!stillEligible || stillEligible(thread)) && (!snapshot ||
-          (thread.parentThreadId === snapshot.parentThreadId && thread.latestAttentionAt <= snapshot.latestAttentionAt));
+      return (
+        ownsRow() &&
+        thread !== undefined &&
+        thread.pinnedAt === null &&
+        canPark(threadSignals(thread)) &&
+        (!stillEligible || stillEligible(thread)) &&
+        (!snapshot ||
+          (thread.parentThreadId === snapshot.parentThreadId && thread.latestAttentionAt <= snapshot.latestAttentionAt))
+      );
     };
     let stoppedRuntime = false;
     try {
-      if (!await canReclaim()) return { ...EMPTY_RECLAIM };
+      if (!(await canReclaim())) return { ...EMPTY_RECLAIM };
       await bb.sdk.threads.stop({ threadId });
       stoppedRuntime = true;
     } catch {
@@ -1361,7 +1363,7 @@ export default async function plugin(bb: BbPluginApi) {
       keptTerminals = plan.keep;
       for (const terminalId of plan.close) {
         try {
-          if (!await canReclaim()) break;
+          if (!(await canReclaim())) break;
           await bb.sdk.terminals.close({ terminalId, mode: "if-clean" });
           closedTerminals += 1;
         } catch {
@@ -1406,9 +1408,7 @@ export default async function plugin(bb: BbPluginApi) {
             false,
           );
         } else {
-          db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(
-            threadId,
-          );
+          db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
         }
       }
     },
@@ -1426,18 +1426,13 @@ export default async function plugin(bb: BbPluginApi) {
       const settingsRevision = policySettingsRevision;
       const configured = readSidebarSettings();
       let threads = await loadPolicyThreads(true);
-      const lifecycleByThreadId = new Map(
-        readAll().map((row) => [row.threadId, row]),
-      );
+      const lifecycleByThreadId = new Map(readAll().map((row) => [row.threadId, row]));
       const environmentIds = [
         ...new Set(
           threads.flatMap((thread) => {
             if (
               thread.environmentId === null ||
-              !autoSettleNeedsPullRequest(
-                lifecycleByThreadId.get(thread.id) ?? null,
-                thread,
-              )
+              !autoSettleNeedsPullRequest(lifecycleByThreadId.get(thread.id) ?? null, thread)
             ) {
               return [];
             }
@@ -1448,15 +1443,13 @@ export default async function plugin(bb: BbPluginApi) {
       const pullRequests = await loadPullRequests(environmentIds);
       const now = Date.now();
       const policySettings = {
-        afterDays: parseAutoSettleAfterDays(
-          configured.autoSettleInactive,
-          String(configured.autoSettleAfterDays),
-        ),
+        afterDays: parseAutoSettleAfterDays(configured.autoSettleInactive, String(configured.autoSettleAfterDays)),
         onMerge: configured.autoSettleOnMerge,
       };
       const decide = (keepThreadIds: ReadonlySet<string>) =>
         threads.flatMap((thread) => {
-          if (keepThreadIds.has(thread.id) || (thread.visibility === "hidden" && thread.parentThreadId === null)) return [];
+          if (keepThreadIds.has(thread.id) || (thread.visibility === "hidden" && thread.parentThreadId === null))
+            return [];
           // Re-read after every lookup so a concurrent Park action wins.
           const row = readOne(thread.id);
           const decision = decideAutoSettle({
@@ -1471,20 +1464,14 @@ export default async function plugin(bb: BbPluginApi) {
             settings: policySettings,
             thread,
           });
-          return decision === "keep"
-            ? []
-            : [{ decision, row, threadId: thread.id }];
+          return decision === "keep" ? [] : [{ decision, row, threadId: thread.id }];
         });
       let changes = decide(new Set());
       // Settling stops the runtime, which kills what its agent left running in
       // the background, and bb cannot see that work when the provider does not
       // report it. A thread still serving a port, such as a dev server, stays
       // out of policy reach until it stops.
-      const settling = new Set(
-        changes.flatMap((change) =>
-          change.decision === "settle" ? [change.threadId] : [],
-        ),
-      );
+      const settling = new Set(changes.flatMap((change) => (change.decision === "settle" ? [change.threadId] : [])));
       if (settling.size > 0) {
         const servingPorts = await threadPortActions.threadsServingPorts(
           threads.filter((thread) => settling.has(thread.id)),
@@ -1493,22 +1480,28 @@ export default async function plugin(bb: BbPluginApi) {
         // A child may have been created or restarted during the lookups.
         // Recheck the tree before settling, using only scanned candidates.
         threads = await loadPolicyThreads(true);
-        changes = decide(servingPorts).filter((change) =>
-          change.decision !== "settle" || settling.has(change.threadId),
+        changes = decide(servingPorts).filter(
+          (change) => change.decision !== "settle" || settling.has(change.threadId),
         );
       }
       // A parent can only leave the inbox once its whole tree is settled.
       // Descendants keep their own PR, inactivity, pin, and live-work rules.
-      const settlingIds = new Set(changes.filter((change) => change.decision === "settle").map((change) => change.threadId));
-      const restoringIds = new Set(changes.filter((change) => change.decision === "unsettle").map((change) => change.threadId));
+      const settlingIds = new Set(
+        changes.filter((change) => change.decision === "settle").map((change) => change.threadId),
+      );
+      const restoringIds = new Set(
+        changes.filter((change) => change.decision === "unsettle").map((change) => change.threadId),
+      );
       const byId = new Map(threads.map((thread) => [thread.id, thread]));
-      changes = changes.filter((change) => change.decision !== "settle" ||
-        threadTreeIds(threads, change.threadId).every((id) => {
-          if (settlingIds.has(id)) return true;
-          if (restoringIds.has(id)) return false;
-          const thread = byId.get(id)!;
-          return resolveShelf(readOne(id) ?? undefined, threadSignals(thread), now) === "settled";
-        }),
+      changes = changes.filter(
+        (change) =>
+          change.decision !== "settle" ||
+          threadTreeIds(threads, change.threadId).every((id) => {
+            if (settlingIds.has(id)) return true;
+            if (restoringIds.has(id)) return false;
+            const thread = byId.get(id)!;
+            return resolveShelf(readOne(id) ?? undefined, threadSignals(thread), now) === "settled";
+          }),
       );
       // Settings can change while PRs or ports are loading. The queued pass
       // uses the latest rules; this older pass must not move or stop threads.
@@ -1519,32 +1512,35 @@ export default async function plugin(bb: BbPluginApi) {
       publishLifecycleChanges([...changedThreadIds]);
       for (const change of changes) {
         if (change.decision === "unsettle") {
-          for (const id of await wakeAncestors(byId.get(change.threadId)!, { automaticOnly: true, threadsById: byId })) changedThreadIds.add(id);
+          for (const id of await wakeAncestors(byId.get(change.threadId)!, { automaticOnly: true, threadsById: byId }))
+            changedThreadIds.add(id);
         }
       }
       // Outside the transaction, because releasing a runtime is a network call
       // and holding a write lock open across one would block every other write.
       await runThreadTasks(
-        changes.flatMap((change) =>
-          change.decision === "settle" ? [change.threadId] : [],
-        ),
+        changes.flatMap((change) => (change.decision === "settle" ? [change.threadId] : [])),
         async (threadId) => {
           await reclaimThreadResources(threadId, byId.get(threadId), cleanupRows.get(threadId), undefined, (thread) => {
             if (settingsRevision === policySettingsRevision) return true;
             const current = readSidebarSettings();
             // A changed rule may return this thread to Active. Only finish its
             // reclaim if it still qualifies under the new rules.
-            return decideAutoSettle({
-              lifecycle: null,
-              now: Date.now(),
-              pullRequest: thread.environmentId === null ? { outcome: "absent" }
-                : pullRequests.get(thread.environmentId) ?? { outcome: "unknown" },
-              settings: {
-                afterDays: parseAutoSettleAfterDays(current.autoSettleInactive, String(current.autoSettleAfterDays)),
-                onMerge: current.autoSettleOnMerge,
-              },
-              thread,
-            }) === "settle";
+            return (
+              decideAutoSettle({
+                lifecycle: null,
+                now: Date.now(),
+                pullRequest:
+                  thread.environmentId === null
+                    ? { outcome: "absent" }
+                    : (pullRequests.get(thread.environmentId) ?? { outcome: "unknown" }),
+                settings: {
+                  afterDays: parseAutoSettleAfterDays(current.autoSettleInactive, String(current.autoSettleAfterDays)),
+                  onMerge: current.autoSettleOnMerge,
+                },
+                thread,
+              }) === "settle"
+            );
           });
         },
         4,
@@ -1579,55 +1575,78 @@ export default async function plugin(bb: BbPluginApi) {
       const threads: z.infer<typeof cleanupPreviewSchema>["threads"] = [];
       const skipped: CleanupIssue[] = [];
       const planned: CleanupPlanThread[] = [];
-      const work = await runThreadTasks(threadIds, async (threadId) => {
-        const thread = byId.get(threadId);
-        if (!thread || !canCleanSettledThread(thread, readOne(threadId))) {
-          skipped.push({ threadId, resource: "thread", message: "Thread is no longer in Settled or has active work" });
-          return;
-        }
-        if (isProtectedWorkspace(thread)) return;
-        let workspace: CleanupPlanThread["workspace"];
-        try {
-          workspace = await threadPortActions.getThreadWorkspace({ threadId });
-        } catch (error) {
-          skipped.push({ threadId, resource: "thread", message: `Could not verify workspace: ${cleanupError(error)}` });
-          return;
-        }
-        const terminalIds: string[] = [];
-        try {
-          const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
-          terminalIds.push(...sessions.filter((session) =>
-            session.threadId === threadId &&
-            terminalInCleanupWorkspace(session, workspace) &&
-            (session.status === "running" || session.status === "starting"),
-          ).map((session) => session.id));
-        } catch (error) {
-          skipped.push({ threadId, resource: "terminal", message: `Could not inspect terminals: ${cleanupError(error)}` });
-        }
-        let ports: CleanupPlanThread["ports"] = [];
-        if (thread.environmentId) {
-          try {
-            const found = await threadPortActions.getThreadPorts({ threadId });
-            ports = found.ports.filter((port) => port.processStartedAt);
-            if (!sameCleanupWorkspace(workspace, found.workspace)) {
-              skipped.push({ threadId, resource: "port", message: "Thread workspace changed during preview" });
-              ports = [];
-            }
-          } catch (error) {
-            skipped.push({ threadId, resource: "port", message: `Could not inspect ports: ${cleanupError(error)}` });
+      const work = await runThreadTasks(
+        threadIds,
+        async (threadId) => {
+          const thread = byId.get(threadId);
+          if (!thread || !canCleanSettledThread(thread, readOne(threadId))) {
+            skipped.push({
+              threadId,
+              resource: "thread",
+              message: "Thread is no longer in Settled or has active work",
+            });
+            return;
           }
-        }
-        if (terminalIds.length > 0 || ports.length > 0) {
-          planned.push({ threadId, terminalIds, ports, workspace });
-          threads.push({
-            threadId,
-            title: thread.title ?? thread.titleFallback ?? threadId,
-            terminalCount: terminalIds.length,
-            ports: [...new Set(ports.map((port) => port.port))],
-          });
-        }
-      }, 4);
-      skipped.push(...work.failures.map(({ threadId, error }) => ({ threadId, resource: "thread" as const, message: error })));
+          if (isProtectedWorkspace(thread)) return;
+          let workspace: CleanupPlanThread["workspace"];
+          try {
+            workspace = await threadPortActions.getThreadWorkspace({ threadId });
+          } catch (error) {
+            skipped.push({
+              threadId,
+              resource: "thread",
+              message: `Could not verify workspace: ${cleanupError(error)}`,
+            });
+            return;
+          }
+          const terminalIds: string[] = [];
+          try {
+            const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
+            terminalIds.push(
+              ...sessions
+                .filter(
+                  (session) =>
+                    session.threadId === threadId &&
+                    terminalInCleanupWorkspace(session, workspace) &&
+                    (session.status === "running" || session.status === "starting"),
+                )
+                .map((session) => session.id),
+            );
+          } catch (error) {
+            skipped.push({
+              threadId,
+              resource: "terminal",
+              message: `Could not inspect terminals: ${cleanupError(error)}`,
+            });
+          }
+          let ports: CleanupPlanThread["ports"] = [];
+          if (thread.environmentId) {
+            try {
+              const found = await threadPortActions.getThreadPorts({ threadId });
+              ports = found.ports.filter((port) => port.processStartedAt);
+              if (!sameCleanupWorkspace(workspace, found.workspace)) {
+                skipped.push({ threadId, resource: "port", message: "Thread workspace changed during preview" });
+                ports = [];
+              }
+            } catch (error) {
+              skipped.push({ threadId, resource: "port", message: `Could not inspect ports: ${cleanupError(error)}` });
+            }
+          }
+          if (terminalIds.length > 0 || ports.length > 0) {
+            planned.push({ threadId, terminalIds, ports, workspace });
+            threads.push({
+              threadId,
+              title: thread.title ?? thread.titleFallback ?? threadId,
+              terminalCount: terminalIds.length,
+              ports: [...new Set(ports.map((port) => port.port))],
+            });
+          }
+        },
+        4,
+      );
+      skipped.push(
+        ...work.failures.map(({ threadId, error }) => ({ threadId, resource: "thread" as const, message: error })),
+      );
       const token = randomUUID();
       const now = Date.now();
       for (const [oldToken, plan] of cleanupPlans) if (plan.expiresAt <= now) cleanupPlans.delete(oldToken);
@@ -1639,7 +1658,8 @@ export default async function plugin(bb: BbPluginApi) {
     async cleanSettled({ token }) {
       const plan = cleanupPlans.get(token);
       cleanupPlans.delete(token);
-      if (!plan || plan.expiresAt <= Date.now()) throw new Error("Cleanup preview expired. Review the resources again.");
+      if (!plan || plan.expiresAt <= Date.now())
+        throw new Error("Cleanup preview expired. Review the resources again.");
       const result: z.infer<typeof cleanupResultSchema> = {
         closedTerminals: 0,
         signalledPorts: [],
@@ -1648,81 +1668,149 @@ export default async function plugin(bb: BbPluginApi) {
         failed: [],
       };
       const plannedById = new Map(plan.threads.map((thread) => [thread.threadId, thread]));
-      const work = await runThreadTasks(plan.threads.map((thread) => thread.threadId), async (threadId) => {
-        const { byId, isProtectedWorkspace } = await cleanupContext(threadId);
-        const thread = byId.get(threadId);
-        if (!thread || !canCleanSettledThread(thread, readOne(threadId)) || isProtectedWorkspace(thread)) {
-          result.skipped.push({ threadId, resource: "thread", message: "Thread returned to Active or Working, or shares a protected workspace" });
-          return;
-        }
-        const plannedThread = plannedById.get(threadId)!;
-        if (plannedThread.terminalIds.length > 0) {
-          try {
-            const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
-            const current = new Map(sessions.map((session) => [session.id, session]));
-            for (const terminalId of plannedThread.terminalIds) {
-              const latestWorkspace = await threadPortActions.getThreadWorkspace({ threadId });
-              const latest = await cleanupContext(threadId);
-              const latestThread = latest.byId.get(threadId);
-              if (!latestThread || !canCleanSettledThread(latestThread, readOne(threadId)) ||
+      const work = await runThreadTasks(
+        plan.threads.map((thread) => thread.threadId),
+        async (threadId) => {
+          const { byId, isProtectedWorkspace } = await cleanupContext(threadId);
+          const thread = byId.get(threadId);
+          if (!thread || !canCleanSettledThread(thread, readOne(threadId)) || isProtectedWorkspace(thread)) {
+            result.skipped.push({
+              threadId,
+              resource: "thread",
+              message: "Thread returned to Active or Working, or shares a protected workspace",
+            });
+            return;
+          }
+          const plannedThread = plannedById.get(threadId)!;
+          if (plannedThread.terminalIds.length > 0) {
+            try {
+              const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
+              const current = new Map(sessions.map((session) => [session.id, session]));
+              for (const terminalId of plannedThread.terminalIds) {
+                const latestWorkspace = await threadPortActions.getThreadWorkspace({ threadId });
+                const latest = await cleanupContext(threadId);
+                const latestThread = latest.byId.get(threadId);
+                if (
+                  !latestThread ||
+                  !canCleanSettledThread(latestThread, readOne(threadId)) ||
                   latest.isProtectedWorkspace(latestThread) ||
-                  !sameCleanupWorkspace(plannedThread.workspace, latestWorkspace)) {
-                result.skipped.push({ threadId, resource: "terminal", message: `Terminal ${terminalId} is now protected by active work or a shared workspace` });
-                break;
-              }
-              const session = current.get(terminalId);
-              if (!session || session.threadId !== threadId ||
+                  !sameCleanupWorkspace(plannedThread.workspace, latestWorkspace)
+                ) {
+                  result.skipped.push({
+                    threadId,
+                    resource: "terminal",
+                    message: `Terminal ${terminalId} is now protected by active work or a shared workspace`,
+                  });
+                  break;
+                }
+                const session = current.get(terminalId);
+                if (
+                  !session ||
+                  session.threadId !== threadId ||
                   !terminalInCleanupWorkspace(session, latestWorkspace) ||
-                  (session.status !== "running" && session.status !== "starting")) {
-                result.skipped.push({ threadId, resource: "terminal", message: `Terminal ${terminalId} is no longer owned by this settled thread` });
-                continue;
+                  (session.status !== "running" && session.status !== "starting")
+                ) {
+                  result.skipped.push({
+                    threadId,
+                    resource: "terminal",
+                    message: `Terminal ${terminalId} is no longer owned by this settled thread`,
+                  });
+                  continue;
+                }
+                try {
+                  await bb.sdk.terminals.close({ terminalId, mode: "force" });
+                  result.closedTerminals += 1;
+                } catch (error) {
+                  result.failed.push({
+                    threadId,
+                    resource: "terminal",
+                    message: `Terminal ${terminalId}: ${cleanupError(error)}`,
+                  });
+                }
               }
-              try {
-                await bb.sdk.terminals.close({ terminalId, mode: "force" });
-                result.closedTerminals += 1;
-              } catch (error) {
-                result.failed.push({ threadId, resource: "terminal", message: `Terminal ${terminalId}: ${cleanupError(error)}` });
-              }
+            } catch (error) {
+              result.failed.push({
+                threadId,
+                resource: "terminal",
+                message: `Could not recheck terminals: ${cleanupError(error)}`,
+              });
+            }
+          }
+          if (plannedThread.ports.length === 0) return;
+          try {
+            const current = await threadPortActions.getThreadPorts({ threadId });
+            if (!plannedThread.workspace || !sameCleanupWorkspace(plannedThread.workspace, current.workspace)) {
+              result.skipped.push({ threadId, resource: "port", message: "Thread workspace changed since preview" });
+              return;
+            }
+            const targets = plannedThread.ports.filter((target) =>
+              current.ports.some(
+                (port) =>
+                  port.pid === target.pid &&
+                  port.port === target.port &&
+                  port.processStartedAt === target.processStartedAt,
+              ),
+            );
+            if (targets.length < plannedThread.ports.length) {
+              result.skipped.push({
+                threadId,
+                resource: "port",
+                message: "Some previewed ports changed ownership or closed",
+              });
+            }
+            if (targets.length === 0) return;
+            const beforeSignal = await cleanupContext(threadId);
+            const signalThread = beforeSignal.byId.get(threadId);
+            if (
+              !signalThread ||
+              !canCleanSettledThread(signalThread, readOne(threadId)) ||
+              beforeSignal.isProtectedWorkspace(signalThread)
+            ) {
+              result.skipped.push({
+                threadId,
+                resource: "port",
+                message: "Thread or shared workspace became active before shutdown",
+              });
+              return;
+            }
+            const closed = await threadPortActions.closeThreadPorts({
+              threadId,
+              ports: targets,
+              expectedWorkspace: plannedThread.workspace,
+            });
+            result.signalledPorts.push(...closed.signalled.map((port) => ({ threadId, port })));
+            result.skipped.push(
+              ...closed.skipped.map((port) => ({
+                threadId,
+                resource: "port" as const,
+                message: `Port :${port} changed before shutdown`,
+              })),
+            );
+            result.failed.push(
+              ...closed.failed.map((port) => ({
+                threadId,
+                resource: "port" as const,
+                message: `Could not signal port :${port}`,
+              })),
+            );
+            if (closed.signalled.length > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 750));
+              const after = await threadPortActions.getThreadPorts({ threadId });
+              result.remainingPorts.push(
+                ...after.ports
+                  .filter((port) => closed.signalled.includes(port.port))
+                  .map((port) => ({ threadId, port: port.port })),
+              );
             }
           } catch (error) {
-            result.failed.push({ threadId, resource: "terminal", message: `Could not recheck terminals: ${cleanupError(error)}` });
+            result.failed.push({ threadId, resource: "port", message: cleanupError(error) });
           }
-        }
-        if (plannedThread.ports.length === 0) return;
-        try {
-          const current = await threadPortActions.getThreadPorts({ threadId });
-          if (!plannedThread.workspace || !sameCleanupWorkspace(plannedThread.workspace, current.workspace)) {
-            result.skipped.push({ threadId, resource: "port", message: "Thread workspace changed since preview" });
-            return;
-          }
-          const targets = plannedThread.ports.filter((target) => current.ports.some((port) =>
-            port.pid === target.pid && port.port === target.port && port.processStartedAt === target.processStartedAt,
-          ));
-          if (targets.length < plannedThread.ports.length) {
-            result.skipped.push({ threadId, resource: "port", message: "Some previewed ports changed ownership or closed" });
-          }
-          if (targets.length === 0) return;
-          const beforeSignal = await cleanupContext(threadId);
-          const signalThread = beforeSignal.byId.get(threadId);
-          if (!signalThread || !canCleanSettledThread(signalThread, readOne(threadId)) ||
-              beforeSignal.isProtectedWorkspace(signalThread)) {
-            result.skipped.push({ threadId, resource: "port", message: "Thread or shared workspace became active before shutdown" });
-            return;
-          }
-          const closed = await threadPortActions.closeThreadPorts({ threadId, ports: targets, expectedWorkspace: plannedThread.workspace });
-          result.signalledPorts.push(...closed.signalled.map((port) => ({ threadId, port })));
-          result.skipped.push(...closed.skipped.map((port) => ({ threadId, resource: "port" as const, message: `Port :${port} changed before shutdown` })));
-          result.failed.push(...closed.failed.map((port) => ({ threadId, resource: "port" as const, message: `Could not signal port :${port}` })));
-          if (closed.signalled.length > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 750));
-            const after = await threadPortActions.getThreadPorts({ threadId });
-            result.remainingPorts.push(...after.ports.filter((port) => closed.signalled.includes(port.port)).map((port) => ({ threadId, port: port.port })));
-          }
-        } catch (error) {
-          result.failed.push({ threadId, resource: "port", message: cleanupError(error) });
-        }
-      }, 4);
-      result.failed.push(...work.failures.map(({ threadId, error }) => ({ threadId, resource: "thread" as const, message: error })));
+        },
+        4,
+      );
+      result.failed.push(
+        ...work.failures.map(({ threadId, error }) => ({ threadId, resource: "thread" as const, message: error })),
+      );
       getOpenPorts.invalidate();
       return result;
     },
@@ -1745,9 +1833,7 @@ export default async function plugin(bb: BbPluginApi) {
     },
     async getThreadExecutionDetails({ threadId }) {
       const options = await bb.sdk.threads.defaultExecutionOptions({ threadId });
-      return options
-        ? { model: options.model, reasoningLevel: options.reasoningLevel }
-        : null;
+      return options ? { model: options.model, reasoningLevel: options.reasoningLevel } : null;
     },
     async setThreadParent({ threadId, parentThreadId }) {
       return withPinParentChange(threadId, async () => {
@@ -1777,7 +1863,10 @@ export default async function plugin(bb: BbPluginApi) {
     },
     regenerateTitle: ({ threadId }) => regenerateTitle(threadId),
     async getProjectColors() {
-      const rows = db.prepare("SELECT project_id, color FROM project_colors").all() as Array<{ project_id: string; color: string }>;
+      const rows = db.prepare("SELECT project_id, color FROM project_colors").all() as Array<{
+        project_id: string;
+        color: string;
+      }>;
       return { colors: Object.fromEntries(rows.map((row) => [row.project_id, row.color])) };
     },
     async setProjectColor({ projectId, color }) {
@@ -1785,7 +1874,9 @@ export default async function plugin(bb: BbPluginApi) {
       if (color === null) {
         db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
       } else {
-        db.prepare("INSERT INTO project_colors (project_id, color) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET color = excluded.color").run(projectId, color);
+        db.prepare(
+          "INSERT INTO project_colors (project_id, color) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET color = excluded.color",
+        ).run(projectId, color);
       }
       bb.realtime.publish(PROJECT_COLORS_CHANNEL, { projectId });
       return { ok: true };
@@ -1865,7 +1956,9 @@ export default async function plugin(bb: BbPluginApi) {
         const busy = tree.find((thread) => !canPark(threadSignals(thread)));
         if (busy) throw new Error(`Cannot settle while ${busy.title ?? "a thread"} is working or waiting for input`);
         const beforeRows = new Map(tree.map((thread) => [thread.id, readOne(thread.id)]));
-        const pins = sortPinnedThreads(allThreads.filter((thread) => thread.pinnedAt !== null && thread.parentThreadId === null));
+        const pins = sortPinnedThreads(
+          allThreads.filter((thread) => thread.pinnedAt !== null && thread.parentThreadId === null),
+        );
         const unpinned: CleanupThread[] = [];
         try {
           for (const thread of tree) {
@@ -1875,25 +1968,38 @@ export default async function plugin(bb: BbPluginApi) {
           }
           const currentTree = await loadSettleTree(threadId);
           const beforeById = new Map(tree.map((thread) => [thread.id, thread]));
-          if (currentTree.length !== tree.length || currentTree.some((thread) => {
-            const before = beforeById.get(thread.id);
-            return !before || thread.parentThreadId !== before.parentThreadId ||
-              thread.pinnedAt !== null || thread.latestAttentionAt > before.latestAttentionAt ||
-              !canPark(threadSignals(thread)) || !sameLifecycle(readOne(thread.id), beforeRows.get(thread.id)!);
-          })) throw new Error("Thread tree changed while settling. Try again.");
+          if (
+            currentTree.length !== tree.length ||
+            currentTree.some((thread) => {
+              const before = beforeById.get(thread.id);
+              return (
+                !before ||
+                thread.parentThreadId !== before.parentThreadId ||
+                thread.pinnedAt !== null ||
+                thread.latestAttentionAt > before.latestAttentionAt ||
+                !canPark(threadSignals(thread)) ||
+                !sameLifecycle(readOne(thread.id), beforeRows.get(thread.id)!)
+              );
+            })
+          )
+            throw new Error("Thread tree changed while settling. Try again.");
           // Distinguish actions in the same millisecond when checking stale Undo.
           const now = Math.max(Date.now(), lastManualSettleAt + 1);
           lastManualSettleAt = now;
           const previous = currentTree.map((thread) => ({
-            threadId: thread.id, parentThreadId: thread.parentThreadId, row: readOne(thread.id),
-          }));
-          writeMany(currentTree.map((thread) => ({
             threadId: thread.id,
-            settledAt: now,
-            settledOverride: "settled" as const,
-            snoozedUntil: null,
-            snoozedAt: null,
-          })));
+            parentThreadId: thread.parentThreadId,
+            row: readOne(thread.id),
+          }));
+          writeMany(
+            currentTree.map((thread) => ({
+              threadId: thread.id,
+              settledAt: now,
+              settledOverride: "settled" as const,
+              snoozedUntil: null,
+              snoozedAt: null,
+            })),
+          );
           publishLifecycleChanges(currentTree.map((thread) => thread.id));
           // Capture ownership before yielding back to another shelf action.
           const cleanupRows = new Map(currentTree.map((thread) => [thread.id, readOne(thread.id)]));
@@ -1905,8 +2011,12 @@ export default async function plugin(bb: BbPluginApi) {
             try {
               const current = await bb.sdk.threads.get({ threadId: original.id });
               // Preserve subsequent native pins, parent changes and shelf choices.
-              if (current.pinnedAt !== null || current.parentThreadId !== original.parentThreadId ||
-                  !sameLifecycle(readOne(original.id), beforeRows.get(original.id)!)) continue;
+              if (
+                current.pinnedAt !== null ||
+                current.parentThreadId !== original.parentThreadId ||
+                !sameLifecycle(readOne(original.id), beforeRows.get(original.id)!)
+              )
+                continue;
               await bb.sdk.threads.pin({ threadId: original.id });
               const index = pins.findIndex((thread) => thread.id === original.id);
               await bb.sdk.threads.reorderPinned({
@@ -1914,21 +2024,32 @@ export default async function plugin(bb: BbPluginApi) {
                 previousThreadId: pins[index - 1]?.id ?? null,
                 nextThreadId: pins[index + 1]?.id ?? null,
               });
-            } catch { failed.push(original.title ?? original.id); }
+            } catch {
+              failed.push(original.title ?? original.id);
+            }
           }
-          if (failed.length) throw new Error(`${cleanupError(error)}. Could not restore pins for: ${failed.join(", ")}`);
+          if (failed.length)
+            throw new Error(`${cleanupError(error)}. Could not restore pins for: ${failed.join(", ")}`);
           throw error;
         }
       });
       // The shelf move is durable before anything is released, so a slow or
       // unreachable host delays the reminder without holding up the settle.
       const reclaim = { ...EMPTY_RECLAIM };
-      await runThreadTasks(currentTree.map((thread) => thread.id), async (id) => {
-        const released = await reclaimThreadResources(id, currentTree.find((thread) => thread.id === id), cleanupRows.get(id), cleanupOwner);
-        reclaim.closedTerminals += released.closedTerminals;
-        reclaim.keptTerminals += released.keptTerminals;
-        reclaim.stoppedRuntime ||= released.stoppedRuntime;
-      });
+      await runThreadTasks(
+        currentTree.map((thread) => thread.id),
+        async (id) => {
+          const released = await reclaimThreadResources(
+            id,
+            currentTree.find((thread) => thread.id === id),
+            cleanupRows.get(id),
+            cleanupOwner,
+          );
+          reclaim.closedTerminals += released.closedTerminals;
+          reclaim.keptTerminals += released.keptTerminals;
+          reclaim.stoppedRuntime ||= released.stoppedRuntime;
+        },
+      );
       const undoToken = randomUUID();
       for (const [token, undo] of settleUndos) {
         if (undo.expiresAt <= Date.now()) settleUndos.delete(token);
@@ -1949,9 +2070,14 @@ export default async function plugin(bb: BbPluginApi) {
           for (const previous of undo.previous) {
             const thread = tree.get(previous.threadId);
             // Keep newer shelf choices, activity, pinning, and parent changes.
-            if (!thread || thread.parentThreadId !== previous.parentThreadId ||
-                thread.pinnedAt !== null || !canPark(threadSignals(thread)) ||
-                !matchesSettle(readOne(thread.id), undo.settledAt)) continue;
+            if (
+              !thread ||
+              thread.parentThreadId !== previous.parentThreadId ||
+              thread.pinnedAt !== null ||
+              !canPark(threadSignals(thread)) ||
+              !matchesSettle(readOne(thread.id), undo.settledAt)
+            )
+              continue;
             if (previous.row) write(previous.row, false);
             else db.prepare("DELETE FROM thread_lifecycle WHERE thread_id = ?").run(thread.id);
             ids.push(thread.id);
@@ -1977,9 +2103,12 @@ export default async function plugin(bb: BbPluginApi) {
         }
       })();
       publishLifecycleChanges(restoring.map((thread) => thread.id));
-      await wakeAncestors(tree.find((thread) => thread.id === threadId)!, {
-        threadsById: new Map(threads.map(thread => [thread.id, thread])),
-      });
+      await wakeAncestors(
+        tree.find((thread) => thread.id === threadId)!,
+        {
+          threadsById: new Map(threads.map((thread) => [thread.id, thread])),
+        },
+      );
       return { ok: true };
     },
     async snooze({ threadId, snoozedUntil }) {
@@ -2029,9 +2158,7 @@ export default async function plugin(bb: BbPluginApi) {
         nextThreadId,
       });
       return {
-        pinnedThreadIds: reordered
-          .filter((thread) => thread.pinnedAt !== null)
-          .map((thread) => thread.id),
+        pinnedThreadIds: reordered.filter((thread) => thread.pinnedAt !== null).map((thread) => thread.id),
       };
     },
     async listInboxOrder() {
@@ -2054,8 +2181,7 @@ export default async function plugin(bb: BbPluginApi) {
             id: project.id,
             name: project.name,
             customPath: readProjectIconOverride(project.id),
-            customUploadName:
-              readProjectIconUpload(project.id)?.filename ?? null,
+            customUploadName: readProjectIconUpload(project.id)?.filename ?? null,
           })),
       };
     },
@@ -2079,8 +2205,8 @@ export default async function plugin(bb: BbPluginApi) {
       if (project.kind !== "standard") return { hosts: [] };
       const hosts = await bb.sdk.hosts.list();
       return {
-        hosts: hosts.filter((host) => host.status === "connected" &&
-          !project.sources.some((source) => source.hostId === host.id))
+        hosts: hosts
+          .filter((host) => host.status === "connected" && !project.sources.some((source) => source.hostId === host.id))
           .map(({ id, name }) => ({ id, name })),
       };
     },
@@ -2107,12 +2233,8 @@ export default async function plugin(bb: BbPluginApi) {
       await bb.sdk.projects.delete({ projectId });
       db.transaction(() => {
         db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
-        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(
-          projectId,
-        );
-        db.prepare(
-          `DELETE FROM project_icon_uploads WHERE project_id = ?`,
-        ).run(projectId);
+        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+        db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
       })();
       defaultProjectHostIds.delete(projectId);
       clearProjectIconCache(projectId);
@@ -2152,12 +2274,8 @@ export default async function plugin(bb: BbPluginApi) {
       }
       if (normalized === null) {
         db.transaction(() => {
-          db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(
-            projectId,
-          );
-          db.prepare(
-            `DELETE FROM project_icon_uploads WHERE project_id = ?`,
-          ).run(projectId);
+          db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+          db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
         })();
       } else {
         db.transaction(() => {
@@ -2168,21 +2286,14 @@ export default async function plugin(bb: BbPluginApi) {
                path = excluded.path,
                updated_at = excluded.updated_at`,
           ).run(projectId, normalized, Date.now());
-          db.prepare(
-            `DELETE FROM project_icon_uploads WHERE project_id = ?`,
-          ).run(projectId);
+          db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
         })();
       }
       clearProjectIconCache(projectId);
       bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return { customPath: normalized, customUploadName: null };
     },
-    async uploadProjectIcon({
-      projectId,
-      filename,
-      mimeType,
-      contentBase64,
-    }) {
+    async uploadProjectIcon({ projectId, filename, mimeType, contentBase64 }) {
       await bb.sdk.projects.get({ projectId });
       const bytes = Buffer.from(contentBase64, "base64");
       if (bytes.byteLength === 0 || bytes.byteLength > PROJECT_ICON_MAX_BYTES) {
@@ -2206,17 +2317,8 @@ export default async function plugin(bb: BbPluginApi) {
              content_base64 = excluded.content_base64,
              size_bytes = excluded.size_bytes,
              updated_at = excluded.updated_at`,
-        ).run(
-          projectId,
-          normalizedFilename,
-          resolvedMimeType,
-          canonicalBase64,
-          bytes.byteLength,
-          Date.now(),
-        );
-        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(
-          projectId,
-        );
+        ).run(projectId, normalizedFilename, resolvedMimeType, canonicalBase64, bytes.byteLength, Date.now());
+        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
       })();
       clearProjectIconCache(projectId);
       bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
@@ -2241,9 +2343,7 @@ export default async function plugin(bb: BbPluginApi) {
   // thread reusing the id, and stale rows accumulate otherwise.
   bb.events.on("thread.deleted", ({ thread }) => {
     clear(thread.id);
-    const removed = db
-      .prepare(`DELETE FROM inbox_order WHERE thread_id = ?`)
-      .run(thread.id);
+    const removed = db.prepare(`DELETE FROM inbox_order WHERE thread_id = ?`).run(thread.id);
     if (removed.changes > 0) {
       bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
     }

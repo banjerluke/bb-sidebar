@@ -16,11 +16,7 @@ import {
   type ThreadLifecycleRow,
   type ThreadShelf,
 } from "./lifecycle";
-import {
-  MAX_CACHED_LIFECYCLE_ROWS,
-  pruneLifecycleRows,
-  safeSetItem,
-} from "./lib/safe-storage";
+import { MAX_CACHED_LIFECYCLE_ROWS, pruneLifecycleRows, safeSetItem } from "./lib/safe-storage";
 
 /** Any live work at all, which blocks parking and wakes a parked thread. */
 export function isWorking(thread: PluginSidebarThread): boolean {
@@ -43,14 +39,7 @@ export interface LifecycleApi {
   unsnooze(threadId: string): Promise<boolean>;
 }
 
-type LifecycleMutation =
-  | "park"
-  | "resume"
-  | "settle"
-  | "unsettle"
-  | "snooze"
-  | "unsnooze"
-  | "acknowledgeWake";
+type LifecycleMutation = "park" | "resume" | "settle" | "unsettle" | "snooze" | "unsnooze" | "acknowledgeWake";
 type LifecycleMutationRequest =
   | { method: "snooze"; threadId: string; snoozedUntil: number }
   | { method: "unsettle"; threadId: string; undoToken?: string }
@@ -59,22 +48,14 @@ type LifecycleMutationRequest =
       threadId: string;
     };
 
-const lifecycleRowsByRpcClient = new WeakMap<
-  object,
-  ReadonlyMap<string, ThreadLifecycleRow>
->();
+const lifecycleRowsByRpcClient = new WeakMap<object, ReadonlyMap<string, ThreadLifecycleRow>>();
 const LIFECYCLE_ROWS_CACHE_KEY = "bb-sidebar:lifecycle-cache:v1";
 
 function isNullableNumber(value: unknown): value is number | null {
-  return (
-    value === null || (typeof value === "number" && Number.isFinite(value))
-  );
+  return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
-function readStoredLifecycleRows(): ReadonlyMap<
-  string,
-  ThreadLifecycleRow
-> | null {
+function readStoredLifecycleRows(): ReadonlyMap<string, ThreadLifecycleRow> | null {
   try {
     const stored = window.localStorage.getItem(LIFECYCLE_ROWS_CACHE_KEY);
     if (!stored) return null;
@@ -109,19 +90,13 @@ function readStoredLifecycleRows(): ReadonlyMap<
   }
 }
 
-function cacheLifecycleRows(
-  rpcClient: object,
-  rows: ReadonlyMap<string, ThreadLifecycleRow>,
-): void {
+function cacheLifecycleRows(rpcClient: object, rows: ReadonlyMap<string, ThreadLifecycleRow>): void {
   lifecycleRowsByRpcClient.set(rpcClient, rows);
   const pruned = pruneLifecycleRows([...rows.values()]);
   safeSetItem(LIFECYCLE_ROWS_CACHE_KEY, JSON.stringify(pruned));
 }
 
-const SUCCESS_MESSAGE: Record<
-  Exclude<LifecycleMutation, "snooze" | "acknowledgeWake">,
-  string
-> = {
+const SUCCESS_MESSAGE: Record<Exclude<LifecycleMutation, "snooze" | "acknowledgeWake">, string> = {
   park: "Thread parked",
   resume: "Thread returned to the inbox",
   settle: "Thread settled",
@@ -163,15 +138,10 @@ function errorDescription(error: unknown): string | undefined {
  * move its row without waiting for an unrelated re-render, and re-reading the
  * clock during render would make the classification unstable.
  */
-export function useLifecycle(
-  threads: readonly PluginSidebarThread[],
-): LifecycleApi {
+export function useLifecycle(threads: readonly PluginSidebarThread[]): LifecycleApi {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const [rows, setRows] = useState<ReadonlyMap<string, ThreadLifecycleRow>>(
-    () =>
-      lifecycleRowsByRpcClient.get(rpc) ??
-      readStoredLifecycleRows() ??
-      new Map(),
+    () => lifecycleRowsByRpcClient.get(rpc) ?? readStoredLifecycleRows() ?? new Map(),
   );
   const [now, setNow] = useState(() => Date.now());
 
@@ -186,9 +156,7 @@ export function useLifecycle(
     try {
       const result = await rpc.call("listLifecycle", {});
       if (seq !== requestSeq.current) return;
-      const nextRows = new Map(
-        result.rows.map((row) => [row.threadId, row] as const),
-      );
+      const nextRows = new Map(result.rows.map((row) => [row.threadId, row] as const));
       cacheLifecycleRows(rpc, nextRows);
       setRows(nextRows);
     } catch {
@@ -228,9 +196,7 @@ export function useLifecycle(
     // would schedule a new snooze far too late.
     const armedAt = Date.now();
     const delay = nextWakeDelayMs(
-      [...rows.values()].flatMap((row) =>
-        row.snoozedUntil === null ? [] : [row.snoozedUntil],
-      ),
+      [...rows.values()].flatMap((row) => (row.snoozedUntil === null ? [] : [row.snoozedUntil])),
       armedAt,
     );
     if (delay === null) return;
@@ -242,9 +208,7 @@ export function useLifecycle(
     const signalsFor = sidebarThreadSignals;
     // One mutation per thread at a time. The write publishes on the realtime
     // channel, and that subscription refreshes every client after success.
-    const mutate = async (
-      request: LifecycleMutationRequest,
-    ): Promise<boolean> => {
+    const mutate = async (request: LifecycleMutationRequest): Promise<boolean> => {
       const { method, threadId } = request;
       if (inFlightThreadIds.current.has(threadId)) return false;
       inFlightThreadIds.current.add(threadId);
@@ -256,10 +220,7 @@ export function useLifecycle(
       // An unsnooze clears the row server-side, so its wake time has to be
       // captured before the RPC; Undo re-snoozes with this absolute time to
       // restore the exact schedule that was cancelled.
-      const unsnoozeWakeAt =
-        method === "unsnooze"
-          ? (rows.get(threadId)?.snoozedUntil ?? null)
-          : null;
+      const unsnoozeWakeAt = method === "unsnooze" ? (rows.get(threadId)?.snoozedUntil ?? null) : null;
       try {
         if (method === "snooze") {
           const { reclaim } = await rpc.call("snooze", {
@@ -294,10 +255,11 @@ export function useLifecycle(
           duration: parkReminder === undefined ? undefined : PARK_REMINDER_TOAST_MS,
           action: {
             label: "Undo",
-            onClick: () => void mutate({
-              method: method === "park" ? "resume" : "park",
-              threadId,
-            }),
+            onClick: () =>
+              void mutate({
+                method: method === "park" ? "resume" : "park",
+                threadId,
+              }),
           },
         });
       } else if (method === "snooze") {
@@ -305,10 +267,8 @@ export function useLifecycle(
         // snooze releases the same resources a settle does.
         const wakes = `Wakes ${formatSnoozeWakeTime(request.snoozedUntil)}`;
         toast.success("Thread snoozed", {
-          description:
-            parkReminder === undefined ? wakes : `${wakes} · ${parkReminder}`,
-          duration:
-            parkReminder === undefined ? undefined : PARK_REMINDER_TOAST_MS,
+          description: parkReminder === undefined ? wakes : `${wakes} · ${parkReminder}`,
+          duration: parkReminder === undefined ? undefined : PARK_REMINDER_TOAST_MS,
           action: {
             label: "Undo",
             onClick: () => void mutate({ method: "unsnooze", threadId }),
@@ -325,29 +285,29 @@ export function useLifecycle(
         // children's previous shelves. Released resources and pins stay released.
         toast.success(SUCCESS_MESSAGE.settle, {
           description: parkReminder,
-          duration:
-            parkReminder === undefined ? undefined : PARK_REMINDER_TOAST_MS,
-          action: settleUndoToken ? {
-            label: "Undo",
-            onClick: () => void mutate({ method: "unsettle", threadId, undoToken: settleUndoToken }),
-          } : undefined,
+          duration: parkReminder === undefined ? undefined : PARK_REMINDER_TOAST_MS,
+          action: settleUndoToken
+            ? {
+                label: "Undo",
+                onClick: () => void mutate({ method: "unsettle", threadId, undoToken: settleUndoToken }),
+              }
+            : undefined,
         });
       } else if (method === "unsettle") {
         // A snapshot Undo is final: a generic redo would overwrite children
         // deliberately preserved by the selective restore.
         toast.success(request.undoToken ? "Settling undone" : SUCCESS_MESSAGE.unsettle, {
-          action: request.undoToken ? undefined : {
-            label: "Undo",
-            onClick: () => void mutate({ method: "settle", threadId }),
-          },
+          action: request.undoToken
+            ? undefined
+            : {
+                label: "Undo",
+                onClick: () => void mutate({ method: "settle", threadId }),
+              },
         });
       } else if (method === "unsnooze") {
         // Undo is only offered while the captured wake time is still ahead;
         // a row whose snooze already elapsed has no schedule left to restore.
-        const undoWakeAt =
-          unsnoozeWakeAt !== null && unsnoozeWakeAt > Date.now()
-            ? unsnoozeWakeAt
-            : null;
+        const undoWakeAt = unsnoozeWakeAt !== null && unsnoozeWakeAt > Date.now() ? unsnoozeWakeAt : null;
         toast.success(SUCCESS_MESSAGE.unsnooze, {
           action:
             undoWakeAt === null
@@ -386,15 +346,12 @@ export function useLifecycle(
       park: (threadId) => mutate({ method: "park", threadId }),
       resume: (threadId) => mutate({ method: "resume", threadId }),
       settledAtFor: (thread) => rows.get(thread.id)?.settledAt ?? null,
-      wokeFor: (thread) =>
-        resolveWakeReason(rows.get(thread.id), signalsFor(thread), now) !== null,
-      acknowledgeWake: (threadId) =>
-        mutate({ method: "acknowledgeWake", threadId }),
+      wokeFor: (thread) => resolveWakeReason(rows.get(thread.id), signalsFor(thread), now) !== null,
+      acknowledgeWake: (threadId) => mutate({ method: "acknowledgeWake", threadId }),
       settle: (threadId) => mutate({ method: "settle", threadId }),
       unsettle: (threadId) => mutate({ method: "unsettle", threadId }),
       unsnooze: (threadId) => mutate({ method: "unsnooze", threadId }),
-      snooze: (threadId, snoozedUntil) =>
-        mutate({ method: "snooze", threadId, snoozedUntil }),
+      snooze: (threadId, snoozedUntil) => mutate({ method: "snooze", threadId, snoozedUntil }),
     };
   }, [now, rows, rpc]);
 }

@@ -1,7 +1,4 @@
-import type {
-  PluginSidebarThread,
-  PluginSidebarThreadIndicator,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread, PluginSidebarThreadIndicator } from "@get-bb/plugin-sdk/app";
 
 /**
  * What a parent card says about its subtree when the list is collapsed.
@@ -12,12 +9,7 @@ import type {
  */
 export type ChildStatusKind = "failed" | "needs-you" | "done" | "working";
 
-export const CHILD_STATUS_KINDS: readonly ChildStatusKind[] = [
-  "failed",
-  "needs-you",
-  "done",
-  "working",
-];
+export const CHILD_STATUS_KINDS: readonly ChildStatusKind[] = ["failed", "needs-you", "done", "working"];
 
 export interface ChildStatusSummary {
   failed: number;
@@ -28,9 +20,7 @@ export interface ChildStatusSummary {
   dominant: ChildStatusKind | null;
 }
 
-export function isWorkingIndicator(
-  indicator: PluginSidebarThreadIndicator,
-): boolean {
+export function isWorkingIndicator(indicator: PluginSidebarThreadIndicator): boolean {
   switch (indicator) {
     case "runtime":
     case "workflow":
@@ -45,21 +35,15 @@ export function isWorkingIndicator(
   }
 }
 
-export function childStatusKind(
-  thread: PluginSidebarThread,
-): ChildStatusKind | null {
-  if (thread.indicator === "unread-error" || thread.queuedWork === "failed")
-    return "failed";
-  if (thread.hasPendingInteraction || thread.indicator === "waiting-for-input")
-    return "needs-you";
+export function childStatusKind(thread: PluginSidebarThread): ChildStatusKind | null {
+  if (thread.indicator === "unread-error" || thread.queuedWork === "failed") return "failed";
+  if (thread.hasPendingInteraction || thread.indicator === "waiting-for-input") return "needs-you";
   if (thread.indicator === "unread-success") return "done";
   if (isWorkingIndicator(thread.indicator)) return "working";
   return null;
 }
 
-export function childStatusSummary(
-  threads: readonly PluginSidebarThread[],
-): ChildStatusSummary {
+export function childStatusSummary(threads: readonly PluginSidebarThread[]): ChildStatusSummary {
   const summary: ChildStatusSummary = {
     failed: 0,
     needsYou: 0,
@@ -86,16 +70,11 @@ export function childStatusSummary(
         break;
     }
   }
-  summary.dominant =
-    CHILD_STATUS_KINDS.find((kind) => childStatusCount(summary, kind) > 0) ??
-    null;
+  summary.dominant = CHILD_STATUS_KINDS.find((kind) => childStatusCount(summary, kind) > 0) ?? null;
   return summary;
 }
 
-export function childStatusCount(
-  summary: ChildStatusSummary,
-  kind: ChildStatusKind,
-): number {
+export function childStatusCount(summary: ChildStatusSummary, kind: ChildStatusKind): number {
   switch (kind) {
     case "failed":
       return summary.failed;
@@ -122,9 +101,7 @@ export function childStatusPhrase(summary: ChildStatusSummary): string {
 }
 
 /** The indicator whose glyph and tone stand for a kind. */
-export function childStatusIndicator(
-  kind: ChildStatusKind,
-): PluginSidebarThreadIndicator {
+export function childStatusIndicator(kind: ChildStatusKind): PluginSidebarThreadIndicator {
   switch (kind) {
     case "failed":
       return "unread-error";

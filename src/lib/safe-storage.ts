@@ -17,11 +17,7 @@ const PLUGIN_STORAGE_KEYS = [
 
 function isQuotaExceededError(error: unknown): boolean {
   if (error instanceof DOMException) {
-    return (
-      error.name === "QuotaExceededError" ||
-      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
-      error.code === 22
-    );
+    return error.name === "QuotaExceededError" || error.name === "NS_ERROR_DOM_QUOTA_REACHED" || error.code === 22;
   }
   if (error instanceof Error) {
     return error.name === "QuotaExceededError";
@@ -78,13 +74,9 @@ function lifecycleRecency(row: ThreadLifecycleRow): number {
   return max;
 }
 
-export function pruneLifecycleRows(
-  rows: readonly ThreadLifecycleRow[],
-): ThreadLifecycleRow[] {
+export function pruneLifecycleRows(rows: readonly ThreadLifecycleRow[]): ThreadLifecycleRow[] {
   if (rows.length <= MAX_CACHED_LIFECYCLE_ROWS) return [...rows];
-  return [...rows]
-    .sort((a, b) => lifecycleRecency(b) - lifecycleRecency(a))
-    .slice(0, MAX_CACHED_LIFECYCLE_ROWS);
+  return [...rows].sort((a, b) => lifecycleRecency(b) - lifecycleRecency(a)).slice(0, MAX_CACHED_LIFECYCLE_ROWS);
 }
 
 export function pruneChildExpansion(ids: readonly string[]): string[] {

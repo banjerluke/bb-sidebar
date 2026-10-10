@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  MONOGRAM_COLOR_COUNT,
-  projectMonogramColor,
-  projectMonogramLetter,
-} from "./project-monogram";
+import { MONOGRAM_COLOR_COUNT, projectMonogramColor, projectMonogramLetter } from "./project-monogram";
 
 describe("projectMonogramLetter", () => {
   it.each([
@@ -30,9 +26,7 @@ describe("projectMonogramColor", () => {
   });
 
   it("stays inside the palette and spreads similar names", () => {
-    const colors = new Set(
-      Array.from({ length: 40 }, (_, index) => projectMonogramColor(`project-${index}`)),
-    );
+    const colors = new Set(Array.from({ length: 40 }, (_, index) => projectMonogramColor(`project-${index}`)));
     for (const color of colors) {
       expect(color).toBeGreaterThanOrEqual(0);
       expect(color).toBeLessThan(MONOGRAM_COLOR_COUNT);

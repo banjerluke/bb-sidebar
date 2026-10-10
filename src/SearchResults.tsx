@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   experimental_useSidebarThreadActions as useSidebarThreadActions,
   experimental_useSidebarThreadSplit as useSidebarThreadSplit,
@@ -80,9 +76,7 @@ export function SearchResults({
         }
         if (event.key === "ArrowUp") {
           event.preventDefault();
-          focusResult(
-            (highlightedIndex - 1 + threads.length) % threads.length,
-          );
+          focusResult((highlightedIndex - 1 + threads.length) % threads.length);
           return;
         }
         if (event.key === "Enter") {
@@ -96,10 +90,7 @@ export function SearchResults({
           key={thread.id}
           thread={thread}
           projectName={projectNameById.get(thread.projectId) ?? null}
-          projectIconUrl={projectIconUrl(
-            thread.projectId,
-            projectIconRevision,
-          )}
+          projectIconUrl={projectIconUrl(thread.projectId, projectIconRevision)}
           isActive={thread.id === activeThreadId}
           isHighlighted={highlightedIndex === index}
           now={now}
@@ -201,20 +192,13 @@ function SearchResultRow({
             <span className="min-w-0 truncate">{projectName}</span>
           </span>
         ) : null}
-        <span
-          className={cn(
-            STATUS_SLOT_CLASS,
-            isWoke && "col-start-2 row-span-2 row-start-1 w-auto gap-1",
-          )}
-        >
+        <span className={cn(STATUS_SLOT_CLASS, isWoke && "col-start-2 row-span-2 row-start-1 w-auto gap-1")}>
           {jumpHint ? (
             <JumpHint label={jumpHint} />
           ) : (
             <>
               {isWoke ? (
-                <span className="shrink-0 text-2xs font-medium text-[color:var(--bb-sidebar-woke)]">
-                  Woke
-                </span>
+                <span className="shrink-0 text-2xs font-medium text-[color:var(--bb-sidebar-woke)]">Woke</span>
               ) : null}
               <StatusOrTime thread={thread} now={now} />
             </>

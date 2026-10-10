@@ -20,18 +20,9 @@ import {
 import { ProjectAppearanceSettings } from "./ProjectSettings";
 import { ProjectManagement } from "./ProjectManagement";
 import { PortLinkSettings } from "./PortLinkSettings";
-import {
-  configuredSnoozePresetError,
-  parseConfiguredSnoozePresets,
-} from "./lifecycle";
-import {
-  MAX_INACTIVE_AFTER_HOURS,
-  MIN_INACTIVE_AFTER_HOURS,
-} from "./inactive";
-import {
-  MAX_AUTO_SETTLE_AFTER_DAYS,
-  MIN_AUTO_SETTLE_AFTER_DAYS,
-} from "./auto-settle";
+import { configuredSnoozePresetError, parseConfiguredSnoozePresets } from "./lifecycle";
+import { MAX_INACTIVE_AFTER_HOURS, MIN_INACTIVE_AFTER_HOURS } from "./inactive";
+import { MAX_AUTO_SETTLE_AFTER_DAYS, MIN_AUTO_SETTLE_AFTER_DAYS } from "./auto-settle";
 import {
   InlineNumber,
   SettingRow,
@@ -63,8 +54,12 @@ const PROJECT_COLOR_DISPLAY_LABELS: Record<ProjectColorDisplay, string> = {
 };
 
 const SETTINGS_SECTIONS = [
-  "Sidebar layout", "Project appearance", "Thread behavior", "Child threads",
-  "This device", "Project management",
+  "Sidebar layout",
+  "Project appearance",
+  "Thread behavior",
+  "Child threads",
+  "This device",
+  "Project management",
 ] as const;
 
 /** Long enough to finish typing a shortcut, short enough to feel instant. */
@@ -91,8 +86,10 @@ const SECTION_BY_SETTING: Record<keyof SidebarSettingsValues, string> = {
   projectColorDisplay: "Project appearance",
 };
 
-const validHours = (value: number) => Number.isInteger(value) && value >= MIN_INACTIVE_AFTER_HOURS && value <= MAX_INACTIVE_AFTER_HOURS;
-const validDays = (value: number) => Number.isInteger(value) && value >= MIN_AUTO_SETTLE_AFTER_DAYS && value <= MAX_AUTO_SETTLE_AFTER_DAYS;
+const validHours = (value: number) =>
+  Number.isInteger(value) && value >= MIN_INACTIVE_AFTER_HOURS && value <= MAX_INACTIVE_AFTER_HOURS;
+const validDays = (value: number) =>
+  Number.isInteger(value) && value >= MIN_AUTO_SETTLE_AFTER_DAYS && value <= MAX_AUTO_SETTLE_AFTER_DAYS;
 
 /**
  * The plugin's settings page. Every change saves on its own, as bb's own
@@ -102,12 +99,8 @@ export function SidebarSettings() {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const loadRequestSeq = useRef(0);
   const initialSettings = cachedSidebarSettings(rpc);
-  const [saved, setSaved] = useState<SidebarSettingsValues>(
-    initialSettings ?? DEFAULT_SIDEBAR_SETTINGS,
-  );
-  const [draft, setDraft] = useState<SidebarSettingsValues>(
-    initialSettings ?? DEFAULT_SIDEBAR_SETTINGS,
-  );
+  const [saved, setSaved] = useState<SidebarSettingsValues>(initialSettings ?? DEFAULT_SIDEBAR_SETTINGS);
+  const [draft, setDraft] = useState<SidebarSettingsValues>(initialSettings ?? DEFAULT_SIDEBAR_SETTINGS);
   const savedRef = useRef(saved);
   const draftRef = useRef(draft);
   savedRef.current = saved;
@@ -127,8 +120,7 @@ export function SidebarSettings() {
     section: string;
     status: SaveStatus;
   } | null>(null);
-  const statusFor = (section: string) =>
-    saveFeedback?.section === section ? saveFeedback.status : undefined;
+  const statusFor = (section: string) => (saveFeedback?.section === section ? saveFeedback.status : undefined);
 
   useEffect(() => {
     if (saveFeedback?.status !== "saved") return;
@@ -140,7 +132,10 @@ export function SidebarSettings() {
   }, [saveFeedback]);
 
   const load = useCallback(async () => {
-    if (savingRef.current) { refreshAfterSave.current = true; return; }
+    if (savingRef.current) {
+      refreshAfterSave.current = true;
+      return;
+    }
     const seq = ++loadRequestSeq.current;
     try {
       const result = await rpc.call("getSidebarSettings", {});
@@ -183,13 +178,8 @@ export function SidebarSettings() {
     snoozePresetsError !== null;
   const snoozePreview = snoozePresetsError
     ? []
-    : parseConfiguredSnoozePresets(draft.snoozePresets).map(
-        (preset) => preset.label,
-      );
-  const update = <Key extends keyof SidebarSettingsValues>(
-    key: Key,
-    value: SidebarSettingsValues[Key],
-  ) => {
+    : parseConfiguredSnoozePresets(draft.snoozePresets).map((preset) => preset.label);
+  const update = <Key extends keyof SidebarSettingsValues>(key: Key, value: SidebarSettingsValues[Key]) => {
     changedSectionRef.current = SECTION_BY_SETTING[key];
     dirtyFields.current.set(key, ++editVersion.current);
     setDraft((current) => {
@@ -215,7 +205,8 @@ export function SidebarSettings() {
         const sentVersions = new Map(dirtyFields.current);
         const sent = { ...draftRef.current };
         if (!validHours(sent.inactiveAfterHours)) sent.inactiveAfterHours = DEFAULT_SIDEBAR_SETTINGS.inactiveAfterHours;
-        if (!validDays(sent.autoSettleAfterDays)) sent.autoSettleAfterDays = DEFAULT_SIDEBAR_SETTINGS.autoSettleAfterDays;
+        if (!validDays(sent.autoSettleAfterDays))
+          sent.autoSettleAfterDays = DEFAULT_SIDEBAR_SETTINGS.autoSettleAfterDays;
         const patch = Object.fromEntries([...sentVersions.keys()].map((key) => [key, sent[key]]));
         loadRequestSeq.current += 1;
         const section = changedSectionRef.current;
@@ -350,7 +341,13 @@ export function SidebarSettings() {
         <SettingRow
           title="Project colors"
           description="Color project names in every mode. Choose where their stripes appear below."
-          control={<Switch label="Project colors" checked={draft.projectColorsEnabled} onChange={(checked) => update("projectColorsEnabled", checked)} />}
+          control={
+            <Switch
+              label="Project colors"
+              checked={draft.projectColorsEnabled}
+              onChange={(checked) => update("projectColorsEnabled", checked)}
+            />
+          }
         >
           {draft.projectColorsEnabled ? (
             <div className="border-l-2 border-border">
@@ -365,7 +362,9 @@ export function SidebarSettings() {
                     className="w-52"
                   >
                     {PROJECT_COLOR_DISPLAYS.map((display) => (
-                      <option key={display} value={display}>{PROJECT_COLOR_DISPLAY_LABELS[display]}</option>
+                      <option key={display} value={display}>
+                        {PROJECT_COLOR_DISPLAY_LABELS[display]}
+                      </option>
                     ))}
                   </SettingsSelect>
                 }
@@ -384,10 +383,9 @@ export function SidebarSettings() {
             title="Snooze shortcuts"
             description={
               <>
-                Comma-separated. Durations like <Code>30m</Code> or{" "}
-                <Code>2h</Code>, times like <Code>evening@18:00</Code>,{" "}
-                <Code>tomorrow@09:00</Code> or <Code>next-week@09:00</Code>.
-                Rename one with <Code>Label=value</Code>.
+                Comma-separated. Durations like <Code>30m</Code> or <Code>2h</Code>, times like{" "}
+                <Code>evening@18:00</Code>, <Code>tomorrow@09:00</Code> or <Code>next-week@09:00</Code>. Rename one with{" "}
+                <Code>Label=value</Code>.
               </>
             }
           >
@@ -405,10 +403,7 @@ export function SidebarSettings() {
               {snoozePresetsError ? (
                 <p className="text-2xs text-destructive">{snoozePresetsError}</p>
               ) : (
-                <ul
-                  aria-label="Snooze menu preview"
-                  className="flex flex-wrap items-center gap-1"
-                >
+                <ul aria-label="Snooze menu preview" className="flex flex-wrap items-center gap-1">
                   {snoozePreview.map((label, index) => (
                     <li
                       key={`${index}-${label}`}
@@ -470,9 +465,7 @@ export function SidebarSettings() {
             <Switch
               label="Show children that need attention"
               checked={draft.showRunningChildrenWhenCollapsed}
-              onChange={(checked) =>
-                update("showRunningChildrenWhenCollapsed", checked)
-              }
+              onChange={(checked) => update("showRunningChildrenWhenCollapsed", checked)}
             />
           }
         />
@@ -484,12 +477,7 @@ export function SidebarSettings() {
               <SettingsSelect
                 aria-label="Child threads sort field"
                 value={draft.childSortField}
-                onChange={(event) =>
-                  update(
-                    "childSortField",
-                    event.target.value as ChildThreadSortField,
-                  )
-                }
+                onChange={(event) => update("childSortField", event.target.value as ChildThreadSortField)}
                 className="w-36"
               >
                 {CHILD_THREAD_SORT_FIELDS.map((field) => (
@@ -501,12 +489,7 @@ export function SidebarSettings() {
               <SettingsSelect
                 aria-label="Child threads sort direction"
                 value={draft.childSortDirection}
-                onChange={(event) =>
-                  update(
-                    "childSortDirection",
-                    event.target.value as ChildThreadSortDirection,
-                  )
-                }
+                onChange={(event) => update("childSortDirection", event.target.value as ChildThreadSortDirection)}
                 className="w-32"
               >
                 {CHILD_THREAD_SORT_DIRECTIONS.map((direction) => (
@@ -525,12 +508,7 @@ export function SidebarSettings() {
             <SettingsSelect
               aria-label="Child thread icon"
               value={draft.childIconStyle}
-              onChange={(event) =>
-                update(
-                  "childIconStyle",
-                  event.target.value as ChildThreadIconStyle,
-                )
-              }
+              onChange={(event) => update("childIconStyle", event.target.value as ChildThreadIconStyle)}
               className="w-36"
             >
               {CHILD_THREAD_ICON_STYLES.map((style) => (
@@ -544,9 +522,7 @@ export function SidebarSettings() {
       </SettingsSection>
 
       <SettingsSection title="This device" status={statusFor("This device")}>
-        <PortLinkSettings
-          onSaved={() => setSaveFeedback({ section: "This device", status: "saved" })}
-        />
+        <PortLinkSettings onSaved={() => setSaveFeedback({ section: "This device", status: "saved" })} />
       </SettingsSection>
 
       <ProjectManagement />
@@ -555,9 +531,5 @@ export function SidebarSettings() {
 }
 
 function Code({ children }: { children: string }) {
-  return (
-    <code className="rounded bg-muted px-1 py-px font-mono text-2xs text-foreground/80">
-      {children}
-    </code>
-  );
+  return <code className="rounded bg-muted px-1 py-px font-mono text-2xs text-foreground/80">{children}</code>;
 }

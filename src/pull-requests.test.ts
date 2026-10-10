@@ -8,46 +8,71 @@ function command(command: string, aggregatedOutput: string, type = "item/complet
 
 describe("createdPullRequestUrls", () => {
   it("collects PRs printed by gh pr create, oldest first and without repeats", () => {
-    expect(createdPullRequestUrls([
-      command("git push -u origin a && gh pr create --fill", "remote: Create a pull request for 'a' on GitHub by visiting:\nremote:   https://github.com/o/r/pull/new/a\nhttps://github.com/o/r/pull/12"),
-      command("gh pr create --base main", "a pull request for branch \"b\" into branch \"main\" already exists:\nhttps://github.com/o/r/pull/13"),
-      command("gh  pr   create", "https://github.com/o/r/pull/12"),
-    ])).toEqual(["https://github.com/o/r/pull/12", "https://github.com/o/r/pull/13"]);
+    expect(
+      createdPullRequestUrls([
+        command(
+          "git push -u origin a && gh pr create --fill",
+          "remote: Create a pull request for 'a' on GitHub by visiting:\nremote:   https://github.com/o/r/pull/new/a\nhttps://github.com/o/r/pull/12",
+        ),
+        command(
+          "gh pr create --base main",
+          'a pull request for branch "b" into branch "main" already exists:\nhttps://github.com/o/r/pull/13',
+        ),
+        command("gh  pr   create", "https://github.com/o/r/pull/12"),
+      ]),
+    ).toEqual(["https://github.com/o/r/pull/12", "https://github.com/o/r/pull/13"]);
   });
 
   it("finds gh pr create wherever a shell runs it", () => {
     const url = (number: number) => `https://github.com/o/r/pull/${number}`;
-    expect(createdPullRequestUrls([
-      command('/bin/zsh -lc "gh pr create --base main"', url(1)),
-      command("/bin/zsh -c 'gh pr create --fill'", url(2)),
-      command("git push -u origin a\n gh pr create -R o/r", url(3)),
-      command("cat > body.md <<'EOF'\nText\nEOF\ngit push && GH_PROMPT_DISABLED=1 /opt/homebrew/bin/gh pr create", url(4)),
-      command("url=$(gh pr create --fill); echo $url", url(5)),
-    ])).toEqual([1, 2, 3, 4, 5].map(url));
+    expect(
+      createdPullRequestUrls([
+        command('/bin/zsh -lc "gh pr create --base main"', url(1)),
+        command("/bin/zsh -c 'gh pr create --fill'", url(2)),
+        command("git push -u origin a\n gh pr create -R o/r", url(3)),
+        command(
+          "cat > body.md <<'EOF'\nText\nEOF\ngit push && GH_PROMPT_DISABLED=1 /opt/homebrew/bin/gh pr create",
+          url(4),
+        ),
+        command("url=$(gh pr create --fill); echo $url", url(5)),
+      ]),
+    ).toEqual([1, 2, 3, 4, 5].map(url));
   });
 
   it("ignores commands that only mention gh pr create", () => {
-    expect(createdPullRequestUrls([
-      command("bb thread search \"gh pr create\" --json", "https://github.com/o/r/pull/1"),
-      command("bb thread log thr_a --json | python3 -c \"\nif 'gh pr create' in s: print(s)\"", "https://github.com/o/r/pull/2"),
-      command("grep -rn 'opened with `gh pr create`' CHANGELOG.md", "https://github.com/o/r/pull/3"),
-    ])).toEqual([]);
+    expect(
+      createdPullRequestUrls([
+        command('bb thread search "gh pr create" --json', "https://github.com/o/r/pull/1"),
+        command(
+          "bb thread log thr_a --json | python3 -c \"\nif 'gh pr create' in s: print(s)\"",
+          "https://github.com/o/r/pull/2",
+        ),
+        command("grep -rn 'opened with `gh pr create`' CHANGELOG.md", "https://github.com/o/r/pull/3"),
+      ]),
+    ).toEqual([]);
   });
 
   it("ignores PRs a thread only read about", () => {
-    expect(createdPullRequestUrls([
-      command("gh pr view 7", "https://github.com/o/r/pull/7"),
-      command("gh pr create", "https://github.com/o/r/pull/8", "item/started"),
-      { type: "item/completed", data: { item: { type: "agentMessage", text: "Opened https://github.com/o/r/pull/9" } } },
-      { type: "item/completed", data: null },
-    ])).toEqual([]);
+    expect(
+      createdPullRequestUrls([
+        command("gh pr view 7", "https://github.com/o/r/pull/7"),
+        command("gh pr create", "https://github.com/o/r/pull/8", "item/started"),
+        {
+          type: "item/completed",
+          data: { item: { type: "agentMessage", text: "Opened https://github.com/o/r/pull/9" } },
+        },
+        { type: "item/completed", data: null },
+      ]),
+    ).toEqual([]);
   });
 });
 
 describe("parseGhPullRequest", () => {
   it("maps gh states onto the sidebar's", () => {
     const view = (state: string, isDraft = false) =>
-      parseGhPullRequest(JSON.stringify({ number: 4, title: "Fix", state, isDraft, url: "https://github.com/o/r/pull/4" }))?.state;
+      parseGhPullRequest(
+        JSON.stringify({ number: 4, title: "Fix", state, isDraft, url: "https://github.com/o/r/pull/4" }),
+      )?.state;
     expect(view("OPEN")).toBe("open");
     expect(view("OPEN", true)).toBe("draft");
     expect(view("MERGED")).toBe("merged");
@@ -58,7 +83,11 @@ describe("parseGhPullRequest", () => {
 
 describe("mergeThreadPullRequests", () => {
   const current = {
-    number: 3, title: "Live", url: "u3", state: "open" as const, attention: "checks_pending" as const,
+    number: 3,
+    title: "Live",
+    url: "u3",
+    state: "open" as const,
+    attention: "checks_pending" as const,
     experimental_autoMerge: false,
     experimental_inMergeQueue: false,
     experimental_checks: { state: "pending" as const },

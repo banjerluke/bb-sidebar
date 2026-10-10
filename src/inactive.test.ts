@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isInactiveThread,
-  parseInactiveAfterHours,
-} from "./inactive";
+import { isInactiveThread, parseInactiveAfterHours } from "./inactive";
 
 describe("inactive thread settings", () => {
   it("parses enabled whole-hour thresholds", () => {

@@ -14,11 +14,7 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import {
-  ChildThreadBadge,
-  ChildThreadList,
-  collapsedChildThreads,
-} from "./ChildThreadList";
+import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
@@ -45,10 +41,7 @@ const SETTLE_SWEEP_MS = 520;
 const SETTLE_RECOVER_MS = 4_000;
 
 function shouldAnimateSettle(): boolean {
-  return (
-    typeof window.matchMedia === "function" &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+  return typeof window.matchMedia === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export interface ThreadReorderControls {
@@ -154,13 +147,20 @@ export function ThreadCard({
       // Moving a row between shelf trees unmounts its focused control.
       queueMicrotask(() => {
         if (!sidebar?.isConnected || document.activeElement !== document.body) return;
-        const replacement = [...sidebar.querySelectorAll<HTMLAnchorElement>("a[data-sidebar-thread-id]")]
-          .find((link) => link.dataset.sidebarThreadId === thread.id);
+        const replacement = [...sidebar.querySelectorAll<HTMLAnchorElement>("a[data-sidebar-thread-id]")].find(
+          (link) => link.dataset.sidebarThreadId === thread.id,
+        );
         const row = replacement?.closest("li");
-        const child = childId && [...(row?.querySelectorAll<HTMLElement>("[data-child-thread-id]") ?? [])]
-          .find((item) => item.dataset.childThreadId === childId);
-        const matchingControl = control && [...(row?.querySelectorAll<HTMLElement>("[data-thread-control]") ?? [])]
-          .find((item) => item.dataset.threadControl === control);
+        const child =
+          childId &&
+          [...(row?.querySelectorAll<HTMLElement>("[data-child-thread-id]") ?? [])].find(
+            (item) => item.dataset.childThreadId === childId,
+          );
+        const matchingControl =
+          control &&
+          [...(row?.querySelectorAll<HTMLElement>("[data-thread-control]") ?? [])].find(
+            (item) => item.dataset.threadControl === control,
+          );
         (child || matchingControl || replacement)?.focus();
       });
     };
@@ -186,10 +186,7 @@ export function ThreadCard({
     setIsSettling(true);
     settleTimer.current = window.setTimeout(() => {
       onSettle();
-      settleTimer.current = window.setTimeout(
-        () => setIsSettling(false),
-        SETTLE_RECOVER_MS,
-      );
+      settleTimer.current = window.setTimeout(() => setIsSettling(false), SETTLE_RECOVER_MS);
     }, SETTLE_SWEEP_MS);
   };
   // The sweep keeps the actions up, as an open snooze menu does, so the check
@@ -199,10 +196,7 @@ export function ThreadCard({
   const liveStatus = threadShortStatus(thread)?.showsDuration === true;
   // A thread stays folded until everything under it is done; it unfolds at
   // once when it needs you, fails, or just woke.
-  const naturalCompact =
-    compactWhenWorking &&
-    !isWoke &&
-    isWorkingTree(thread, childThreads, childrenByParent);
+  const naturalCompact = compactWhenWorking && !isWoke && isWorkingTree(thread, childThreads, childrenByParent);
   const compact = isRenaming ? compactAtRenameStart.current : naturalCompact;
   const stripeView = compact ? "collapsed" : "full";
   const projectColor = useProjectColor(thread.projectId);
@@ -214,13 +208,7 @@ export function ThreadCard({
   // A folded row stays one line: its children wait for the badge to expand
   // them, whatever "Show children that need attention" says.
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
-  const emphasis = isWoke
-    ? "woke"
-    : thread.isUnread
-      ? "unread"
-      : thread.indicator === "none"
-        ? "read-idle"
-        : "active";
+  const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
 
   const showParkActions = !isWoke && canPark && (snoozePresets.length > 0 || !!onPark);
   const unpinButton = thread.isPinned ? (
@@ -233,8 +221,7 @@ export function ThreadCard({
           event.stopPropagation();
           void actions.setPinned(thread.id, false).catch((error) => {
             toast.error("Could not unpin thread", {
-              description:
-                error instanceof Error ? error.message : undefined,
+              description: error instanceof Error ? error.message : undefined,
             });
           });
         }}
@@ -262,11 +249,7 @@ export function ThreadCard({
         (emphasis === "unread" || emphasis === "woke") && "font-medium",
       )}
     >
-      <InlineThreadTitle
-        thread={thread}
-        editing={isRenaming}
-        onEditingChange={changeRenaming}
-      />
+      <InlineThreadTitle thread={thread} editing={isRenaming} onEditingChange={changeRenaming} />
     </div>
   );
 
@@ -311,9 +294,7 @@ export function ThreadCard({
                 "bg-[linear-gradient(var(--sidebar-accent),var(--sidebar-accent)),linear-gradient(var(--sidebar),var(--sidebar))] shadow-lg ring-1 ring-sidebar-border",
             )}
           >
-            {isSettling ? (
-              <span aria-hidden="true" className="bb-sidebar-settle-sweep" />
-            ) : null}
+            {isSettling ? <span aria-hidden="true" className="bb-sidebar-settle-sweep" /> : null}
             {showProject && projectName ? <ProjectStripe projectId={thread.projectId} view={stripeView} /> : null}
             <ThreadDetailsTooltip thread={thread} disabled={isRenaming || !!reorder?.isDragging}>
               <a
@@ -324,9 +305,7 @@ export function ThreadCard({
                 aria-label={threadDisplayTitle(thread)}
                 aria-current={isActive ? "page" : undefined}
                 draggable={false}
-                aria-keyshortcuts={
-                  reorder ? "Alt+ArrowUp Alt+ArrowDown" : undefined
-                }
+                aria-keyshortcuts={reorder ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
                 onPointerDown={(event) => {
                   splitProps.onPointerDown?.(event);
                   reorder?.onPointerDown(event);
@@ -348,9 +327,7 @@ export function ThreadCard({
                   // Vertical panning stays with the scroller; this row never
                   // claims a touch gesture for reordering.
                   "absolute inset-0 touch-pan-y rounded-md",
-                  reorder && !reorder.disabled
-                    ? "cursor-grab active:cursor-grabbing"
-                    : "cursor-pointer",
+                  reorder && !reorder.disabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                 )}
               />
             </ThreadDetailsTooltip>
@@ -365,8 +342,19 @@ export function ThreadCard({
                 >
                   {showProject && projectName && !isRenaming ? (
                     <>
-                      <ProjectFavicon projectId={thread.projectId} src={projectIconUrl} name={projectName} className="size-3" />
-                      <span style={projectColor} className={cn("max-w-[40%] shrink truncate", projectColor ? "bb-sidebar-project-name" : "text-muted-foreground/70")}>
+                      <ProjectFavicon
+                        projectId={thread.projectId}
+                        src={projectIconUrl}
+                        name={projectName}
+                        className="size-3"
+                      />
+                      <span
+                        style={projectColor}
+                        className={cn(
+                          "max-w-[40%] shrink truncate",
+                          projectColor ? "bb-sidebar-project-name" : "text-muted-foreground/70",
+                        )}
+                      >
                         {projectName}
                       </span>
                       <span aria-hidden="true" className="shrink-0 text-sm leading-none text-muted-foreground/60">
@@ -378,10 +366,7 @@ export function ThreadCard({
                     thread={thread}
                     editing={isRenaming}
                     onEditingChange={changeRenaming}
-                    className={cn(
-                      "min-w-0 flex-1 truncate text-foreground",
-                      thread.isUnread && "font-medium",
-                    )}
+                    className={cn("min-w-0 flex-1 truncate text-foreground", thread.isUnread && "font-medium")}
                   />
                 </span>
                 <span className="pointer-events-none relative flex shrink-0 items-center gap-1.5">
@@ -413,162 +398,148 @@ export function ThreadCard({
                 </span>
               </>
             ) : (
-            <>
-            <div className="pointer-events-none relative flex h-5 items-center gap-1.5">
-              {showProject ? (
-                <span
-                  data-settle-fade=""
-                  className="flex min-w-0 flex-1 items-center gap-1.5 text-2xs font-medium text-muted-foreground"
-                >
-                  {projectName ? (
-                    <ProjectFavicon projectId={thread.projectId} src={projectIconUrl} name={projectName} className="size-3" />
-                  ) : null}
-                  <span
-                    style={projectColor}
-                    className={cn("min-w-0 truncate", projectColor && "bb-sidebar-project-name")}
-                  >
-                    {projectName ?? " "}
-                  </span>
-                </span>
-              ) : (
-                titleLine
-              )}
-              {/* bb's own rows trade their trailing status for the shortcut
-                  while the modifier is held; these do the same. */}
-              {jumpHint ? (
-                <span className={cn(STATUS_SLOT_CLASS, "w-auto")}>
-                  <JumpHint label={jumpHint} />
-                </span>
-              ) : isWoke ? (
-                <span className={cn(STATUS_SLOT_CLASS, "w-auto gap-1.5")}>
-                  {unpinButton}
-                  <Tooltip label="Dismiss Woke marker">
-                    <button
-                      type="button"
-                      aria-label="Dismiss Woke marker"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onAcknowledgeWake();
-                      }}
-                      className="pointer-events-auto text-2xs font-medium text-[color:var(--bb-sidebar-woke)] hover:underline"
+              <>
+                <div className="pointer-events-none relative flex h-5 items-center gap-1.5">
+                  {showProject ? (
+                    <span
+                      data-settle-fade=""
+                      className="flex min-w-0 flex-1 items-center gap-1.5 text-2xs font-medium text-muted-foreground"
                     >
-                      Woke
-                    </button>
-                  </Tooltip>
-                  <StatusOrTime thread={thread} now={now} />
-                </span>
-              ) : (
-                <span
-                  className={cn(
-                    STATUS_SLOT_CLASS,
-                    "group/status-slot pointer-events-auto relative h-5",
-                    showParkActions &&
-                      "[@media(hover:none)]:w-auto [@media(hover:none)]:gap-1.5",
-                    !showParkActions && "w-auto min-w-20",
-                    // Beside the title a fixed slot would cut every title short,
-                    // so it hugs the time and widens only while the actions show.
-                    !showProject && "w-auto min-w-0",
-                    !showProject &&
-                      showParkActions &&
-                      "[@media(hover:hover)]:group-hover/card:min-w-11 has-[:focus-visible]:min-w-11",
-                    !showProject && holdParkActions && "min-w-11",
+                      {projectName ? (
+                        <ProjectFavicon
+                          projectId={thread.projectId}
+                          src={projectIconUrl}
+                          name={projectName}
+                          className="size-3"
+                        />
+                      ) : null}
+                      <span
+                        style={projectColor}
+                        className={cn("min-w-0 truncate", projectColor && "bb-sidebar-project-name")}
+                      >
+                        {projectName ?? " "}
+                      </span>
+                    </span>
+                  ) : (
+                    titleLine
                   )}
-                >
-                  <span
-                    className={cn(
-                      "flex items-center justify-end gap-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none",
-                      showParkActions &&
-                        "[@media(hover:hover)]:group-hover/card:opacity-0 [@media(hover:hover)]:group-has-[:focus-visible]/status-slot:opacity-0 [@media(hover:none)]:static [@media(hover:none)]:opacity-100",
-                      showParkActions && showProject && "absolute inset-y-0 right-0",
-                      holdParkActions &&
-                        "opacity-0 [@media(hover:none)]:opacity-100",
-                    )}
-                  >
-                    {!showParkActions ? unpinButton : null}
-                    <StatusOrTime thread={thread} now={now} />
-                  </span>
-                  {showParkActions ? (
+                  {/* bb's own rows trade their trailing status for the shortcut
+                  while the modifier is held; these do the same. */}
+                  {jumpHint ? (
+                    <span className={cn(STATUS_SLOT_CLASS, "w-auto")}>
+                      <JumpHint label={jumpHint} />
+                    </span>
+                  ) : isWoke ? (
+                    <span className={cn(STATUS_SLOT_CLASS, "w-auto gap-1.5")}>
+                      {unpinButton}
+                      <Tooltip label="Dismiss Woke marker">
+                        <button
+                          type="button"
+                          aria-label="Dismiss Woke marker"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onAcknowledgeWake();
+                          }}
+                          className="pointer-events-auto text-2xs font-medium text-[color:var(--bb-sidebar-woke)] hover:underline"
+                        >
+                          Woke
+                        </button>
+                      </Tooltip>
+                      <StatusOrTime thread={thread} now={now} />
+                    </span>
+                  ) : (
                     <span
                       className={cn(
-                        "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 ease-out has-[:focus-visible]:pointer-events-auto has-[:focus-visible]:opacity-100 group-hover/card:pointer-events-auto group-hover/card:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 motion-reduce:transition-none",
-                        holdParkActions && "pointer-events-auto opacity-100",
+                        STATUS_SLOT_CLASS,
+                        "group/status-slot pointer-events-auto relative h-5",
+                        showParkActions && "[@media(hover:none)]:w-auto [@media(hover:none)]:gap-1.5",
+                        !showParkActions && "w-auto min-w-20",
+                        // Beside the title a fixed slot would cut every title short,
+                        // so it hugs the time and widens only while the actions show.
+                        !showProject && "w-auto min-w-0",
+                        !showProject &&
+                          showParkActions &&
+                          "[@media(hover:hover)]:group-hover/card:min-w-11 has-[:focus-visible]:min-w-11",
+                        !showProject && holdParkActions && "min-w-11",
                       )}
                     >
-                      {unpinButton}
-                      <SnoozeSelect
-                        label="Snooze thread"
-                        snoozePresets={snoozePresets}
-                        triggerClassName="h-5 w-5 border-0 px-0.5 py-0 shadow-none duration-200 ease-out hover:bg-transparent hover:duration-200 hover:text-[color:var(--bb-sidebar-snooze-active)] focus:ring-0 focus-visible:text-[color:var(--bb-sidebar-snooze-active)] data-[state=open]:text-[color:var(--bb-sidebar-snooze-active)] motion-reduce:transition-none [&>svg:last-child]:size-3"
-                        onOpenChange={setIsSnoozeOpen}
-                        onSnooze={onSnooze}
-                        onPark={onPark}
-                      />
-                      <ParkButton
-                        label="Settle thread"
-                        settling={isSettling}
-                        onActivate={startSettle}
-                      />
+                      <span
+                        className={cn(
+                          "flex items-center justify-end gap-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none",
+                          showParkActions &&
+                            "[@media(hover:hover)]:group-hover/card:opacity-0 [@media(hover:hover)]:group-has-[:focus-visible]/status-slot:opacity-0 [@media(hover:none)]:static [@media(hover:none)]:opacity-100",
+                          showParkActions && showProject && "absolute inset-y-0 right-0",
+                          holdParkActions && "opacity-0 [@media(hover:none)]:opacity-100",
+                        )}
+                      >
+                        {!showParkActions ? unpinButton : null}
+                        <StatusOrTime thread={thread} now={now} />
+                      </span>
+                      {showParkActions ? (
+                        <span
+                          className={cn(
+                            "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 ease-out has-[:focus-visible]:pointer-events-auto has-[:focus-visible]:opacity-100 group-hover/card:pointer-events-auto group-hover/card:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 motion-reduce:transition-none",
+                            holdParkActions && "pointer-events-auto opacity-100",
+                          )}
+                        >
+                          {unpinButton}
+                          <SnoozeSelect
+                            label="Snooze thread"
+                            snoozePresets={snoozePresets}
+                            triggerClassName="h-5 w-5 border-0 px-0.5 py-0 shadow-none duration-200 ease-out hover:bg-transparent hover:duration-200 hover:text-[color:var(--bb-sidebar-snooze-active)] focus:ring-0 focus-visible:text-[color:var(--bb-sidebar-snooze-active)] data-[state=open]:text-[color:var(--bb-sidebar-snooze-active)] motion-reduce:transition-none [&>svg:last-child]:size-3"
+                            onOpenChange={setIsSnoozeOpen}
+                            onSnooze={onSnooze}
+                            onPark={onPark}
+                          />
+                          <ParkButton label="Settle thread" settling={isSettling} onActivate={startSettle} />
+                        </span>
+                      ) : null}
                     </span>
-                  ) : null}
-                </span>
-              )}
-            </div>
-            {showProject ? titleLine : null}
-            <div
-              data-settle-fade=""
-              className="pointer-events-none relative mt-0.5 flex h-4 items-center gap-1.5 text-2xs text-muted-foreground"
-            >
-              {/* A thread without a worktree still runs somewhere, so the
+                  )}
+                </div>
+                {showProject ? titleLine : null}
+                <div
+                  data-settle-fade=""
+                  className="pointer-events-none relative mt-0.5 flex h-4 items-center gap-1.5 text-2xs text-muted-foreground"
+                >
+                  {/* A thread without a worktree still runs somewhere, so the
                   machine takes the branch's place rather than leaving the line
                   blank. */}
-              <ThreadLocation thread={thread} />
-              <OpenPortsIndicator thread={thread} />
-              {childThreads.length > 0 ? (
-                <ChildThreadBadge
-                  threads={childThreads}
-                  childrenByParent={childrenByParent}
-                  expanded={childrenExpanded}
-                  controls={childListId}
-                  onToggle={onToggleChildren}
-                />
-              ) : null}
-              {thread.environment?.branchName && thread.host ? (
-                <Icon
-                  name="Computer"
-                  aria-label={`Machine: ${thread.host.name}`}
-                  className="size-3 shrink-0 text-muted-foreground/60"
-                />
-              ) : null}
-              {thread.activity.workflows > 0 ? (
-                <ActivityCount
-                  label="workflows"
-                  count={thread.activity.workflows}
-                />
-              ) : null}
-              {thread.activity.backgroundAgents > 0 ? (
-                <ActivityCount
-                  label="background agents"
-                  count={thread.activity.backgroundAgents}
-                />
-              ) : null}
-              {isVisible ? <ThreadPullRequest threadId={thread.id} /> : null}
-              <ProviderGlyph
-                providerId={thread.providerId}
-                provider={provider}
-              />
-            </div>
-            </>
+                  <ThreadLocation thread={thread} />
+                  <OpenPortsIndicator thread={thread} />
+                  {childThreads.length > 0 ? (
+                    <ChildThreadBadge
+                      threads={childThreads}
+                      childrenByParent={childrenByParent}
+                      expanded={childrenExpanded}
+                      controls={childListId}
+                      onToggle={onToggleChildren}
+                    />
+                  ) : null}
+                  {thread.environment?.branchName && thread.host ? (
+                    <Icon
+                      name="Computer"
+                      aria-label={`Machine: ${thread.host.name}`}
+                      className="size-3 shrink-0 text-muted-foreground/60"
+                    />
+                  ) : null}
+                  {thread.activity.workflows > 0 ? (
+                    <ActivityCount label="workflows" count={thread.activity.workflows} />
+                  ) : null}
+                  {thread.activity.backgroundAgents > 0 ? (
+                    <ActivityCount label="background agents" count={thread.activity.backgroundAgents} />
+                  ) : null}
+                  {isVisible ? <ThreadPullRequest threadId={thread.id} /> : null}
+                  <ProviderGlyph providerId={thread.providerId} provider={provider} />
+                </div>
+              </>
             )}
           </div>
           {childThreads.length > 0 &&
           (childrenExpanded ||
-            collapsedChildThreads(
-              childThreads,
-              childrenByParent,
-              activeThreadId,
-              showChildrenWhenCollapsed,
-            ).length > 0) ? (
+            collapsedChildThreads(childThreads, childrenByParent, activeThreadId, showChildrenWhenCollapsed).length >
+              0) ? (
             <ChildThreadList
               id={childListId}
               threads={childThreads}
@@ -611,11 +582,7 @@ function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
   if (thread.host) {
     return (
       <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-        <Icon
-          name="Computer"
-          aria-hidden
-          className="size-3 shrink-0 text-muted-foreground/60"
-        />
+        <Icon name="Computer" aria-hidden className="size-3 shrink-0 text-muted-foreground/60" />
         <span className="truncate">{thread.host.name}</span>
       </span>
     );
@@ -623,15 +590,11 @@ function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
   return <span className="flex-1" />;
 }
 
-
 function ThreadPullRequest({ threadId }: { threadId: string }) {
   const { pullRequest } = useSidebarThreadPullRequest(threadId);
   if (!pullRequest) return null;
   return (
-    <Tooltip
-      label={`${pullRequest.title}\n${pullRequestStatusLabel(pullRequest)}`}
-      className="whitespace-pre-line"
-    >
+    <Tooltip label={`${pullRequest.title}\n${pullRequestStatusLabel(pullRequest)}`} className="whitespace-pre-line">
       <a
         href={pullRequest.url}
         target="_blank"
@@ -648,16 +611,7 @@ function ThreadPullRequest({ threadId }: { threadId: string }) {
   );
 }
 
-
-function ParkButton({
-  label,
-  settling,
-  onActivate,
-}: {
-  label: string;
-  settling: boolean;
-  onActivate: () => void;
-}) {
+function ParkButton({ label, settling, onActivate }: { label: string; settling: boolean; onActivate: () => void }) {
   return (
     <button
       type="button"

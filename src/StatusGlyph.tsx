@@ -3,12 +3,7 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { relativeTimeLabel } from "./relative-time";
-import {
-  shortStatusLabel,
-  statusToneClass,
-  threadShortStatus,
-  useThreadWithDraft,
-} from "./StatusSlot";
+import { shortStatusLabel, statusToneClass, threadShortStatus, useThreadWithDraft } from "./StatusSlot";
 import { useWorkingSinceContext } from "./useWorkingSince";
 
 /**
@@ -33,9 +28,7 @@ import { useWorkingSinceContext } from "./useWorkingSince";
  * indicator bb ships tomorrow must fall through to the age label, not blank
  * the slot.
  */
-export function hasStatusGlyph(
-  indicator: PluginSidebarThreadIndicator,
-): boolean {
+export function hasStatusGlyph(indicator: PluginSidebarThreadIndicator): boolean {
   switch (indicator) {
     case "unread-error":
     case "waiting-for-input":
@@ -68,95 +61,36 @@ export function StatusGlyph({
 
   switch (indicator) {
     case "unread-error":
-      return (
-        <Icon
-          name="CircleX"
-          aria-label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <Icon name="CircleX" aria-label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "waiting-for-input":
-      return (
-        <Icon
-          name="CircleQuestion"
-          aria-label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <Icon name="CircleQuestion" aria-label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "runtime":
       return (
         <Icon
           name="Loading"
           aria-label={aria}
-          className={cn(
-            shared,
-            "animate-spin opacity-75",
-            statusToneClass(indicator),
-          )}
+          className={cn(shared, "animate-spin opacity-75", statusToneClass(indicator))}
         />
       );
     case "workflow":
-      return (
-        <ShineIcon
-          name="Workflow"
-          label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <ShineIcon name="Workflow" label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "background-agent":
-      return (
-        <ShineIcon
-          name="UserRoundPlus"
-          label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <ShineIcon name="UserRoundPlus" label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "background-command":
-      return (
-        <ShineIcon
-          name="Terminal"
-          label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <ShineIcon name="Terminal" label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "plan-mode":
-      return (
-        <ShineIcon
-          name="ListTodo"
-          label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <ShineIcon name="ListTodo" label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "goal":
-      return (
-        <ShineIcon
-          name="Target"
-          label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <ShineIcon name="Target" label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "draft":
     case "working-draft":
-      return (
-        <Icon
-          name="Edit"
-          aria-label={aria}
-          className={cn(shared, statusToneClass(indicator))}
-        />
-      );
+      return <Icon name="Edit" aria-label={aria} className={cn(shared, statusToneClass(indicator))} />;
     case "unread-success":
       // The notification dot, in a box the size of every other glyph, the way
       // bb centers its own trailing indicators. Right-aligned on its own, a
       // 5px dot would sit ~4px off the column the icons share.
       return (
-        <span
-          aria-label={aria}
-          className={cn(
-            "flex items-center justify-center",
-            shared,
-            statusToneClass(indicator),
-          )}
-        >
+        <span aria-label={aria} className={cn("flex items-center justify-center", shared, statusToneClass(indicator))}>
           <span className="size-[5px] rounded-full bg-current" />
         </span>
       );
@@ -176,13 +110,7 @@ function ShineIcon({
   label: string | undefined;
   className: string;
 }) {
-  return (
-    <Icon
-      name={name}
-      aria-label={label}
-      className={cn("animate-shine-icon opacity-75", className)}
-    />
-  );
+  return <Icon name={name} aria-label={label} className={cn("animate-shine-icon opacity-75", className)} />;
 }
 
 /**
@@ -203,15 +131,9 @@ export function CompactLiveStatus({
   const status = threadShortStatus(thread);
   if (status === null) return null;
   const startedAt = workingSince.get(thread.id);
-  const elapsed =
-    startedAt === undefined ? "now" : relativeTimeLabel(startedAt, now);
+  const elapsed = startedAt === undefined ? "now" : relativeTimeLabel(startedAt, now);
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center gap-1 tabular-nums text-2xs font-medium",
-        status.className,
-      )}
-    >
+    <span className={cn("flex shrink-0 items-center gap-1 tabular-nums text-2xs font-medium", status.className)}>
       <span aria-hidden="true" className="flex items-center">
         <StatusGlyph indicator={thread.indicator} label={null} className="size-3" />
       </span>

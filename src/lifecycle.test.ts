@@ -26,9 +26,7 @@ const quiet: ThreadActivitySignals = {
   latestAttentionAt: 0,
 };
 
-const row = (
-  overrides: Partial<ThreadLifecycleRow> = {},
-): ThreadLifecycleRow => ({
+const row = (overrides: Partial<ThreadLifecycleRow> = {}): ThreadLifecycleRow => ({
   threadId: "thr_1",
   settledAt: null,
   snoozedUntil: null,
@@ -66,73 +64,39 @@ describe("resolveShelf", () => {
   });
 
   it("brings a settled thread back when it starts working", () => {
-    expect(
-      resolveShelf(
-        row({ settledAt: 500 }),
-        { ...quiet, isWorking: true },
-        1_000,
-      ),
-    ).toBe("active");
+    expect(resolveShelf(row({ settledAt: 500 }), { ...quiet, isWorking: true }, 1_000)).toBe("active");
   });
 
   it("brings a settled thread back when it asks a question", () => {
-    expect(
-      resolveShelf(
-        row({ settledAt: 500 }),
-        { ...quiet, hasPendingInteraction: true },
-        1_000,
-      ),
-    ).toBe("active");
+    expect(resolveShelf(row({ settledAt: 500 }), { ...quiet, hasPendingInteraction: true }, 1_000)).toBe("active");
   });
 
   it("un-settles on new attention after the settle", () => {
-    expect(
-      resolveShelf(
-        row({ settledAt: 500 }),
-        { ...quiet, latestAttentionAt: 900 },
-        1_000,
-      ),
-    ).toBe("active");
+    expect(resolveShelf(row({ settledAt: 500 }), { ...quiet, latestAttentionAt: 900 }, 1_000)).toBe("active");
   });
 
   it("keeps a snoozed thread hidden until its wake time", () => {
-    expect(
-      resolveShelf(row({ snoozedUntil: 2_000, snoozedAt: 500 }), quiet, 1_000),
-    ).toBe("snoozed");
+    expect(resolveShelf(row({ snoozedUntil: 2_000, snoozedAt: 500 }), quiet, 1_000)).toBe("snoozed");
   });
 
   it("wakes a snoozed thread when the timer elapses", () => {
-    expect(
-      resolveShelf(row({ snoozedUntil: 900, snoozedAt: 500 }), quiet, 1_000),
-    ).toBe("active");
+    expect(resolveShelf(row({ snoozedUntil: 900, snoozedAt: 500 }), quiet, 1_000)).toBe("active");
   });
 
   // "Something happened" wakes it early — otherwise snooze hides the exact
   // thing the user needed to see.
   it("wakes a snoozed thread early when it raises its hand", () => {
     expect(
-      resolveShelf(
-        row({ snoozedUntil: 5_000, snoozedAt: 500 }),
-        { ...quiet, hasPendingInteraction: true },
-        1_000,
-      ),
+      resolveShelf(row({ snoozedUntil: 5_000, snoozedAt: 500 }), { ...quiet, hasPendingInteraction: true }, 1_000),
     ).toBe("active");
     expect(
-      resolveShelf(
-        row({ snoozedUntil: 5_000, snoozedAt: 500 }),
-        { ...quiet, latestAttentionAt: 800 },
-        1_000,
-      ),
+      resolveShelf(row({ snoozedUntil: 5_000, snoozedAt: 500 }), { ...quiet, latestAttentionAt: 800 }, 1_000),
     ).toBe("active");
   });
 
   it("does not wake on activity that predates the snooze", () => {
     expect(
-      resolveShelf(
-        row({ snoozedUntil: 5_000, snoozedAt: 900 }),
-        { ...quiet, latestAttentionAt: 800 },
-        1_000,
-      ),
+      resolveShelf(row({ snoozedUntil: 5_000, snoozedAt: 900 }), { ...quiet, latestAttentionAt: 800 }, 1_000),
     ).toBe("snoozed");
   });
 });
@@ -146,20 +110,8 @@ describe("resolveWakeReason", () => {
 
   it("marks new attention, including a pending interaction", () => {
     const snoozed = row({ snoozedUntil: 5_000, snoozedAt: 500 });
-    expect(
-      resolveWakeReason(
-        snoozed,
-        { ...quiet, latestAttentionAt: 800 },
-        1_000,
-      ),
-    ).toBe("attention");
-    expect(
-      resolveWakeReason(
-        snoozed,
-        { ...quiet, hasPendingInteraction: true },
-        1_000,
-      ),
-    ).toBe("attention");
+    expect(resolveWakeReason(snoozed, { ...quiet, latestAttentionAt: 800 }, 1_000)).toBe("attention");
+    expect(resolveWakeReason(snoozed, { ...quiet, hasPendingInteraction: true }, 1_000)).toBe("attention");
   });
 });
 
@@ -182,9 +134,7 @@ describe("snoozeWakeLabel", () => {
 describe("formatSnoozeWakeTime", () => {
   it("includes the exact date and local time", () => {
     const wakeAt = Date.UTC(2026, 7, 23, 1, 30);
-    expect(formatSnoozeWakeTime(wakeAt, "en-US", "UTC")).toBe(
-      "Aug 23, 2026, 1:30 AM",
-    );
+    expect(formatSnoozeWakeTime(wakeAt, "en-US", "UTC")).toBe("Aug 23, 2026, 1:30 AM");
   });
 });
 
@@ -196,21 +146,15 @@ describe("picked snooze", () => {
   });
 
   it("combines a day and a local time", () => {
-    expect(combineSnoozeDateTime(new Date(2026, 2, 8), "14:05")).toBe(
-      new Date(2026, 2, 8, 14, 5).getTime(),
-    );
+    expect(combineSnoozeDateTime(new Date(2026, 2, 8), "14:05")).toBe(new Date(2026, 2, 8, 14, 5).getTime());
     expect(combineSnoozeDateTime(new Date(2026, 2, 8), "")).toBeNull();
     expect(combineSnoozeDateTime(new Date(2026, 2, 8), "24:00")).toBeNull();
   });
 
   it("previews the wake time, naming the year only when it differs", () => {
     const now = new Date(Date.UTC(2026, 9, 3, 12));
-    expect(formatPickedSnooze(Date.UTC(2026, 9, 4, 9), now, "en-US", "UTC")).toBe(
-      "Sun, Oct 4, 9:00 AM",
-    );
-    expect(formatPickedSnooze(Date.UTC(2027, 0, 4, 9), now, "en-US", "UTC")).toBe(
-      "Mon, Jan 4, 2027, 9:00 AM",
-    );
+    expect(formatPickedSnooze(Date.UTC(2026, 9, 4, 9), now, "en-US", "UTC")).toBe("Sun, Oct 4, 9:00 AM");
+    expect(formatPickedSnooze(Date.UTC(2027, 0, 4, 9), now, "en-US", "UTC")).toBe("Mon, Jan 4, 2027, 9:00 AM");
   });
 });
 
@@ -222,7 +166,11 @@ describe("resolveConfiguredSnoozePreset", () => {
     const now = new Date(2026, 0, 5, 10);
     const presets = parseConfiguredSnoozePresets(DEFAULT_SNOOZE_PRESET_CONFIG);
     expect(presets.map((preset) => preset.label)).toEqual([
-      "1 hour", "Wait refresh (5 hours)", "This evening", "Tomorrow morning", "Next week",
+      "1 hour",
+      "Wait refresh (5 hours)",
+      "This evening",
+      "Tomorrow morning",
+      "Next week",
     ]);
     expect(presets.map((preset) => resolveConfiguredSnoozePreset(preset, now))).toEqual([
       new Date(2026, 0, 5, 11).getTime(),
@@ -241,8 +189,12 @@ describe("resolveConfiguredSnoozePreset", () => {
 
   it("uses editable calendar times and recalculates across midnight and year boundaries", () => {
     const preset = parseConfiguredSnoozePresets("Morning=tomorrow@08:15")[0]!;
-    expect(resolveConfiguredSnoozePreset(preset, new Date(2026, 11, 31, 23, 59))).toBe(new Date(2027, 0, 1, 8, 15).getTime());
-    expect(resolveConfiguredSnoozePreset(preset, new Date(2027, 0, 1, 0, 1))).toBe(new Date(2027, 0, 2, 8, 15).getTime());
+    expect(resolveConfiguredSnoozePreset(preset, new Date(2026, 11, 31, 23, 59))).toBe(
+      new Date(2027, 0, 1, 8, 15).getTime(),
+    );
+    expect(resolveConfiguredSnoozePreset(preset, new Date(2027, 0, 1, 0, 1))).toBe(
+      new Date(2027, 0, 2, 8, 15).getTime(),
+    );
     expect(resolve("next-week@10:30", new Date(2026, 0, 4, 23))).toBe(new Date(2026, 0, 5, 10, 30).getTime());
   });
 
@@ -263,7 +215,7 @@ describe("resolveConfiguredSnoozePreset", () => {
   });
 });
 
-  describe("parseConfiguredSnoozePresets", () => {
+describe("parseConfiguredSnoozePresets", () => {
   it("parses durations and optional labels", () => {
     expect(parseConfiguredSnoozePresets("15m, Focus block=2.5h, 1d")).toEqual([
       { id: "preset-0", label: "15 minutes", durationMs: 15 * 60_000 },
@@ -283,38 +235,35 @@ describe("resolveConfiguredSnoozePreset", () => {
   });
 
   it("accepts editable calendar labels and times", () => {
-    expect(parseConfiguredSnoozePresets("Tonight=evening@20:45, Morning=tomorrow@08:30, Monday=next-week@10:00")).toEqual([
+    expect(
+      parseConfiguredSnoozePresets("Tonight=evening@20:45, Morning=tomorrow@08:30, Monday=next-week@10:00"),
+    ).toEqual([
       { id: "preset-0", label: "Tonight", calendar: "evening", hour: 20, minute: 45 },
       { id: "preset-1", label: "Morning", calendar: "tomorrow", hour: 8, minute: 30 },
       { id: "preset-2", label: "Monday", calendar: "next-week", hour: 10, minute: 0 },
     ]);
   });
 
-  it.each(["tomorrow@24:00", "evening@18:60", "next-week@-1:00", "tomorrow@9", "tomorrow@09:00extra"])("rejects invalid calendar time %s", (value) => {
-    expect(configuredSnoozePresetError(value)).not.toBeNull();
-  });
+  it.each(["tomorrow@24:00", "evening@18:60", "next-week@-1:00", "tomorrow@9", "tomorrow@09:00extra"])(
+    "rejects invalid calendar time %s",
+    (value) => {
+      expect(configuredSnoozePresetError(value)).not.toBeNull();
+    },
+  );
 
-    it("falls back to defaults when every entry is invalid", () => {
+  it("falls back to defaults when every entry is invalid", () => {
     expect(parseConfiguredSnoozePresets("later, eventually")).toEqual(
       parseConfiguredSnoozePresets(DEFAULT_SNOOZE_PRESET_CONFIG),
     );
-    });
+  });
 
-    it("reports settings that would silently fall back or discard entries", () => {
-      expect(configuredSnoozePresetError("")).toBe(
-        "Enter at least one snooze shortcut.",
-      );
-      expect(configuredSnoozePresetError("later")).toContain(
-        "comma-separated durations",
-      );
-      expect(configuredSnoozePresetError("15m, later")).toContain(
-        "comma-separated durations",
-      );
-      expect(
-        configuredSnoozePresetError("1m,2m,3m,4m,5m,6m,7m,8m,9m"),
-      ).toBe("Use no more than eight snooze shortcuts.");
-      expect(configuredSnoozePresetError("15m, Lunch=3h")).toBeNull();
-    });
+  it("reports settings that would silently fall back or discard entries", () => {
+    expect(configuredSnoozePresetError("")).toBe("Enter at least one snooze shortcut.");
+    expect(configuredSnoozePresetError("later")).toContain("comma-separated durations");
+    expect(configuredSnoozePresetError("15m, later")).toContain("comma-separated durations");
+    expect(configuredSnoozePresetError("1m,2m,3m,4m,5m,6m,7m,8m,9m")).toBe("Use no more than eight snooze shortcuts.");
+    expect(configuredSnoozePresetError("15m, Lunch=3h")).toBeNull();
+  });
 });
 
 describe("nextWakeDelayMs", () => {
@@ -334,16 +283,14 @@ describe("nextWakeDelayMs", () => {
   });
 });
 
-
 describe("parked shelf", () => {
   it("waits indefinitely, including when already unread", () => {
     expect(resolveShelf(row({ parkedAt: 100 }), { ...quiet, isUnread: true }, 1e12)).toBe("parked");
   });
-  it.each([
-    { latestAttentionAt: 101 },
-    { isWorking: true },
-    { hasPendingInteraction: true },
-  ])("returns to Active for fresh activity: %j", (signals) => {
-    expect(resolveShelf(row({ parkedAt: 100 }), { ...quiet, ...signals }, 200)).toBe("active");
-  });
+  it.each([{ latestAttentionAt: 101 }, { isWorking: true }, { hasPendingInteraction: true }])(
+    "returns to Active for fresh activity: %j",
+    (signals) => {
+      expect(resolveShelf(row({ parkedAt: 100 }), { ...quiet, ...signals }, 200)).toBe("active");
+    },
+  );
 });

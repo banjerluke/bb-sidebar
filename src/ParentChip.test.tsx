@@ -8,13 +8,9 @@ import { idleSidebarThreadFields } from "./test-fixtures";
 // Load through the harness so the plugin's `@get-bb/plugin-sdk/app` import binds
 // to the test runtime.
 const app = await loadPluginApp(() => import("../app"));
-const parentChip = app.threadHeaderActions.find(
-  (slot) => slot.id === "parent",
-)!;
+const parentChip = app.threadHeaderActions.find((slot) => slot.id === "parent")!;
 
-function thread(
-  overrides: Partial<PluginSidebarThread> = {},
-): PluginSidebarThread {
+function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
     ...idleSidebarThreadFields,
     id: "thr_1",
@@ -49,11 +45,7 @@ function thread(
   };
 }
 
-function render(
-  threads: PluginSidebarThread[],
-  threadId: string,
-  isCompactViewport = false,
-) {
+function render(threads: PluginSidebarThread[], threadId: string, isCompactViewport = false) {
   return renderSlot(
     parentChip,
     { threadId, projectId: "proj_1", isCompactViewport },
@@ -74,10 +66,7 @@ describe("ParentChip", () => {
   // only route back.
   it("opens the parent on click", () => {
     const rendered = render(
-      [
-        thread({ id: "parent", title: "Parent thread" }),
-        thread({ id: "child", parentThreadId: "parent" }),
-      ],
+      [thread({ id: "parent", title: "Parent thread" }), thread({ id: "child", parentThreadId: "parent" })],
       "child",
     );
     fireEvent.click(screen.getByRole("button"));
@@ -102,26 +91,19 @@ describe("ParentChip", () => {
       ],
       "child",
     );
-    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
-      "Back to parent: Archived parent",
-    );
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Back to parent: Archived parent");
   });
 
   // The header row is short: a phone shows the chevron and the disc only, but
   // the control keeps its name.
   it("drops the title on a compact viewport", () => {
     render(
-      [
-        thread({ id: "parent", title: "Parent thread" }),
-        thread({ id: "child", parentThreadId: "parent" }),
-      ],
+      [thread({ id: "parent", title: "Parent thread" }), thread({ id: "child", parentThreadId: "parent" })],
       "child",
       true,
     );
     const button = screen.getByRole("button");
     expect(button.textContent).toBe("");
-    expect(button.getAttribute("aria-label")).toBe(
-      "Back to parent: Parent thread",
-    );
+    expect(button.getAttribute("aria-label")).toBe("Back to parent: Parent thread");
   });
 });

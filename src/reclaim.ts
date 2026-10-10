@@ -45,13 +45,9 @@ function isLive(terminal: ReclaimTerminal): boolean {
   return terminal.status === "running" || terminal.status === "starting";
 }
 
-export function planTerminalReclaim(
-  terminals: readonly ReclaimTerminal[],
-): TerminalReclaimPlan {
+export function planTerminalReclaim(terminals: readonly ReclaimTerminal[]): TerminalReclaimPlan {
   const live = terminals.filter(isLive);
-  const close = live
-    .filter((terminal) => terminal.lastUserInputAt === null)
-    .map((terminal) => terminal.id);
+  const close = live.filter((terminal) => terminal.lastUserInputAt === null).map((terminal) => terminal.id);
   return { close, keep: live.length - close.length };
 }
 

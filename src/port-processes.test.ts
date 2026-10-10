@@ -3,7 +3,10 @@ import { isBbInternalListener, parseProcessCommands } from "./port-processes";
 
 describe("BB internal port filtering", () => {
   it.each([
-    ["bb Nightly", "/Applications/bb Nightly.app/Contents/MacOS/bb Nightly /Applications/bb Nightly.app/Contents/Resources/app.asar.unpacked/node_modules/bb-app/host-daemon/dist/bb-provider-bridge-worker.mjs"],
+    [
+      "bb Nightly",
+      "/Applications/bb Nightly.app/Contents/MacOS/bb Nightly /Applications/bb Nightly.app/Contents/Resources/app.asar.unpacked/node_modules/bb-app/host-daemon/dist/bb-provider-bridge-worker.mjs",
+    ],
     ["node", "/usr/bin/node /opt/node_modules/bb-app/server/dist/index.js"],
     ["bb", "/usr/bin/bb"],
     ["bb Nightly", ""],
@@ -22,9 +25,13 @@ describe("BB internal port filtering", () => {
   });
 
   it("reads commands containing spaces without losing the executable path", () => {
-    expect(parseProcessCommands("  123 /Applications/bb Nightly.app/Contents/MacOS/bb Nightly\n  456 node server.js\n")).toEqual(new Map([
-      [123, "/Applications/bb Nightly.app/Contents/MacOS/bb Nightly"],
-      [456, "node server.js"],
-    ]));
+    expect(
+      parseProcessCommands("  123 /Applications/bb Nightly.app/Contents/MacOS/bb Nightly\n  456 node server.js\n"),
+    ).toEqual(
+      new Map([
+        [123, "/Applications/bb Nightly.app/Contents/MacOS/bb Nightly"],
+        [456, "node server.js"],
+      ]),
+    );
   });
 });

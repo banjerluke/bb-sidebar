@@ -12,9 +12,7 @@ export interface TitleGenerationOptions {
 
 function userRows(rows: readonly Row[]): Row[] {
   return rows
-    .flatMap((row) =>
-      row.kind === "turn" ? userRows(row.children ?? []) : [row],
-    )
+    .flatMap((row) => (row.kind === "turn" ? userRows(row.children ?? []) : [row]))
     .filter(
       (row) =>
         row.kind === "conversation" &&
@@ -45,21 +43,13 @@ export async function lastUserMessages(bb: BbPluginApi, threadId: string) {
     cursor = page.timelinePage.olderCursor;
     if (!page.timelinePage.hasOlderRows || !cursor) break;
     const key = JSON.stringify(cursor);
-    if (cursors.has(key))
-      throw new Error("Could not read the latest user messages");
+    if (cursors.has(key)) throw new Error("Could not read the latest user messages");
     cursors.add(key);
   }
   return [...found.values()]
-    .sort(
-      (a, b) =>
-        a.sourceSeqStart - b.sourceSeqStart || a.createdAt - b.createdAt,
-    )
+    .sort((a, b) => a.sourceSeqStart - b.sourceSeqStart || a.createdAt - b.createdAt)
     .slice(-MESSAGE_LIMIT)
-    .map((row) =>
-      row.kind === "conversation"
-        ? row.text.trim().slice(0, MESSAGE_CHAR_LIMIT)
-        : "",
-    );
+    .map((row) => (row.kind === "conversation" ? row.text.trim().slice(0, MESSAGE_CHAR_LIMIT) : ""));
 }
 
 export function titlePrompt(messages: readonly string[]) {
@@ -74,28 +64,19 @@ export function titlePrompt(messages: readonly string[]) {
 
 export function parseTitle(output: string | null) {
   if (!output) throw new Error("The title generator returned no title");
-  const text = output
-    .trim()
-    .replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/u, "$1");
+  const text = output.trim().replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/u, "$1");
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch {
     throw new Error("The title generator returned an invalid title");
   }
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !("title" in value) ||
-    typeof value.title !== "string"
-  ) {
+  if (!value || typeof value !== "object" || !("title" in value) || typeof value.title !== "string") {
     throw new Error("The title generator returned an invalid title");
   }
   const title = value.title.trim().replace(/\s+/gu, " ");
   if (!title || title.length > 100 || title.split(" ").length > 5) {
-    throw new Error(
-      "The generated title must be at most five words and 100 characters",
-    );
+    throw new Error("The generated title must be at most five words and 100 characters");
   }
   return title;
 }
@@ -124,18 +105,21 @@ export function createTitleRegenerator(bb: BbPluginApi) {
     await Promise.all([...helpers].map(cleanup));
   });
 
-  async function generateCodex(original: Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>>, messages: readonly string[]) {
-    if (!original.environmentId)
-      throw new Error("This thread needs a workspace before its title can be regenerated");
+  async function generateCodex(
+    original: Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>>,
+    messages: readonly string[],
+  ) {
+    if (!original.environmentId) throw new Error("This thread needs a workspace before its title can be regenerated");
     const providerId = "codex";
     const providers = await bb.sdk.providers.list({ environmentId: original.environmentId });
     if (!providers.some((provider) => provider.id === providerId && provider.available))
       throw new Error(`Title regeneration needs the ${providerId} provider to be available`);
     const catalog = await bb.sdk.providers.models({
-      providerId, environmentId: original.environmentId,
+      providerId,
+      environmentId: original.environmentId,
     });
-    const selected = catalog.models.find((entry) => entry.id === "gpt-6-luna") ??
-      catalog.models.find((entry) => entry.isDefault);
+    const selected =
+      catalog.models.find((entry) => entry.id === "gpt-6-luna") ?? catalog.models.find((entry) => entry.isDefault);
     if (!selected) throw new Error("Codex has no available model for title generation");
     controller.signal.throwIfAborted();
     let title: string | undefined;
@@ -176,23 +160,24 @@ export function createTitleRegenerator(bb: BbPluginApi) {
 
   async function generate(threadId: string, options: TitleGenerationOptions) {
     const original = await bb.sdk.threads.get({ threadId });
-    if (options.onlyIfUntitled && original.title !== null)
-      throw new Error("The thread already has a title");
-    if (options.onlyIfUntitled && (original.visibility !== "visible" ||
-        original.archivedAt !== null || original.deletedAt !== null))
+    if (options.onlyIfUntitled && original.title !== null) throw new Error("The thread already has a title");
+    if (
+      options.onlyIfUntitled &&
+      (original.visibility !== "visible" || original.archivedAt !== null || original.deletedAt !== null)
+    )
       throw new Error("The thread is no longer available for automatic naming");
     const messages = await lastUserMessages(bb, threadId);
-    if (!messages.some(Boolean))
-      throw new Error("This thread has no user-message text to generate a title from");
+    if (!messages.some(Boolean)) throw new Error("This thread has no user-message text to generate a title from");
     const { selections, services } = await bb.sdk.system.aiServices({ signal: controller.signal });
     const selection = selections["thread-title"];
-    if (selection.mode === "off")
-      throw new Error("Thread titles are turned off in Settings → AI services");
+    if (selection.mode === "off") throw new Error("Thread titles are turned off in Settings → AI services");
     const candidates = services
-      .filter((service) => service.tasks.includes("thread-title") && (
-        selection.mode === "automatic" ||
-        (service.pluginId === selection.pluginId && service.id === selection.serviceId)
-      ))
+      .filter(
+        (service) =>
+          service.tasks.includes("thread-title") &&
+          (selection.mode === "automatic" ||
+            (service.pluginId === selection.pluginId && service.id === selection.serviceId)),
+      )
       .sort((a, b) => (a.automaticRank ?? Infinity) - (b.automaticRank ?? Infinity));
     let title: string | undefined;
     let failure: unknown = new Error("No AI service is available for thread titles");
@@ -216,18 +201,18 @@ export function createTitleRegenerator(bb: BbPluginApi) {
     if (!title) throw failure;
     controller.signal.throwIfAborted();
     if (options.onlyIfUntitled) {
-      const latest = (await bb.sdk.system.aiServices({ signal: controller.signal }))
-        .selections["thread-title"];
-      if (latest.mode !== selection.mode || (latest.mode === "service" &&
-          selection.mode === "service" && (latest.pluginId !== selection.pluginId ||
-            latest.serviceId !== selection.serviceId)))
+      const latest = (await bb.sdk.system.aiServices({ signal: controller.signal })).selections["thread-title"];
+      if (
+        latest.mode !== selection.mode ||
+        (latest.mode === "service" &&
+          selection.mode === "service" &&
+          (latest.pluginId !== selection.pluginId || latest.serviceId !== selection.serviceId))
+      )
         throw new Error("Thread title settings changed while generating");
     }
     const current = await bb.sdk.threads.get({ threadId });
     if (current.title !== original.title)
-      throw new Error(
-        "The title changed while generating. Your newer title was kept.",
-      );
+      throw new Error("The title changed while generating. Your newer title was kept.");
     if (options.onlyIfUntitled && (current.archivedAt !== null || current.deletedAt !== null))
       throw new Error("The thread is no longer available for automatic naming");
     await bb.sdk.threads.update({ threadId, title });

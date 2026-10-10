@@ -14,9 +14,7 @@ export function Tooltip({
 }: {
   label: React.ReactNode;
   children: React.ReactElement;
-  side?: React.ComponentPropsWithoutRef<
-    typeof TooltipPrimitive.Content
-  >["side"];
+  side?: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>["side"];
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;

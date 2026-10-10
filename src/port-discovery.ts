@@ -4,9 +4,11 @@ import type { PortSnapshot } from "./open-ports";
 
 async function forEachConcurrent<T>(items: T[], limit: number, visit: (item: T) => Promise<void>) {
   let next = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) await visit(items[next++]);
-  }));
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) await visit(items[next++]);
+    }),
+  );
 }
 
 export function createPortDiscovery(bb: BbPluginApi) {
@@ -24,11 +26,18 @@ export function createPortDiscovery(bb: BbPluginApi) {
     const ids = new Set<string>();
     const threadEnvironment = new Map<string, string>();
     for (let offset = 0; ; offset += 500) {
-      const threads = await bb.sdk.threads.list({ archived: false, includeHidden: true, limit: 500, offset, signal: controller.signal });
-      for (const thread of threads) if (thread.environmentId) {
-        ids.add(thread.environmentId);
-        threadEnvironment.set(thread.id, thread.environmentId);
-      }
+      const threads = await bb.sdk.threads.list({
+        archived: false,
+        includeHidden: true,
+        limit: 500,
+        offset,
+        signal: controller.signal,
+      });
+      for (const thread of threads)
+        if (thread.environmentId) {
+          ids.add(thread.environmentId);
+          threadEnvironment.set(thread.id, thread.environmentId);
+        }
       if (threads.length < 500) break;
     }
     for (const id of environments.keys()) if (!ids.has(id)) environments.delete(id);
@@ -58,15 +67,24 @@ export function createPortDiscovery(bb: BbPluginApi) {
       controller.signal.throwIfAborted();
       if (Date.now() < (failures.get(hostId)?.retryAt ?? 0)) return;
       try {
-        const result = await host.call("scan", { roots }, {
-          hostId, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
-        });
+        const result = await host.call(
+          "scan",
+          { roots },
+          {
+            hostId,
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
+          },
+        );
         failures.delete(hostId);
         for (const root of roots) {
-          const ports = result.ports.filter((port) => port.environmentId === root.environmentId).map(({ environmentId: _, ownerThreadId, ...port }) => ({
-            ...port,
-            ...(ownerThreadId && threadEnvironment.get(ownerThreadId) === root.environmentId ? { ownerThreadId } : {}),
-          }));
+          const ports = result.ports
+            .filter((port) => port.environmentId === root.environmentId)
+            .map(({ environmentId: _, ownerThreadId, ...port }) => ({
+              ...port,
+              ...(ownerThreadId && threadEnvironment.get(ownerThreadId) === root.environmentId
+                ? { ownerThreadId }
+                : {}),
+            }));
           if (ports.length) groups.push({ environmentId: root.environmentId, ports });
         }
       } catch (error) {
@@ -84,11 +102,15 @@ export function createPortDiscovery(bb: BbPluginApi) {
     controller.signal.throwIfAborted();
     if (Date.now() - scannedAt < 30_000) return Promise.resolve(cached);
     const scanGeneration = generation;
-    pending = scan().then((snapshot) => {
-      cached = snapshot;
-      scannedAt = scanGeneration === generation ? Date.now() : -Infinity;
-      return snapshot;
-    }).finally(() => { pending = null; });
+    pending = scan()
+      .then((snapshot) => {
+        cached = snapshot;
+        scannedAt = scanGeneration === generation ? Date.now() : -Infinity;
+        return snapshot;
+      })
+      .finally(() => {
+        pending = null;
+      });
     return pending;
   };
   return Object.assign(discover, {

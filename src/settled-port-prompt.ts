@@ -35,14 +35,17 @@ export async function promptToCloseSettledPorts(
               toast.message("No matching thread-owned ports are still running");
             }
           } catch (error) {
-            toast.error("Could not close thread ports", { description: error instanceof Error ? error.message : String(error) });
+            toast.error("Could not close thread ports", {
+              description: error instanceof Error ? error.message : String(error),
+            });
           }
         },
       },
     });
   } catch (error) {
-    if (isCurrent()) toast.error("Thread settled, but its ports could not be checked", {
-      description: error instanceof Error ? error.message : String(error),
-    });
+    if (isCurrent())
+      toast.error("Thread settled, but its ports could not be checked", {
+        description: error instanceof Error ? error.message : String(error),
+      });
   }
 }

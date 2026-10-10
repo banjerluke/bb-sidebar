@@ -13,7 +13,9 @@ function hslToHex(hue: number, saturation: number, lightness: number): string {
   const channel = (n: number) => {
     const k = (n + hue / 30) % 12;
     const value = lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-    return Math.round(255 * value).toString(16).padStart(2, "0");
+    return Math.round(255 * value)
+      .toString(16)
+      .padStart(2, "0");
   };
   return `#${channel(0)}${channel(8)}${channel(4)}`;
 }
@@ -32,7 +34,7 @@ export function projectColorsById(
   projectIds: readonly string[],
   overrides: Readonly<Record<string, string>>,
 ): ReadonlyMap<string, string> {
-  const used = new Set(projectIds.flatMap((id) => overrides[id] ? [overrides[id]!.toLowerCase()] : []));
+  const used = new Set(projectIds.flatMap((id) => (overrides[id] ? [overrides[id]!.toLowerCase()] : [])));
   const colors = new Map<string, string>();
   for (const id of [...new Set(projectIds)].sort()) {
     if (overrides[id]) {
@@ -61,7 +63,7 @@ function textColor(color: string, darkTheme: boolean): string {
   const rgb = [1, 3, 5].map((offset) => parseInt(color.slice(offset, offset + 2), 16));
   const background = darkTheme ? luminance([32, 32, 32]) : luminance([245, 245, 245]);
   for (let step = 0; step <= 20; step++) {
-    const adjusted = rgb.map((value) => Math.round(value + ((darkTheme ? 255 : 0) - value) * step / 20));
+    const adjusted = rgb.map((value) => Math.round(value + (((darkTheme ? 255 : 0) - value) * step) / 20));
     const l = luminance(adjusted);
     if ((Math.max(l, background) + 0.05) / (Math.min(l, background) + 0.05) >= 4.5) {
       return `#${adjusted.map((value) => value.toString(16).padStart(2, "0")).join("")}`;

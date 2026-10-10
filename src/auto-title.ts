@@ -11,10 +11,7 @@ export const AUTO_TITLE_RECOVERY_MIGRATION = `CREATE TABLE IF NOT EXISTS title_r
 )`;
 
 /** Recover a missing title once, without tying naming to sidebar mounts. */
-export function createAutoTitleRecovery(
-  bb: BbPluginApi,
-  regenerateTitle: ReturnType<typeof createTitleRegenerator>,
-) {
+export function createAutoTitleRecovery(bb: BbPluginApi, regenerateTitle: ReturnType<typeof createTitleRegenerator>) {
   const db = bb.storage.database();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const queued = new Set<string>();
@@ -27,16 +24,23 @@ export function createAutoTitleRecovery(
   async function recover(threadId: string) {
     try {
       const thread = await bb.sdk.threads.get({ threadId });
-      if (disposed || thread.title !== null || thread.visibility !== "visible" ||
-          thread.archivedAt !== null || thread.deletedAt !== null) return;
+      if (
+        disposed ||
+        thread.title !== null ||
+        thread.visibility !== "visible" ||
+        thread.archivedAt !== null ||
+        thread.deletedAt !== null
+      )
+        return;
       const { selections } = await bb.sdk.system.aiServices();
       if (disposed || deleted.has(threadId) || selections["thread-title"].mode === "off") return;
       if (claim.run(threadId).changes === 0) return;
       await regenerateTitle(threadId, { onlyIfUntitled: true });
     } catch (error) {
-      if (!disposed) bb.log.info(
-        `Automatic title recovery did not complete for ${threadId}: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      if (!disposed)
+        bb.log.info(
+          `Automatic title recovery did not complete for ${threadId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
     }
   }
 
@@ -55,10 +59,18 @@ export function createAutoTitleRecovery(
 
   // Events include hidden title helpers, which must never start another helper.
   const onThread = ({ thread }: { thread: Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>> }) => {
-    if (disposed || thread.title !== null || thread.visibility !== "visible" ||
-        thread.archivedAt !== null || thread.deletedAt !== null ||
-        timers.has(thread.id) || queued.has(thread.id) || running.has(thread.id) ||
-        attempted.get(thread.id)) return;
+    if (
+      disposed ||
+      thread.title !== null ||
+      thread.visibility !== "visible" ||
+      thread.archivedAt !== null ||
+      thread.deletedAt !== null ||
+      timers.has(thread.id) ||
+      queued.has(thread.id) ||
+      running.has(thread.id) ||
+      attempted.get(thread.id)
+    )
+      return;
     const timer = setTimeout(() => {
       timers.delete(thread.id);
       queued.add(thread.id);

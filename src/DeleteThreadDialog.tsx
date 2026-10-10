@@ -59,7 +59,13 @@ export function DeleteThreadDialog({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => { if (!next && busy) return; onOpenChange(next); }}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && busy) return;
+        onOpenChange(next);
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay {...portalScope} className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content
@@ -68,8 +74,12 @@ export function DeleteThreadDialog({
         >
           <Dialog.Title className="text-sm font-semibold leading-5">Delete thread?</Dialog.Title>
           <div className="mt-3 rounded-md border border-border bg-background px-3 py-2">
-            <div className="truncate text-sm font-medium" title={title}>{title}</div>
-            <div className="truncate text-xs text-muted-foreground" title={projectName}>{projectName}</div>
+            <div className="truncate text-sm font-medium" title={title}>
+              {title}
+            </div>
+            <div className="truncate text-xs text-muted-foreground" title={projectName}>
+              {projectName}
+            </div>
           </div>
           <Dialog.Description className="mb-4 mt-3 text-xs leading-5 text-muted-foreground">
             {childCount > 0

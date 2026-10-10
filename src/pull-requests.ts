@@ -1,12 +1,14 @@
 // Pull request records shared by the server, host entry, and hover card.
 import { z } from "zod";
 
-export const threadPullRequestSchema = z.object({
-  url: z.string(),
-  number: z.number().int(),
-  title: z.string().nullable(),
-  state: z.enum(["open", "draft", "merged", "closed"]).nullable(),
-}).strict();
+export const threadPullRequestSchema = z
+  .object({
+    url: z.string(),
+    number: z.number().int(),
+    title: z.string().nullable(),
+    state: z.enum(["open", "draft", "merged", "closed"]).nullable(),
+  })
+  .strict();
 export type ThreadPullRequest = z.infer<typeof threadPullRequestSchema>;
 
 const PULL_REQUEST_URL = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/g;
@@ -26,8 +28,7 @@ export function createdPullRequestUrls(events: readonly { type: string; data: un
   for (const event of events) {
     if (event.type !== "item/completed") continue;
     const item = (event.data as { item?: unknown } | null)?.item as
-      | { type?: unknown; command?: unknown; aggregatedOutput?: unknown }
-      | undefined;
+      { type?: unknown; command?: unknown; aggregatedOutput?: unknown } | undefined;
     if (item?.type !== "commandExecution") continue;
     if (typeof item.command !== "string" || !CREATE_COMMAND.test(item.command)) continue;
     if (typeof item.aggregatedOutput !== "string") continue;
@@ -44,16 +45,23 @@ export function pullRequestNumber(url: string): number {
 export function parseGhPullRequest(output: string): ThreadPullRequest | null {
   try {
     const value = JSON.parse(output) as {
-      number?: unknown; title?: unknown; state?: unknown; isDraft?: unknown; url?: unknown;
+      number?: unknown;
+      title?: unknown;
+      state?: unknown;
+      isDraft?: unknown;
+      url?: unknown;
     };
     if (typeof value.number !== "number" || typeof value.url !== "string") return null;
-    const state = value.state === "MERGED"
-      ? "merged"
-      : value.state === "CLOSED"
-        ? "closed"
-        : value.state === "OPEN"
-          ? value.isDraft === true ? "draft" : "open"
-          : null;
+    const state =
+      value.state === "MERGED"
+        ? "merged"
+        : value.state === "CLOSED"
+          ? "closed"
+          : value.state === "OPEN"
+            ? value.isDraft === true
+              ? "draft"
+              : "open"
+            : null;
     return {
       url: value.url,
       number: value.number,

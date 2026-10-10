@@ -2,11 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type PluginSidebarThread, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./server";
-import {
-  orderPinnedThreads,
-  pinnedNeighbors,
-  sortPinnedThreads,
-} from "./pinned-order";
+import { orderPinnedThreads, pinnedNeighbors, sortPinnedThreads } from "./pinned-order";
 
 interface OptimisticOrder {
   ids: readonly string[];
@@ -26,18 +22,10 @@ function orderKey(ids: readonly string[]): string {
 }
 
 /** Optimistic pinned order with one in-flight write and host-truth rollback. */
-export function usePinnedReorder(
-  pinnedThreads: readonly PluginSidebarThread[],
-): PinnedReorderApi {
+export function usePinnedReorder(pinnedThreads: readonly PluginSidebarThread[]): PinnedReorderApi {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
-  const baseThreads = useMemo(
-    () => sortPinnedThreads(pinnedThreads),
-    [pinnedThreads],
-  );
-  const baseIds = useMemo(
-    () => baseThreads.map((thread) => thread.id),
-    [baseThreads],
-  );
+  const baseThreads = useMemo(() => sortPinnedThreads(pinnedThreads), [pinnedThreads]);
+  const baseIds = useMemo(() => baseThreads.map((thread) => thread.id), [baseThreads]);
   const baseKey = orderKey(baseIds);
   const [optimistic, setOptimistic] = useState<OptimisticOrder | null>(null);
   const [isReordering, setIsReordering] = useState(false);
@@ -62,19 +50,13 @@ export function usePinnedReorder(
     [baseThreads],
   );
   // Match bb's pinned roots: a child is excluded only while its parent is pinned.
-  const childIds = useMemo(
-    () => {
-      return new Set(
-        pinnedThreads
-          .filter(
-            (thread) =>
-              thread.parentThreadId !== null && eligiblePinnedIds.has(thread.parentThreadId),
-          )
-          .map((thread) => thread.id),
-      );
-    },
-    [eligiblePinnedIds, pinnedThreads],
-  );
+  const childIds = useMemo(() => {
+    return new Set(
+      pinnedThreads
+        .filter((thread) => thread.parentThreadId !== null && eligiblePinnedIds.has(thread.parentThreadId))
+        .map((thread) => thread.id),
+    );
+  }, [eligiblePinnedIds, pinnedThreads]);
 
   const reorder = useCallback(
     async (nextIds: readonly string[], movingId: string): Promise<boolean> => {

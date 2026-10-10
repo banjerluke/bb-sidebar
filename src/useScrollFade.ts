@@ -17,19 +17,12 @@ export function useScrollFade<T extends HTMLElement>() {
     if (!node) return;
     const update = () => {
       const below = node.scrollHeight - node.clientHeight - node.scrollTop;
-      node.style.setProperty(
-        "--scroll-fade-top",
-        `${Math.min(Math.max(node.scrollTop, 0), FADE_PX)}px`,
-      );
-      node.style.setProperty(
-        "--scroll-fade-bottom",
-        `${Math.min(Math.max(below, 0), FADE_PX)}px`,
-      );
+      node.style.setProperty("--scroll-fade-top", `${Math.min(Math.max(node.scrollTop, 0), FADE_PX)}px`);
+      node.style.setProperty("--scroll-fade-bottom", `${Math.min(Math.max(below, 0), FADE_PX)}px`);
     };
     update();
     node.addEventListener("scroll", update, { passive: true });
-    const observer =
-      typeof ResizeObserver === "function" ? new ResizeObserver(update) : null;
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : null;
     const observeSizes = () => {
       observer?.disconnect();
       observer?.observe(node);

@@ -10,9 +10,7 @@ import {
 const DAY = 24 * 60 * 60 * 1_000;
 const NOW = 10 * DAY;
 
-function lifecycle(
-  overrides: Partial<AutoSettleLifecycleState> = {},
-): AutoSettleLifecycleState {
+function lifecycle(overrides: Partial<AutoSettleLifecycleState> = {}): AutoSettleLifecycleState {
   return {
     settledAt: null,
     settledOverride: null,
@@ -51,31 +49,21 @@ describe("automatic settle policy", () => {
         status: "active",
       }),
     ).toBe(false);
-    expect(
-      autoSettleNeedsPullRequest(null, { ...quietThread, pinnedAt: NOW }),
-    ).toBe(false);
-    expect(
-      autoSettleNeedsPullRequest(
-        lifecycle({ settledOverride: "active" }),
-        quietThread,
-      ),
-    ).toBe(false);
-    expect(
-      autoSettleNeedsPullRequest(
-        lifecycle({ snoozedUntil: NOW + DAY }),
-        quietThread,
-      ),
-    ).toBe(false);
+    expect(autoSettleNeedsPullRequest(null, { ...quietThread, pinnedAt: NOW })).toBe(false);
+    expect(autoSettleNeedsPullRequest(lifecycle({ settledOverride: "active" }), quietThread)).toBe(false);
+    expect(autoSettleNeedsPullRequest(lifecycle({ snoozedUntil: NOW + DAY }), quietThread)).toBe(false);
   });
 
   it("keeps a pending thread available", () => {
-    expect(decideAutoSettle({
-      lifecycle: null,
-      now: NOW,
-      pullRequest: { outcome: "absent" },
-      settings,
-      thread: { ...quietThread, status: "pending" },
-    })).toBe("keep");
+    expect(
+      decideAutoSettle({
+        lifecycle: null,
+        now: NOW,
+        pullRequest: { outcome: "absent" },
+        settings,
+        thread: { ...quietThread, status: "pending" },
+      }),
+    ).toBe("keep");
   });
 
   it.each<[string, Partial<AutoSettleThread>]>([
@@ -83,14 +71,8 @@ describe("automatic settle policy", () => {
     ["queued messages", { queuedWork: "waiting" }],
     ["a failed queued message", { queuedWork: "failed" }],
     ["a workflow", { activity: { ...idleActivity, activeWorkflowCount: 1 } }],
-    [
-      "a background agent",
-      { activity: { ...idleActivity, activeBackgroundAgentCount: 1 } },
-    ],
-    [
-      "a background command",
-      { activity: { ...idleActivity, activeBackgroundCommandCount: 1 } },
-    ],
+    ["a background agent", { activity: { ...idleActivity, activeBackgroundAgentCount: 1 } }],
+    ["a background command", { activity: { ...idleActivity, activeBackgroundCommandCount: 1 } }],
     ["plan mode", { activity: { ...idleActivity, activePlanModeCount: 1 } }],
     ["a goal", { activity: { ...idleActivity, activeGoalCount: 1 } }],
   ])("never settles an idle thread with %s, and returns one it settled", (_, overrides) => {
@@ -103,9 +85,7 @@ describe("automatic settle policy", () => {
 
     expect(autoSettleNeedsPullRequest(null, thread)).toBe(false);
     for (const pullRequest of [{ outcome: "absent" as const }, merged]) {
-      expect(
-        decideAutoSettle({ lifecycle: null, now: NOW, pullRequest, settings, thread }),
-      ).toBe("keep");
+      expect(decideAutoSettle({ lifecycle: null, now: NOW, pullRequest, settings, thread })).toBe("keep");
     }
     expect(
       decideAutoSettle({
@@ -263,11 +243,13 @@ describe("automatic settle policy", () => {
   });
 });
 
-
 it("never automatically settles parked work or requests its PR", () => {
   const parked = lifecycle({ parkedAt: DAY });
   expect(autoSettleNeedsPullRequest(parked, quietThread)).toBe(false);
-  for (const pullRequest of [{ outcome: "absent" as const }, { outcome: "available" as const, state: "merged" as const, updatedAt: new Date(NOW).toISOString() }]) {
+  for (const pullRequest of [
+    { outcome: "absent" as const },
+    { outcome: "available" as const, state: "merged" as const, updatedAt: new Date(NOW).toISOString() },
+  ]) {
     expect(decideAutoSettle({ lifecycle: parked, now: NOW, pullRequest, settings, thread: quietThread })).toBe("keep");
   }
 });

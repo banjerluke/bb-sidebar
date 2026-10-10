@@ -1,17 +1,7 @@
-export const PROJECT_ICON_ROUTE =
-  "/api/v1/plugins/bb-sidebar/http/project-icon";
+export const PROJECT_ICON_ROUTE = "/api/v1/plugins/bb-sidebar/http/project-icon";
 export const PROJECT_ICONS_CHANNEL = "project-icons";
 
-export const PROJECT_ICON_EXTENSIONS = [
-  ".svg",
-  ".png",
-  ".ico",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".avif",
-  ".webp",
-] as const;
+export const PROJECT_ICON_EXTENSIONS = [".svg", ".png", ".ico", ".jpg", ".jpeg", ".gif", ".avif", ".webp"] as const;
 
 // Mirrors T3 Code's useful, framework-agnostic candidates. The root icon
 // wins, then public assets, framework app icons, and finally generic assets.
@@ -58,15 +48,10 @@ export function normalizeProjectIconPath(input: string): string | null {
   }
   const path = parts.join("/");
   const lower = path.toLowerCase();
-  return PROJECT_ICON_EXTENSIONS.some((extension) =>
-    lower.endsWith(extension),
-  )
-    ? path
-    : null;
+  return PROJECT_ICON_EXTENSIONS.some((extension) => lower.endsWith(extension)) ? path : null;
 }
 
-const LINK_ICON_RE =
-  /<link\b(?=[^>]*\brel=["'](?:icon|shortcut icon)["'])(?=[^>]*\bhref=["']([^"'?]+))[^>]*>/i;
+const LINK_ICON_RE = /<link\b(?=[^>]*\brel=["'](?:icon|shortcut icon)["'])(?=[^>]*\bhref=["']([^"'?]+))[^>]*>/i;
 const ICON_REL_RE = /\brel\s*:\s*["'](?:icon|shortcut icon)["']/i;
 const ICON_HREF_RE = /\bhref\s*:\s*["']([^"'?]+)/i;
 
@@ -83,11 +68,7 @@ export function extractProjectIconHref(source: string): string | null {
 
 export function iconPathsForHref(href: string): string[] {
   const withoutSuffix = href.split(/[?#]/, 1)[0]?.trim() ?? "";
-  if (
-    withoutSuffix.length === 0 ||
-    withoutSuffix.startsWith("//") ||
-    /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(withoutSuffix)
-  ) {
+  if (withoutSuffix.length === 0 || withoutSuffix.startsWith("//") || /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(withoutSuffix)) {
     return [];
   }
   let decoded: string;

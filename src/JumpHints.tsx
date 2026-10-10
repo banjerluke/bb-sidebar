@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type RefObject,
-} from "react";
+import { createContext, useContext, useEffect, useState, type RefObject } from "react";
 import { cn } from "./lib/utils";
 
 // bb binds thread.jump.1–9 to Mod+digit and resolves them by walking these
@@ -47,8 +41,7 @@ export function useJumpHints(rootRef: RefObject<HTMLElement | null>): JumpHints 
     let timer: number | undefined;
     let shown = false;
 
-    const isModifier = (key: string) =>
-      key === "Control" || (isMac && key === "Meta");
+    const isModifier = (key: string) => key === "Control" || (isMac && key === "Meta");
 
     function show() {
       timer = undefined;
@@ -79,8 +72,7 @@ export function useJumpHints(rootRef: RefObject<HTMLElement | null>): JumpHints 
         return;
       }
       if (shown || timer !== undefined) return;
-      const otherModifier =
-        event.key === "Meta" ? event.ctrlKey : event.metaKey;
+      const otherModifier = event.key === "Meta" ? event.ctrlKey : event.metaKey;
       if (event.shiftKey || event.altKey || otherModifier) {
         hide();
         return;
@@ -112,13 +104,7 @@ export function useJumpHint(threadId: string): string | null {
   return useContext(JumpHintsContext).get(threadId) ?? null;
 }
 
-export function JumpHint({
-  label,
-  className,
-}: {
-  label: string;
-  className?: string;
-}) {
+export function JumpHint({ label, className }: { label: string; className?: string }) {
   return (
     <kbd aria-hidden="true" className={cn(HINT_CLASS, className)}>
       {label}

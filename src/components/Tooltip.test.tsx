@@ -17,9 +17,7 @@ describe("Tooltip", () => {
       pointerType: "mouse",
     });
 
-    expect((await screen.findByRole("tooltip")).textContent).toBe(
-      "Settle thread",
-    );
+    expect((await screen.findByRole("tooltip")).textContent).toBe("Settle thread");
   });
 
   it("shows the same clue on keyboard focus", async () => {
@@ -31,8 +29,6 @@ describe("Tooltip", () => {
 
     fireEvent.focus(screen.getByRole("button"));
 
-    expect((await screen.findByRole("tooltip")).textContent).toBe(
-      "Unpin thread",
-    );
+    expect((await screen.findByRole("tooltip")).textContent).toBe("Unpin thread");
   });
 });

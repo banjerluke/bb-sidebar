@@ -3,9 +3,7 @@ import type { experimental_useProviders } from "@get-bb/plugin-sdk/app";
 import { cn } from "./lib/utils";
 import { TRAILING_GLYPH_BOX_CLASS } from "./StatusSlot";
 
-export type SidebarProvider = ReturnType<
-  typeof experimental_useProviders
->["providers"][number];
+export type SidebarProvider = ReturnType<typeof experimental_useProviders>["providers"][number];
 
 function providerMaskStyle(logoUrl: string): CSSProperties {
   const maskImage = `url(${JSON.stringify(logoUrl)})`;
@@ -60,11 +58,7 @@ export function ProviderGlyph({
             />
           </>
         ) : (
-          <span
-            aria-hidden
-            className="size-3 bg-muted-foreground/70"
-            style={maskStyle}
-          />
+          <span aria-hidden className="size-3 bg-muted-foreground/70" style={maskStyle} />
         )}
       </span>
     );

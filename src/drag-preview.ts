@@ -3,10 +3,11 @@ export function createDragPreview(list: HTMLElement) {
   const effects = new Map<HTMLElement, Animation>();
   let positions: Map<HTMLElement, number> | null = null;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-  const visuals = () => Array.from(list.children).flatMap((row) => {
-    const visual = row.querySelector<HTMLElement>(":scope > [data-drag-visual]");
-    return visual ? [visual] : [];
-  });
+  const visuals = () =>
+    Array.from(list.children).flatMap((row) => {
+      const visual = row.querySelector<HTMLElement>(":scope > [data-drag-visual]");
+      return visual ? [visual] : [];
+    });
   function cancelEffects() {
     for (const effect of effects.values()) effect.cancel();
     effects.clear();
@@ -25,9 +26,7 @@ export function createDragPreview(list: HTMLElement) {
       // snapshot, including the current transform of any unfinished effect.
       if (positions || reducedMotion?.matches) return;
       const top = list.getBoundingClientRect().top;
-      positions = new Map(visuals().map((visual) => [
-        visual, visual.getBoundingClientRect().top - top,
-      ]));
+      positions = new Map(visuals().map((visual) => [visual, visual.getBoundingClientRect().top - top]));
     },
     play() {
       if (!positions) return;
@@ -42,10 +41,10 @@ export function createDragPreview(list: HTMLElement) {
         if (oldTop === undefined || typeof visual.animate !== "function") continue;
         const delta = oldTop - (visual.getBoundingClientRect().top - top);
         if (Math.abs(delta) < 0.5) continue;
-        const effect = visual.animate([
-          { transform: `translateY(${delta}px)` },
-          { transform: "translateY(0)" },
-        ], { duration: 150, easing: "ease-out" });
+        const effect = visual.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }], {
+          duration: 150,
+          easing: "ease-out",
+        });
         effects.set(visual, effect);
         effect.onfinish = () => {
           if (effects.get(visual) === effect) effects.delete(visual);

@@ -13,10 +13,7 @@ import {
   childNeedsYouCount,
   childrenOf,
 } from "./ChildThreadList";
-import {
-  ChildThreadDisplayContext,
-  useChildThreadDisplayValue,
-} from "./ChildThreadDisplay";
+import { ChildThreadDisplayContext, useChildThreadDisplayValue } from "./ChildThreadDisplay";
 import { cn } from "./lib/utils";
 import { Tooltip } from "./components/Tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
@@ -29,24 +26,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
  * bb's in-turn subagents are activity counters on the parent, not threads, so
  * the label deliberately says "children".
  */
-export function SubagentsChip({
-  threadId,
-  isCompactViewport,
-}: PluginThreadHeaderActionProps) {
+export function SubagentsChip({ threadId, isCompactViewport }: PluginThreadHeaderActionProps) {
   const { threads } = useSidebarThreads();
   const actions = useSidebarThreadActions();
   const [open, setOpen] = useState(false);
   const sidebarSettings = useSidebarSettings();
 
   const { providers } = useProviders();
-  const providerById = useMemo(
-    () => new Map(providers.map((provider) => [provider.id, provider])),
-    [providers],
-  );
-  const childDisplay = useChildThreadDisplayValue(
-    sidebarSettings,
-    providerById,
-  );
+  const providerById = useMemo(() => new Map(providers.map((provider) => [provider.id, provider])), [providers]);
+  const childDisplay = useChildThreadDisplayValue(sidebarSettings, providerById);
   const children = childrenOf(threads, threadId, childDisplay.sort);
   const childrenByParent = useMemo(
     () => childThreadsByParent(threads, childDisplay.sort),
@@ -61,12 +49,8 @@ export function SubagentsChip({
   if (children.length === 0) return null;
 
   const needsYou = childNeedsYouCount(children) > 0;
-  const threadCountLabel = `${children.length} child thread${
-    children.length === 1 ? "" : "s"
-  }`;
-  const label = needsYou
-    ? "Needs you"
-    : `${children.length} ${children.length === 1 ? "child" : "children"}`;
+  const threadCountLabel = `${children.length} child thread${children.length === 1 ? "" : "s"}`;
+  const label = needsYou ? "Needs you" : `${children.length} ${children.length === 1 ? "child" : "children"}`;
 
   return (
     <ChildThreadDisplayContext.Provider value={childDisplay}>
@@ -83,9 +67,7 @@ export function SubagentsChip({
               )}
             >
               <ChildThreadDots threads={children} />
-              {isCompactViewport ? null : (
-                <span className="truncate">{label}</span>
-              )}
+              {isCompactViewport ? null : <span className="truncate">{label}</span>}
             </button>
           </PopoverTrigger>
         </Tooltip>
@@ -106,17 +88,13 @@ export function SubagentsChip({
         >
           <div className="flex shrink-0 items-center gap-2 px-3 pb-1 pt-2.5">
             <span className="text-xs font-semibold">Children</span>
-            <span className="ml-auto text-2xs text-muted-foreground">
-              {children.length}
-            </span>
+            <span className="ml-auto text-2xs text-muted-foreground">{children.length}</span>
           </div>
           <div className="min-h-0 overflow-y-auto">
             <ChildThreadList
               threads={children}
               childrenByParent={childrenByParent}
-              parentProjectId={
-                threads.find((thread) => thread.id === threadId)?.projectId
-              }
+              parentProjectId={threads.find((thread) => thread.id === threadId)?.projectId}
               variant="header"
               onOpenThread={(childId) => {
                 setOpen(false);

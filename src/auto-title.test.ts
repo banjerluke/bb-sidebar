@@ -6,7 +6,7 @@ import { createTitleRegenerator } from "./regenerate-title";
 const disposers: Array<() => Promise<void>> = [];
 beforeEach(() => vi.useFakeTimers());
 afterEach(async () => {
-  await Promise.all(disposers.splice(0).map(dispose => dispose()));
+  await Promise.all(disposers.splice(0).map((dispose) => dispose()));
   vi.useRealTimers();
 });
 
@@ -15,24 +15,49 @@ function setup(useRealGenerator = false) {
   const db = bb.storage.database();
   bb.storage.migrate(db, [AUTO_TITLE_RECOVERY_MIGRATION]);
   let thread = makeThreadResponse({
-    id: "target", title: null, visibility: "visible", environmentId: "workspace",
+    id: "target",
+    title: null,
+    visibility: "visible",
+    environmentId: "workspace",
   });
   let off = false;
   const sdk = harness.inspection.sdk;
   sdk.stub("threads.get", async ({ threadId }: { threadId: string }) => ({ ...thread, id: threadId }));
   sdk.stub("system.aiServices", async () => ({
-    selections: { "thread-title": off ? { mode: "off" } : {
-      mode: "service", pluginId: "provider-codex", serviceId: "codex",
-    } },
-    services: [{ id: "codex", pluginId: "provider-codex", displayName: "Codex",
-      tasks: ["thread-title"], status: { ready: true } }],
+    selections: {
+      "thread-title": off
+        ? { mode: "off" }
+        : {
+            mode: "service",
+            pluginId: "provider-codex",
+            serviceId: "codex",
+          },
+    },
+    services: [
+      {
+        id: "codex",
+        pluginId: "provider-codex",
+        displayName: "Codex",
+        tasks: ["thread-title"],
+        status: { ready: true },
+      },
+    ],
   }));
   const regenerate = vi.fn(async () => ({ title: "Review sidebar pull request" }));
   createAutoTitleRecovery(bb, useRealGenerator ? createTitleRegenerator(bb) : regenerate);
   disposers.push(() => harness.lifecycle.dispose());
-  return { bb, harness, sdk, db, regenerate,
-    setThread: (changes: Partial<typeof thread>) => { thread = { ...thread, ...changes }; },
-    setOff: () => { off = true; },
+  return {
+    bb,
+    harness,
+    sdk,
+    db,
+    regenerate,
+    setThread: (changes: Partial<typeof thread>) => {
+      thread = { ...thread, ...changes };
+    },
+    setOff: () => {
+      off = true;
+    },
     active: () => harness.behavior.emitThreadEvent("thread.active", { thread }),
     idle: () => harness.behavior.emitThreadEvent("thread.idle", { thread, lastAssistantText: null }),
   };
@@ -50,7 +75,7 @@ describe("automatic title recovery", () => {
     await state.active();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(state.regenerate).toHaveBeenCalledTimes(1);
-    const replacement = await state.harness.lifecycle.reload(bb => createAutoTitleRecovery(bb, state.regenerate));
+    const replacement = await state.harness.lifecycle.reload((bb) => createAutoTitleRecovery(bb, state.regenerate));
     disposers.push(() => replacement.harness.lifecycle.dispose());
     await replacement.harness.behavior.emitThreadEvent("thread.active", {
       thread: makeThreadResponse({ id: "target", title: null, visibility: "visible" }),
@@ -77,19 +102,17 @@ describe("automatic title recovery", () => {
     expect(state.db.prepare("SELECT * FROM title_recovery_attempts").all()).toEqual([]);
   });
 
-  it.each([
-    { title: "Manual title" },
-    { visibility: "hidden" as const },
-    { archivedAt: 1 },
-    { deletedAt: 1 },
-  ])("skips threads that already have a title or are unavailable: %j", async changes => {
-    const state = setup();
-    state.setThread(changes);
-    await state.active();
-    await vi.advanceTimersByTimeAsync(10_000);
-    expect(state.regenerate).not.toHaveBeenCalled();
-    expect(state.sdk.callsTo("threads.get")).toHaveLength(0);
-  });
+  it.each([{ title: "Manual title" }, { visibility: "hidden" as const }, { archivedAt: 1 }, { deletedAt: 1 }])(
+    "skips threads that already have a title or are unavailable: %j",
+    async (changes) => {
+      const state = setup();
+      state.setThread(changes);
+      await state.active();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(state.regenerate).not.toHaveBeenCalled();
+      expect(state.sdk.callsTo("threads.get")).toHaveLength(0);
+    },
+  );
 
   it("does not keep retrying after a failed generation", async () => {
     const state = setup();
@@ -125,7 +148,9 @@ describe("automatic title recovery", () => {
   it("does not start recovery or leave an attempt for a thread deleted during the service check", async () => {
     const state = setup();
     let finish!: () => void;
-    const serviceCheck = new Promise<void>(resolve => { finish = resolve; });
+    const serviceCheck = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
     state.sdk.stub("system.aiServices", async () => {
       await serviceCheck;
       return { selections: { "thread-title": { mode: "automatic" } }, services: [] };
@@ -144,7 +169,9 @@ describe("automatic title recovery", () => {
   it("limits simultaneous recoveries and drains queued threads", async () => {
     const state = setup();
     let finish!: () => void;
-    const pending = new Promise<void>(resolve => { finish = resolve; });
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
     state.regenerate.mockImplementation(async () => {
       await pending;
       return { title: "Recovered title" };
@@ -162,19 +189,23 @@ describe("automatic title recovery", () => {
 
   it.each(["Check this sidebar pull request", "Is this working?"])(
     "names an untitled thread through selected Codex, including short prompts: %s",
-    async text => {
+    async (text) => {
       const state = setupCodex(text);
       await state.active();
       await vi.advanceTimersByTimeAsync(10_000);
       expect(state.harness.logEntries).toEqual([]);
       expect(state.sdk.callsTo("threads.wait")[0]![0]).toMatchObject({ timeoutMs: 45_000 });
-      expect(state.sdk.callsTo("threads.update")[0]![0]).toEqual({ threadId: "target", title: "Review sidebar pull request" });
+      expect(state.sdk.callsTo("threads.update")[0]![0]).toEqual({
+        threadId: "target",
+        title: "Review sidebar pull request",
+      });
       expect(state.sdk.callsTo("plugins.callRpc")).toHaveLength(0);
     },
   );
 
   it.each(["manual title", "titles off", "archived"])(
-    "keeps user changes made during generation: %s", async change => {
+    "keeps user changes made during generation: %s",
+    async (change) => {
       const state = setupCodex();
       state.sdk.stub("threads.wait", async () => {
         if (change === "manual title") state.setThread({ title: "My title" });
@@ -193,15 +224,25 @@ describe("automatic title recovery", () => {
 
 function setupCodex(text = "Check this sidebar pull request") {
   const state = setup(true);
-  state.sdk.stub("threads.timeline", async () => ({ rows: [{
-    kind: "conversation", role: "user", initiator: "user", id: "message",
-    text, createdAt: 1, sourceSeqStart: 1,
-    turnRequest: { status: "accepted" },
-  }], timelinePage: { hasOlderRows: false, olderCursor: null } }));
+  state.sdk.stub("threads.timeline", async () => ({
+    rows: [
+      {
+        kind: "conversation",
+        role: "user",
+        initiator: "user",
+        id: "message",
+        text,
+        createdAt: 1,
+        sourceSeqStart: 1,
+        turnRequest: { status: "accepted" },
+      },
+    ],
+    timelinePage: { hasOlderRows: false, olderCursor: null },
+  }));
   state.sdk.stub("providers.list", async () => [{ id: "codex", available: true }]);
-  state.sdk.stub("providers.models", async () => ({ models: [
-    { id: "gpt-6-luna", model: "gpt-6-luna", isDefault: true },
-  ] }));
+  state.sdk.stub("providers.models", async () => ({
+    models: [{ id: "gpt-6-luna", model: "gpt-6-luna", isDefault: true }],
+  }));
   state.sdk.stub("threads.spawn", async () => makeThreadResponse({ id: "helper" }));
   state.sdk.stub("threads.wait", async () => ({ matched: true }));
   state.sdk.stub("threads.output", async () => ({ output: '{"title":"Review sidebar pull request"}' }));

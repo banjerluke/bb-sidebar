@@ -2,18 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./server";
-import {
-  PROJECT_ICONS_CHANNEL,
-  PROJECT_ICON_EXTENSIONS,
-  projectIconUrl,
-} from "./project-icons";
+import { PROJECT_ICONS_CHANNEL, PROJECT_ICON_EXTENSIONS, projectIconUrl } from "./project-icons";
 import { ProjectMonogram } from "./ProjectFavicon";
 import { ProjectColorSetting } from "./ProjectColorSetting";
-import {
-  SettingRow,
-  SettingsSelect,
-  secondaryButtonClass,
-} from "./settings-ui";
+import { SettingRow, SettingsSelect, secondaryButtonClass } from "./settings-ui";
 
 interface ProjectIconSetting {
   id: string;
@@ -70,16 +62,14 @@ export function ProjectAppearanceSettings() {
       setIconSettings(icons.value.projects);
     } else {
       toast.error("Could not load project icons", {
-        description:
-          icons.reason instanceof Error ? icons.reason.message : undefined,
+        description: icons.reason instanceof Error ? icons.reason.message : undefined,
       });
     }
     if (directory.status === "fulfilled") {
       setProjects(directory.value.projects);
     } else {
       toast.error("Could not load projects", {
-        description:
-          directory.reason instanceof Error ? directory.reason.message : undefined,
+        description: directory.reason instanceof Error ? directory.reason.message : undefined,
       });
     }
     setLoading(false);
@@ -96,14 +86,9 @@ export function ProjectAppearanceSettings() {
   // Every project either list knows, in the icon list's order.
   const choices: ProjectChoice[] = [
     ...iconSettings,
-    ...projects.filter(
-      (project) => !iconSettings.some((icon) => icon.id === project.id),
-    ),
+    ...projects.filter((project) => !iconSettings.some((icon) => icon.id === project.id)),
   ];
-  const selected =
-    choices.find((project) => project.id === selectedProjectId) ??
-    choices[0] ??
-    null;
+  const selected = choices.find((project) => project.id === selectedProjectId) ?? choices[0] ?? null;
   const selectedId = selected?.id ?? "";
   const icon = iconSettings.find((project) => project.id === selectedId) ?? null;
   const hasCustomIcon = !!(icon?.customPath || icon?.customUploadName);
@@ -112,14 +97,9 @@ export function ProjectAppearanceSettings() {
     setPreviewFailed(false);
   }, [revision, selectedId]);
 
-  const applyIconResult = (result: {
-    customPath: string | null;
-    customUploadName: string | null;
-  }) => {
+  const applyIconResult = (result: { customPath: string | null; customUploadName: string | null }) => {
     setIconSettings((current) =>
-      current.map((project) =>
-        project.id === selectedId ? { ...project, ...result } : project,
-      ),
+      current.map((project) => (project.id === selectedId ? { ...project, ...result } : project)),
     );
     setRevision((current) => current + 1);
     setPreviewFailed(false);
@@ -130,9 +110,7 @@ export function ProjectAppearanceSettings() {
     loadRequestSeq.current += 1;
     setSaving(true);
     try {
-      applyIconResult(
-        await rpc.call("setProjectIcon", { projectId: selectedId, path: null }),
-      );
+      applyIconResult(await rpc.call("setProjectIcon", { projectId: selectedId, path: null }));
       toast.success("Using automatic icon detection");
     } catch (error) {
       toast.error("Could not reset the project icon", {
@@ -150,11 +128,7 @@ export function ProjectAppearanceSettings() {
       return;
     }
     const lowerName = file.name.toLowerCase();
-    if (
-      !PROJECT_ICON_EXTENSIONS.some((extension) =>
-        lowerName.endsWith(extension),
-      )
-    ) {
+    if (!PROJECT_ICON_EXTENSIONS.some((extension) => lowerName.endsWith(extension))) {
       toast.error("Choose an SVG, PNG, ICO, JPEG, GIF, AVIF, or WebP image");
       return;
     }
@@ -223,10 +197,7 @@ export function ProjectAppearanceSettings() {
                 onError={() => setPreviewFailed(true)}
               />
             ) : (
-              <ProjectMonogram
-                name={icon.name}
-                className="size-full rounded-none text-lg"
-              />
+              <ProjectMonogram name={icon.name} className="size-full rounded-none text-lg" />
             )}
           </div>
           <div className="min-w-0 flex-1">

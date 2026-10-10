@@ -8,25 +8,13 @@ import { cn } from "./lib/utils";
  *
  * `thread` is null for the "and more" disc in a cluster.
  */
-export function Disc({
-  thread,
-  className,
-}: {
-  thread: PluginSidebarThread | null;
-  className?: string;
-}) {
+export function Disc({ thread, className }: { thread: PluginSidebarThread | null; className?: string }) {
   const hue = thread === null ? 0 : hashHue(thread.id);
   return (
     <span
-      className={cn(
-        "inline-block size-3.5 shrink-0 rounded-full border border-background",
-        className,
-      )}
+      className={cn("inline-block size-3.5 shrink-0 rounded-full border border-background", className)}
       style={{
-        backgroundColor:
-          thread === null
-            ? "var(--muted-foreground)"
-            : `oklch(0.72 0.13 ${hue})`,
+        backgroundColor: thread === null ? "var(--muted-foreground)" : `oklch(0.72 0.13 ${hue})`,
       }}
     />
   );

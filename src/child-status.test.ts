@@ -1,15 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
-import {
-  childStatusKind,
-  childStatusPhrase,
-  childStatusSummary,
-  childSubtree,
-} from "./child-status";
+import { childStatusKind, childStatusPhrase, childStatusSummary, childSubtree } from "./child-status";
 
-function thread(
-  overrides: Partial<PluginSidebarThread> = {},
-): PluginSidebarThread {
+function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
     id: "thr_1",
     projectId: "proj_1",
@@ -41,25 +34,11 @@ function thread(
 
 describe("childStatusKind", () => {
   it("ranks failure over a raised hand over done over working", () => {
-    expect(
-      childStatusKind(
-        thread({ indicator: "unread-error", hasPendingInteraction: true }),
-      ),
-    ).toBe("failed");
-    expect(
-      childStatusKind(
-        thread({ queuedWork: "failed", hasPendingInteraction: true }),
-      ),
-    ).toBe("failed");
-    expect(childStatusKind(thread({ hasPendingInteraction: true }))).toBe(
-      "needs-you",
-    );
-    expect(childStatusKind(thread({ indicator: "waiting-for-input" }))).toBe(
-      "needs-you",
-    );
-    expect(childStatusKind(thread({ indicator: "unread-success" }))).toBe(
-      "done",
-    );
+    expect(childStatusKind(thread({ indicator: "unread-error", hasPendingInteraction: true }))).toBe("failed");
+    expect(childStatusKind(thread({ queuedWork: "failed", hasPendingInteraction: true }))).toBe("failed");
+    expect(childStatusKind(thread({ hasPendingInteraction: true }))).toBe("needs-you");
+    expect(childStatusKind(thread({ indicator: "waiting-for-input" }))).toBe("needs-you");
+    expect(childStatusKind(thread({ indicator: "unread-success" }))).toBe("done");
     expect(childStatusKind(thread({ indicator: "plan-mode" }))).toBe("working");
     expect(childStatusKind(thread({ indicator: "draft" }))).toBeNull();
     expect(childStatusKind(thread())).toBeNull();
@@ -99,14 +78,9 @@ describe("childSubtree", () => {
     const aa = thread({ id: "aa", parentThreadId: "a" });
     const ab = thread({ id: "ab", parentThreadId: "a", isArchived: true });
     const byParent = new Map([["a", [aa, ab]]]);
-    expect(childSubtree([a, b], byParent).map((row) => row.id)).toEqual([
-      "a",
-      "aa",
-      "b",
-    ]);
+    expect(childSubtree([a, b], byParent).map((row) => row.id)).toEqual(["a", "aa", "b"]);
   });
 });
-
 
 describe("full child subtree", () => {
   it.each([
@@ -118,8 +92,14 @@ describe("full child subtree", () => {
     const c = thread({ id: "c" });
     const g = thread({ id: "g", parentThreadId: "c" });
     const gg = thread({ id: "gg", parentThreadId: "g", indicator });
-    const subtree = childSubtree([c], new Map([["c", [g]], ["g", [gg]]]));
-    expect(subtree.map(row => row.id)).toEqual(["c", "g", "gg"]);
+    const subtree = childSubtree(
+      [c],
+      new Map([
+        ["c", [g]],
+        ["g", [gg]],
+      ]),
+    );
+    expect(subtree.map((row) => row.id)).toEqual(["c", "g", "gg"]);
     expect(childStatusSummary(subtree).dominant).toBe(dominant);
   });
 
@@ -129,7 +109,11 @@ describe("full child subtree", () => {
     const archived = thread({ id: "archived", isArchived: true });
     const hidden = thread({ id: "hidden", indicator: "unread-error" });
     const sibling = thread({ id: "sibling" });
-    const map = new Map([["c", [g, archived, sibling]], ["g", [c]], ["archived", [hidden]]]);
-    expect(childSubtree([c, sibling], map).map(row => row.id)).toEqual(["c", "g", "sibling"]);
+    const map = new Map([
+      ["c", [g, archived, sibling]],
+      ["g", [c]],
+      ["archived", [hidden]],
+    ]);
+    expect(childSubtree([c, sibling], map).map((row) => row.id)).toEqual(["c", "g", "sibling"]);
   });
 });

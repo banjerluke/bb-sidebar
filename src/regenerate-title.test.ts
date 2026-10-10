@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createFakePluginHost,
-  makeThreadResponse,
-} from "@get-bb/plugin-sdk/testing";
+import { createFakePluginHost, makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import plugin from "./server";
 import { lastUserMessages, parseTitle } from "./regenerate-title";
 
@@ -35,12 +32,20 @@ function page(rows: unknown[], older = false) {
 }
 
 const cloudService = {
-  id: "bb", pluginId: "bb-ai", displayName: "bb cloud",
-  tasks: ["thread-title"], automaticRank: 0, status: { ready: true },
+  id: "bb",
+  pluginId: "bb-ai",
+  displayName: "bb cloud",
+  tasks: ["thread-title"],
+  automaticRank: 0,
+  status: { ready: true },
 };
 const codexService = {
-  id: "codex", pluginId: "provider-codex", displayName: "Codex",
-  tasks: ["thread-title"], automaticRank: 1, status: { ready: true },
+  id: "codex",
+  pluginId: "provider-codex",
+  displayName: "Codex",
+  tasks: ["thread-title"],
+  automaticRank: 1,
+  status: { ready: true },
 };
 
 async function setup() {
@@ -64,9 +69,7 @@ async function setup() {
       message(5, "Assistant must be excluded", { role: "assistant" }),
     ]),
   );
-  sdk.stub("providers.models", async () => ({ models: [
-    { id: "primary", model: "primary", isDefault: true },
-  ] }));
+  sdk.stub("providers.models", async () => ({ models: [{ id: "primary", model: "primary", isDefault: true }] }));
   sdk.stub("providers.list", async () => [{ id: "codex", available: true }]);
   sdk.stub("system.aiServices", async () => ({
     selections: { "thread-title": { mode: "automatic" } },
@@ -79,17 +82,14 @@ async function setup() {
   }));
   sdk.stub("threads.stop", async () => ({ ok: true }));
   sdk.stub("threads.delete", async () => ({ ok: true }));
-  sdk.stub("threads.update", async () =>
-    makeThreadResponse({ title: "Regenerate sidebar titles" }),
-  );
+  sdk.stub("threads.update", async () => makeThreadResponse({ title: "Regenerate sidebar titles" }));
   await plugin(bb);
   disposers.push(() => harness.lifecycle.dispose());
   return {
     bb,
     harness,
     sdk,
-    run: () =>
-      harness.behavior.callRpc("regenerateTitle", { threadId: "target" }),
+    run: () => harness.behavior.callRpc("regenerateTitle", { threadId: "target" }),
   };
 }
 
@@ -130,33 +130,43 @@ describe("title regeneration", () => {
 
   it("uses Codex when selected, even for a thread using a custom provider", async () => {
     const { sdk, run } = await setup();
-    sdk.stub("threads.get", async () => makeThreadResponse({
-      id: "target", projectId: "project", environmentId: "workspace",
-      providerId: "acp-codex-cell", title: "Original title",
-    }));
+    sdk.stub("threads.get", async () =>
+      makeThreadResponse({
+        id: "target",
+        projectId: "project",
+        environmentId: "workspace",
+        providerId: "acp-codex-cell",
+        title: "Original title",
+      }),
+    );
     sdk.stub("system.aiServices", async () => ({
       selections: { "thread-title": { mode: "service", pluginId: "provider-codex", serviceId: "codex" } },
       services: [codexService],
     }));
-    sdk.stub("providers.models", async () => ({ models: [
-      { id: "default", model: "default-model", isDefault: true },
-      { id: "gpt-6-luna", model: "gpt-6-luna", isDefault: false },
-    ] }));
+    sdk.stub("providers.models", async () => ({
+      models: [
+        { id: "default", model: "default-model", isDefault: true },
+        { id: "gpt-6-luna", model: "gpt-6-luna", isDefault: false },
+      ],
+    }));
     await expect(run()).resolves.toEqual({ title: "Regenerate sidebar titles" });
     expect(sdk.callsTo("threads.spawn")[0]![0]).toMatchObject({
-      providerId: "codex", model: "gpt-6-luna",
+      providerId: "codex",
+      model: "gpt-6-luna",
       environment: { type: "reuse", environmentId: "workspace" },
     });
     expect(sdk.callsTo("threads.defaultExecutionOptions")).toHaveLength(0);
     expect(sdk.callsTo("providers.models")[0]![0]).toEqual({
-      providerId: "codex", environmentId: "workspace",
+      providerId: "codex",
+      environmentId: "workspace",
     });
   });
 
   it("honors titles being turned off", async () => {
     const { sdk, run } = await setup();
     sdk.stub("system.aiServices", async () => ({
-      selections: { "thread-title": { mode: "off" } }, services: [],
+      selections: { "thread-title": { mode: "off" } },
+      services: [],
     }));
     await expect(run()).rejects.toThrow("turned off in Settings");
     expect(sdk.callsTo("threads.spawn")).toHaveLength(0);
@@ -187,19 +197,9 @@ describe("title regeneration", () => {
             true,
           ),
         )
-        .mockResolvedValueOnce(
-          page([
-            message(2, "Opening message"),
-            message(3, "Repeat"),
-            message(6, "Repeat"),
-          ]),
-        ),
+        .mockResolvedValueOnce(page([message(2, "Opening message"), message(3, "Repeat"), message(6, "Repeat")])),
     );
-    expect(await lastUserMessages(bb, "target")).toEqual([
-      "Opening message",
-      "Repeat",
-      "Repeat",
-    ]);
+    expect(await lastUserMessages(bb, "target")).toEqual(["Opening message", "Repeat", "Repeat"]);
     expect(sdk.callsTo("threads.timeline")[1]![0]).toMatchObject({
       beforeAnchorId: "older",
       beforeAnchorSeq: "4",
@@ -208,12 +208,8 @@ describe("title regeneration", () => {
 
   it("uses fewer than three messages and caps each message", async () => {
     const { bb, sdk } = await setup();
-    sdk.stub("threads.timeline", async () =>
-      page([message(1, "a".repeat(9_000)), message(2, "")]),
-    );
-    expect(
-      (await lastUserMessages(bb, "target")).map((text) => text.length),
-    ).toEqual([8_000, 0]);
+    sdk.stub("threads.timeline", async () => page([message(1, "a".repeat(9_000)), message(2, "")]));
+    expect((await lastUserMessages(bb, "target")).map((text) => text.length)).toEqual([8_000, 0]);
   });
 
   it("does not generate or rename when the selected messages have no text", async () => {
@@ -251,7 +247,9 @@ describe("title regeneration", () => {
       "threads.get",
       vi
         .fn()
-        .mockResolvedValueOnce(makeThreadResponse({ providerId: "codex", environmentId: "workspace", title: "Original title" }))
+        .mockResolvedValueOnce(
+          makeThreadResponse({ providerId: "codex", environmentId: "workspace", title: "Original title" }),
+        )
         .mockResolvedValueOnce(makeThreadResponse({ providerId: "codex", title: "Manual title" })),
     );
     await expect(run()).rejects.toThrow("newer title was kept");
@@ -266,18 +264,10 @@ describe("title regeneration", () => {
   });
 
   it("rejects malformed or long titles", () => {
-    for (const output of [
-      null,
-      "{}",
-      '{"title":""}',
-      '{"title":"one two three four five six"}',
-      "[]",
-    ]) {
+    for (const output of [null, "{}", '{"title":""}', '{"title":"one two three four five six"}', "[]"]) {
       expect(() => parseTitle(output)).toThrow();
     }
-    expect(parseTitle('```json\n{"title":"  Sidebar   titles "}\n```')).toBe(
-      "Sidebar titles",
-    );
+    expect(parseTitle('```json\n{"title":"  Sidebar   titles "}\n```')).toBe("Sidebar titles");
   });
 });
 
@@ -285,9 +275,16 @@ describe("bb cloud title regeneration", () => {
   async function cloudSetup(mode: "service" | "automatic" = "service") {
     const state = await setup();
     state.sdk.stub("system.aiServices", async () => ({
-      selections: { "thread-title": mode === "automatic" ? { mode } : {
-        mode, pluginId: "bb-ai", serviceId: "bb",
-      } },
+      selections: {
+        "thread-title":
+          mode === "automatic"
+            ? { mode }
+            : {
+                mode,
+                pluginId: "bb-ai",
+                serviceId: "bb",
+              },
+      },
       services: [codexService, cloudService],
     }));
     state.sdk.stub("plugins.callRpc", async ({ method }: { method: string }) =>
@@ -300,20 +297,27 @@ describe("bb cloud title regeneration", () => {
 
   it("sends the last three messages to the authenticated cloud gateway without an agent or workspace", async () => {
     const { sdk, run } = await cloudSetup();
-    sdk.stub("threads.get", async () => makeThreadResponse({
-      id: "target", environmentId: null, title: "Original title",
-    }));
+    sdk.stub("threads.get", async () =>
+      makeThreadResponse({
+        id: "target",
+        environmentId: null,
+        title: "Original title",
+      }),
+    );
     await expect(run()).resolves.toEqual({ title: "Regenerate sidebar titles" });
     const calls = sdk.callsTo("plugins.callRpc");
     expect(calls[0]![0]).toMatchObject({ pluginId: "bb-ai", method: "overview", input: null });
     const completion = calls[1]![0] as { input: { body: { prompt: string } } };
     expect(completion).toMatchObject({
-      pluginId: "bb-account", method: "bb-account.v1.fetch",
+      pluginId: "bb-account",
+      method: "bb-account.v1.fetch",
       input: { target: "api", method: "POST", path: "/api/ai/v1/complete", timeoutMs: 5_000 },
       signal: expect.any(AbortSignal),
     });
     expect(JSON.parse(completion.input.body.prompt.split("\n\n").at(-1)!)).toEqual([
-      "Build a sidebar", "Add title regeneration", "Use three user messages",
+      "Build a sidebar",
+      "Add title regeneration",
+      "Use three user messages",
     ]);
     expect(sdk.callsTo("threads.spawn")).toHaveLength(0);
     expect(sdk.callsTo("providers.list")).toHaveLength(0);
@@ -329,16 +333,19 @@ describe("bb cloud title regeneration", () => {
 
   it("falls back to Codex after a cloud failure only in Automatic", async () => {
     const { sdk, run } = await cloudSetup("automatic");
-    sdk.stub("plugins.callRpc", async () => { throw new Error("Cloud timeout"); });
+    sdk.stub("plugins.callRpc", async () => {
+      throw new Error("Cloud timeout");
+    });
     await run();
     expect(sdk.callsTo("threads.spawn")).toHaveLength(1);
   });
 
   it("keeps the title and reports a gateway error when cloud is explicitly selected", async () => {
     const { sdk, run } = await cloudSetup();
-    sdk.stub("plugins.callRpc", async ({ method }: { method: string }) => method === "overview"
-      ? { enabled: true, status: { ready: true } }
-      : { status: 429, body: { error: { message: "Daily limit reached" } } },
+    sdk.stub("plugins.callRpc", async ({ method }: { method: string }) =>
+      method === "overview"
+        ? { enabled: true, status: { ready: true } }
+        : { status: 429, body: { error: { message: "Daily limit reached" } } },
     );
     await expect(run()).rejects.toThrow("Daily limit reached");
     expect(sdk.callsTo("threads.spawn")).toHaveLength(0);
@@ -366,9 +373,10 @@ describe("bb cloud title regeneration", () => {
 
   it("does not rename or switch providers after malformed cloud output", async () => {
     const { sdk, run } = await cloudSetup();
-    sdk.stub("plugins.callRpc", async ({ method }: { method: string }) => method === "overview"
-      ? { enabled: true, status: { ready: true } }
-      : { status: 200, body: { text: "I will edit the project" } },
+    sdk.stub("plugins.callRpc", async ({ method }: { method: string }) =>
+      method === "overview"
+        ? { enabled: true, status: { ready: true } }
+        : { status: 200, body: { text: "I will edit the project" } },
     );
     await expect(run()).rejects.toThrow("invalid title");
     expect(sdk.callsTo("threads.spawn")).toHaveLength(0);

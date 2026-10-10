@@ -37,10 +37,16 @@ export function ProjectManagement() {
   }, [rpc]);
   useEffect(() => {
     void load();
-    return () => { request.current += 1; };
+    return () => {
+      request.current += 1;
+    };
   }, [load]);
-  useRealtime(PROJECT_ICONS_CHANNEL, () => { void load(); });
-  useEffect(() => { setConfirming(false); }, [selected?.id]);
+  useRealtime(PROJECT_ICONS_CHANNEL, () => {
+    void load();
+  });
+  useEffect(() => {
+    setConfirming(false);
+  }, [selected?.id]);
 
   const remove = async () => {
     if (!selected || removing) return;
@@ -80,26 +86,57 @@ export function ProjectManagement() {
                   aria-label="Project to remove"
                   value={selected.id}
                   disabled={removing}
-                  onChange={(event) => { setSelectedId(event.target.value); setConfirming(false); }}
+                  onChange={(event) => {
+                    setSelectedId(event.target.value);
+                    setConfirming(false);
+                  }}
                   className="w-48"
                 >
-                  {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
                 </SettingsSelect>
                 {!confirming ? (
-                  <button type="button" onClick={() => setConfirming(true)} className={cn(secondaryButtonClass, "text-destructive-text hover:bg-destructive/10")}>Remove…</button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(true)}
+                    className={cn(secondaryButtonClass, "text-destructive-text hover:bg-destructive/10")}
+                  >
+                    Remove…
+                  </button>
                 ) : null}
               </div>
             }
           />
           {confirming ? (
-            <div role="group" aria-label={`Confirm removal of ${selected.name}`} className="mx-1.5 my-1 flex flex-wrap items-center justify-between gap-4 rounded-md bg-destructive/5 px-2.5 py-2.5">
+            <div
+              role="group"
+              aria-label={`Confirm removal of ${selected.name}`}
+              className="mx-1.5 my-1 flex flex-wrap items-center justify-between gap-4 rounded-md bg-destructive/5 px-2.5 py-2.5"
+            >
               <div className="min-w-0 flex-1 basis-48">
                 <p className="break-words text-sm text-foreground">Remove {selected.name}?</p>
-                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Its threads are removed from BB too. This cannot be undone.</p>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  Its threads are removed from BB too. This cannot be undone.
+                </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <button type="button" disabled={removing} onClick={() => setConfirming(false)} className={secondaryButtonClass}>Cancel</button>
-                <button type="button" disabled={removing} onClick={() => void remove()} className="h-8 rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                <button
+                  type="button"
+                  disabled={removing}
+                  onClick={() => setConfirming(false)}
+                  className={secondaryButtonClass}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={removing}
+                  onClick={() => void remove()}
+                  className="h-8 rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   {removing ? "Removing..." : "Remove from BB"}
                 </button>
               </div>

@@ -52,9 +52,7 @@ describe("theme", () => {
     const used = new Set<string>();
     for (const path of SOURCES) {
       if (path.endsWith(".css")) continue;
-      for (const match of readFileSync(path, "utf8").matchAll(
-        /var\((--bb-sidebar-[\w-]+)\)/g,
-      )) {
+      for (const match of readFileSync(path, "utf8").matchAll(/var\((--bb-sidebar-[\w-]+)\)/g)) {
         used.add(match[1]!);
       }
     }
@@ -73,10 +71,7 @@ describe("theme", () => {
   // A font-size utility and an arbitrary colour both start `text-`; the merge
   // has to keep both, which is why the colour carries an explicit `color:`.
   it("keeps a size utility beside an arbitrary tone utility", () => {
-    const merged = cn(
-      "max-w-full truncate text-2xs font-medium",
-      "text-[color:var(--bb-sidebar-tone-error)]",
-    );
+    const merged = cn("max-w-full truncate text-2xs font-medium", "text-[color:var(--bb-sidebar-tone-error)]");
     expect(merged).toContain("text-2xs");
     expect(merged).toContain("text-[color:var(--bb-sidebar-tone-error)]");
   });

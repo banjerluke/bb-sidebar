@@ -21,9 +21,7 @@ export interface DockerRow {
 }
 
 /** `*:3000`, `127.0.0.1:3000`, `[::1]:3000`, `[::]:3000`. */
-function parseAddressPort(
-  value: string,
-): { address: string; port: number } | null {
+function parseAddressPort(value: string): { address: string; port: number } | null {
   const match = value.match(/^(?:\[([^\]]+)\]|([^:]+)):(\d+)$/);
   if (match === null) return null;
   const port = Number.parseInt(match[3] as string, 10);
@@ -42,7 +40,9 @@ export function parseListeners(output: string): Listener[] {
     if (line.trim() === "") continue;
     const columns = line.trim().split(/\s+/);
     if (columns.length < 9) continue;
-    const processName = (columns[0] as string).replace(/\\x([0-9a-f]{2})/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    const processName = (columns[0] as string).replace(/\\x([0-9a-f]{2})/gi, (_, hex: string) =>
+      String.fromCharCode(parseInt(hex, 16)),
+    );
     const pid = Number.parseInt(columns[1] as string, 10);
     // NAME sits before the trailing "(LISTEN)" state.
     const name = columns[columns.length - 2] as string;
@@ -122,4 +122,3 @@ export function attribute(path: string, roots: PortRoot[]): string | null {
   }
   return best === null ? null : best.environmentId;
 }
-

@@ -3,8 +3,7 @@ export const SIDEBAR_SETTINGS_CHANNEL = "sidebar-settings";
 export const CHILD_THREAD_SORT_FIELDS = ["created", "activity"] as const;
 export type ChildThreadSortField = (typeof CHILD_THREAD_SORT_FIELDS)[number];
 export const CHILD_THREAD_SORT_DIRECTIONS = ["ascending", "descending"] as const;
-export type ChildThreadSortDirection =
-  (typeof CHILD_THREAD_SORT_DIRECTIONS)[number];
+export type ChildThreadSortDirection = (typeof CHILD_THREAD_SORT_DIRECTIONS)[number];
 
 export const CHILD_THREAD_ICON_STYLES = ["disc", "provider"] as const;
 export type ChildThreadIconStyle = (typeof CHILD_THREAD_ICON_STYLES)[number];
@@ -60,27 +59,16 @@ export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   projectColorDisplay: "all",
 };
 
-export function childThreadSortOf(
-  settings: SidebarSettingsValues | null,
-): ChildThreadSort {
+export function childThreadSortOf(settings: SidebarSettingsValues | null): ChildThreadSort {
   return {
     field: settings?.childSortField ?? DEFAULT_SIDEBAR_SETTINGS.childSortField,
-    direction:
-      settings?.childSortDirection ??
-      DEFAULT_SIDEBAR_SETTINGS.childSortDirection,
+    direction: settings?.childSortDirection ?? DEFAULT_SIDEBAR_SETTINGS.childSortDirection,
   };
 }
 
-type ChildThreadSettings = Pick<
-  SidebarSettingsValues,
-  "childSortField" | "childSortDirection" | "childIconStyle"
->;
+type ChildThreadSettings = Pick<SidebarSettingsValues, "childSortField" | "childSortDirection" | "childIconStyle">;
 
-function oneOf<const T extends string>(
-  allowed: readonly T[],
-  value: unknown,
-  fallback: T,
-): T {
+function oneOf<const T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
@@ -97,21 +85,13 @@ export function childThreadSettingsOf(value: {
   [Key in keyof ChildThreadSettings]?: unknown;
 }): ChildThreadSettings {
   return {
-    childSortField: oneOf(
-      CHILD_THREAD_SORT_FIELDS,
-      value.childSortField,
-      DEFAULT_SIDEBAR_SETTINGS.childSortField,
-    ),
+    childSortField: oneOf(CHILD_THREAD_SORT_FIELDS, value.childSortField, DEFAULT_SIDEBAR_SETTINGS.childSortField),
     childSortDirection: oneOf(
       CHILD_THREAD_SORT_DIRECTIONS,
       value.childSortDirection,
       DEFAULT_SIDEBAR_SETTINGS.childSortDirection,
     ),
-    childIconStyle: oneOf(
-      CHILD_THREAD_ICON_STYLES,
-      value.childIconStyle,
-      DEFAULT_SIDEBAR_SETTINGS.childIconStyle,
-    ),
+    childIconStyle: oneOf(CHILD_THREAD_ICON_STYLES, value.childIconStyle, DEFAULT_SIDEBAR_SETTINGS.childIconStyle),
   };
 }
 
@@ -121,9 +101,12 @@ const settingsByRpcClient = new WeakMap<object, SidebarSettingsValues>();
 // Old previews may have cached removed settings. Never forward unknown keys
 // from storage (or an older server response) to the strict settings RPC.
 function currentSettingsOnly(value: SidebarSettingsValues): SidebarSettingsValues {
-  return Object.fromEntries(Object.keys(DEFAULT_SIDEBAR_SETTINGS).map((key) => [
-    key, value[key as keyof SidebarSettingsValues] ?? DEFAULT_SIDEBAR_SETTINGS[key as keyof SidebarSettingsValues],
-  ])) as unknown as SidebarSettingsValues;
+  return Object.fromEntries(
+    Object.keys(DEFAULT_SIDEBAR_SETTINGS).map((key) => [
+      key,
+      value[key as keyof SidebarSettingsValues] ?? DEFAULT_SIDEBAR_SETTINGS[key as keyof SidebarSettingsValues],
+    ]),
+  ) as unknown as SidebarSettingsValues;
 }
 
 function readStoredSidebarSettings(): SidebarSettingsValues | null {
@@ -159,9 +142,7 @@ function readStoredSidebarSettings(): SidebarSettingsValues | null {
   }
 }
 
-export function cachedSidebarSettings(
-  rpcClient: object,
-): SidebarSettingsValues | null {
+export function cachedSidebarSettings(rpcClient: object): SidebarSettingsValues | null {
   const cached = settingsByRpcClient.get(rpcClient);
   if (cached) return cached;
   const stored = readStoredSidebarSettings();
@@ -169,10 +150,7 @@ export function cachedSidebarSettings(
   return stored;
 }
 
-export function cacheSidebarSettings(
-  rpcClient: object,
-  values: SidebarSettingsValues,
-): SidebarSettingsValues {
+export function cacheSidebarSettings(rpcClient: object, values: SidebarSettingsValues): SidebarSettingsValues {
   values = currentSettingsOnly(values);
   settingsByRpcClient.set(rpcClient, values);
   safeSetItem(SIDEBAR_SETTINGS_CACHE_KEY, JSON.stringify(values));

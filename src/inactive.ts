@@ -11,29 +11,16 @@ export interface InactiveThread {
 }
 
 /** Invalid settings keep threads in Active instead of hiding them. */
-export function parseInactiveAfterHours(
-  enabled: boolean,
-  rawHours: string,
-): number | null {
+export function parseInactiveAfterHours(enabled: boolean, rawHours: string): number | null {
   if (!enabled) return null;
   const hours = Number(rawHours);
-  return Number.isInteger(hours) &&
-    hours >= MIN_INACTIVE_AFTER_HOURS &&
-    hours <= MAX_INACTIVE_AFTER_HOURS
+  return Number.isInteger(hours) && hours >= MIN_INACTIVE_AFTER_HOURS && hours <= MAX_INACTIVE_AFTER_HOURS
     ? hours
     : null;
 }
 
-export function isInactiveThread(
-  thread: InactiveThread,
-  now: number,
-  afterHours: number | null,
-): boolean {
+export function isInactiveThread(thread: InactiveThread, now: number, afterHours: number | null): boolean {
   if (afterHours === null) return false;
-  const lastActivityAt = Math.max(
-    thread.createdAt,
-    thread.updatedAt,
-    thread.latestAttentionAt,
-  );
+  const lastActivityAt = Math.max(thread.createdAt, thread.updatedAt, thread.latestAttentionAt);
   return lastActivityAt <= now - afterHours * HOUR_MS;
 }

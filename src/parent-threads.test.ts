@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parentCandidates } from "./parent-threads";
 
-const thread = (id: string, projectId: string, parentThreadId: string | null = null, isArchived = false) =>
-  ({ id, projectId, parentThreadId, isArchived });
+const thread = (id: string, projectId: string, parentThreadId: string | null = null, isArchived = false) => ({
+  id,
+  projectId,
+  parentThreadId,
+  isArchived,
+});
 
 describe("parent candidates", () => {
   it("offers threads from other projects", () => {

@@ -1,7 +1,4 @@
-import type {
-  PluginSidebarThread,
-  PluginSidebarThreadActivity,
-} from "@get-bb/plugin-sdk";
+import type { PluginSidebarThread, PluginSidebarThreadActivity } from "@get-bb/plugin-sdk";
 
 /**
  * The parked / settled / snoozed lifecycle, as pure functions over stored rows.
@@ -58,8 +55,7 @@ export function resolveWakeReason(
   }
 
   const wokeOnAttention =
-    signals.hasPendingInteraction ||
-    (row.snoozedAt !== null && signals.latestAttentionAt > row.snoozedAt);
+    signals.hasPendingInteraction || (row.snoozedAt !== null && signals.latestAttentionAt > row.snoozedAt);
   if (wokeOnAttention) return "attention";
   return row.snoozedUntil <= now ? "timer" : null;
 }
@@ -75,26 +71,14 @@ export function resolveWakeReason(
  * start, and a failed one is something the user has not seen go nowhere yet.
  */
 export function canPark(
-  signals: Pick<
-    ThreadActivitySignals,
-    "hasPendingInteraction" | "hasQueuedWork" | "isWorking"
-  >,
+  signals: Pick<ThreadActivitySignals, "hasPendingInteraction" | "hasQueuedWork" | "isWorking">,
 ): boolean {
-  return (
-    !signals.hasPendingInteraction &&
-    !signals.hasQueuedWork &&
-    !signals.isWorking
-  );
+  return !signals.hasPendingInteraction && !signals.hasQueuedWork && !signals.isWorking;
 }
 
 /** A turn bb has accepted and not yet finished, in either thread view. */
 export function isTurnInFlight(status: PluginSidebarThread["status"]): boolean {
-  return (
-    status === "active" ||
-    status === "pending" ||
-    status === "starting" ||
-    status === "stopping"
-  );
+  return status === "active" || status === "pending" || status === "starting" || status === "stopping";
 }
 
 /**
@@ -104,10 +88,7 @@ export function isTurnInFlight(status: PluginSidebarThread["status"]): boolean {
  * different bb views, so each passes its own turn signal, but the counters
  * that make a thread busy must never differ between them.
  */
-export function hasLiveWork(
-  activity: PluginSidebarThreadActivity,
-  turnInFlight: boolean,
-): boolean {
+export function hasLiveWork(activity: PluginSidebarThreadActivity, turnInFlight: boolean): boolean {
   return (
     turnInFlight ||
     activity.workflows > 0 ||
@@ -123,16 +104,11 @@ export function isThreadWorking(thread: PluginSidebarThread): boolean {
   // The turn status as well as the indicator: bb paints attention before
   // work, so an unread thread whose turn is still running shows no runtime
   // indicator, while a monitor keeps the runtime indicator between turns.
-  return hasLiveWork(
-    thread.activity,
-    isTurnInFlight(thread.status) || thread.indicator === "runtime",
-  );
+  return hasLiveWork(thread.activity, isTurnInFlight(thread.status) || thread.indicator === "runtime");
 }
 
 /** The parking signals for a sidebar thread. */
-export function sidebarThreadSignals(
-  thread: PluginSidebarThread,
-): ThreadActivitySignals {
+export function sidebarThreadSignals(thread: PluginSidebarThread): ThreadActivitySignals {
   return {
     hasPendingInteraction: thread.hasPendingInteraction,
     hasQueuedWork: thread.queuedWork !== "none",
@@ -194,10 +170,7 @@ type CalendarSnoozeDay = "evening" | "tomorrow" | "next-week";
 export type ConfiguredSnoozePreset = {
   id: string;
   label: string;
-} & (
-  | { durationMs: number }
-  | { calendar: CalendarSnoozeDay; hour: number; minute: number }
-);
+} & ({ durationMs: number } | { calendar: CalendarSnoozeDay; hour: number; minute: number });
 
 export function configuredSnoozePresetError(configured: string): string | null {
   const entries = configured
@@ -242,11 +215,8 @@ function parseSnoozePresetEntries(source: string): ConfiguredSnoozePreset[] {
     .flatMap<ConfiguredSnoozePreset>((part, index) => {
       const separator = part.indexOf("=");
       const customLabel = separator >= 0 ? part.slice(0, separator).trim() : "";
-      const value = (separator >= 0 ? part.slice(separator + 1) : part)
-        .trim()
-        .toLowerCase();
-      const calendar =
-        /^(evening|tomorrow|next-week)(?:@(\d{1,2}):(\d{2}))?$/.exec(value);
+      const value = (separator >= 0 ? part.slice(separator + 1) : part).trim().toLowerCase();
+      const calendar = /^(evening|tomorrow|next-week)(?:@(\d{1,2}):(\d{2}))?$/.exec(value);
       if (calendar) {
         const day = calendar[1] as CalendarSnoozeDay;
         const defaultHour = day === "evening" ? 18 : 9;
@@ -274,17 +244,11 @@ function parseSnoozePresetEntries(source: string): ConfiguredSnoozePreset[] {
       const amount = Number(match[1]);
       const unit = match[2] as keyof typeof DURATION_UNIT_MS;
       const durationMs = amount * DURATION_UNIT_MS[unit];
-      if (
-        !Number.isFinite(durationMs) ||
-        durationMs < MINUTE_MS ||
-        durationMs > 365 * DAY_MS
-      ) {
+      if (!Number.isFinite(durationMs) || durationMs < MINUTE_MS || durationMs > 365 * DAY_MS) {
         return [];
       }
 
-      const displayedAmount = Number.isInteger(amount)
-        ? String(amount)
-        : String(Number(amount.toFixed(2)));
+      const displayedAmount = Number.isInteger(amount) ? String(amount) : String(Number(amount.toFixed(2)));
       const generatedLabel = `${displayedAmount} ${DURATION_UNIT_LABEL[unit]}${amount === 1 ? "" : "s"}`;
       return [
         {
@@ -296,13 +260,9 @@ function parseSnoozePresetEntries(source: string): ConfiguredSnoozePreset[] {
     });
 }
 
-export function parseConfiguredSnoozePresets(
-  configured: string,
-): ConfiguredSnoozePreset[] {
+export function parseConfiguredSnoozePresets(configured: string): ConfiguredSnoozePreset[] {
   const parsed = parseSnoozePresetEntries(configured);
-  return parsed.length > 0
-    ? parsed
-    : parseSnoozePresetEntries(DEFAULT_SNOOZE_PRESET_CONFIG);
+  return parsed.length > 0 ? parsed : parseSnoozePresetEntries(DEFAULT_SNOOZE_PRESET_CONFIG);
 }
 
 /**
@@ -320,11 +280,7 @@ export function snoozeWakeLabel(snoozedUntil: number, now: number): string {
 }
 
 /** Full local wake time for confirmation feedback after a snooze. */
-export function formatSnoozeWakeTime(
-  snoozedUntil: number,
-  locale?: string,
-  timeZone?: string,
-): string {
+export function formatSnoozeWakeTime(snoozedUntil: number, locale?: string, timeZone?: string): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -337,15 +293,11 @@ export function formatSnoozeWakeTime(
  * stale date. Calendar times follow the selecting device's local timezone.
  * An evening that has passed is unavailable, rather than silently tomorrow.
  */
-export function resolveConfiguredSnoozePreset(
-  preset: ConfiguredSnoozePreset,
-  now = new Date(),
-): number | null {
+export function resolveConfiguredSnoozePreset(preset: ConfiguredSnoozePreset, now = new Date()): number | null {
   if ("durationMs" in preset) return now.getTime() + preset.durationMs;
 
-  const addDays = preset.calendar === "next-week"
-    ? (1 - now.getDay() + 7) % 7 || 7
-    : preset.calendar === "tomorrow" ? 1 : 0;
+  const addDays =
+    preset.calendar === "next-week" ? (1 - now.getDay() + 7) % 7 || 7 : preset.calendar === "tomorrow" ? 1 : 0;
   const wake = new Date(now);
   // Use calendar-day arithmetic to preserve the local hour across DST.
   wake.setDate(wake.getDate() + addDays);
@@ -360,10 +312,7 @@ export function resolveConfiguredSnoozePreset(
  */
 export const MAX_TIMEOUT_MS = 2_147_483_647;
 
-export function nextWakeDelayMs(
-  snoozedUntilValues: readonly number[],
-  now: number,
-): number | null {
+export function nextWakeDelayMs(snoozedUntilValues: readonly number[], now: number): number | null {
   const upcoming = snoozedUntilValues.filter((value) => value > now);
   if (upcoming.length === 0) return null;
   const soonest = Math.min(...upcoming);
@@ -401,12 +350,7 @@ export function combineSnoozeDateTime(date: Date, time: string): number | null {
 }
 
 /** Picker preview: "Sun, Oct 4, 9:00 AM", with the year only when it differs. */
-export function formatPickedSnooze(
-  snoozedUntil: number,
-  now = new Date(),
-  locale?: string,
-  timeZone?: string,
-): string {
+export function formatPickedSnooze(snoozedUntil: number, now = new Date(), locale?: string, timeZone?: string): string {
   const wake = new Date(snoozedUntil);
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",

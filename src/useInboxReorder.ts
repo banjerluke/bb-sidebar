@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  type PluginSidebarThread,
-  useRealtime,
-  useRpc,
-} from "@get-bb/plugin-sdk/app";
+import { type PluginSidebarThread, useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./server";
 import { orderInboxThreads } from "./pinned-order";
@@ -16,9 +12,7 @@ function cachedOrder(rpc: object): readonly string[] | null {
   const cached = ordersByRpcClient.get(rpc);
   if (cached) return cached;
   try {
-    const value: unknown = JSON.parse(
-      window.localStorage.getItem(ORDER_CACHE_KEY) ?? "null",
-    );
+    const value: unknown = JSON.parse(window.localStorage.getItem(ORDER_CACHE_KEY) ?? "null");
     if (Array.isArray(value) && value.every((id) => typeof id === "string")) {
       return [...new Set(value)];
     }
@@ -47,16 +41,10 @@ function orderKey(ids: readonly string[]): string {
 }
 
 /** Durable, optimistic inbox ordering backed by the plugin database. */
-export function useInboxReorder(
-  inboxThreads: readonly PluginSidebarThread[],
-): InboxReorderApi {
+export function useInboxReorder(inboxThreads: readonly PluginSidebarThread[]): InboxReorderApi {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
-  const [storedIds, setStoredIds] = useState<readonly string[] | null>(
-    () => cachedOrder(rpc),
-  );
-  const [optimisticIds, setOptimisticIds] = useState<
-    readonly string[] | null
-  >(null);
+  const [storedIds, setStoredIds] = useState<readonly string[] | null>(() => cachedOrder(rpc));
+  const [optimisticIds, setOptimisticIds] = useState<readonly string[] | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const inFlight = useRef(false);
   const requestSeq = useRef(0);

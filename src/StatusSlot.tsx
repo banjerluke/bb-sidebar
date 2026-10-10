@@ -28,8 +28,7 @@ export const STATUS_SLOT_CLASS = "flex w-20 shrink-0 items-center justify-end";
  * each one on the same vertical axis, so right-aligning the boxes lines the
  * icons up instead of leaving them one or two pixels apart.
  */
-export const TRAILING_GLYPH_BOX_CLASS =
-  "flex size-3.5 shrink-0 items-center justify-center";
+export const TRAILING_GLYPH_BOX_CLASS = "flex size-3.5 shrink-0 items-center justify-center";
 
 /**
  * Status OR age, never both: the glyph already implies the row is current, and
@@ -53,10 +52,7 @@ export function StatusOrTime({
     const label = shortStatusLabel(status, workingSince.get(thread.id), now);
     return (
       <span
-        aria-label={
-          status.ariaLabel ??
-          (thread.hasPendingInteraction ? label : (thread.indicatorLabel ?? label))
-        }
+        aria-label={status.ariaLabel ?? (thread.hasPendingInteraction ? label : (thread.indicatorLabel ?? label))}
         className={cn(
           "max-w-full truncate text-2xs font-medium",
           status.showsDuration && "tabular-nums",
@@ -68,9 +64,7 @@ export function StatusOrTime({
     );
   }
   return (
-    <span className="tabular-nums text-2xs text-muted-foreground">
-      {relativeTimeLabel(thread.updatedAt, now)}
-    </span>
+    <span className="tabular-nums text-2xs text-muted-foreground">{relativeTimeLabel(thread.updatedAt, now)}</span>
   );
 }
 
@@ -91,9 +85,7 @@ export function withDraftIndicator(
 }
 
 /** The thread as its row should draw it, with this client's draft folded in. */
-export function useThreadWithDraft(
-  thread: PluginSidebarThread,
-): PluginSidebarThread {
+export function useThreadWithDraft(thread: PluginSidebarThread): PluginSidebarThread {
   const { hasUnsubmittedDraft } = useSidebarThreadDraft(thread.id);
   const indicator = withDraftIndicator(thread.indicator, hasUnsubmittedDraft);
   return useMemo(
@@ -105,9 +97,7 @@ export function useThreadWithDraft(
             indicator,
             // bb's own wording for the two draft glyphs.
             indicatorLabel:
-              indicator === "draft"
-                ? "Thread has unsubmitted draft"
-                : "Thread working with unsubmitted draft",
+              indicator === "draft" ? "Thread has unsubmitted draft" : "Thread working with unsubmitted draft",
           },
     [thread, indicator],
   );
@@ -168,9 +158,7 @@ export function shortStatus(
  * A waiting message only shows on an otherwise quiet row; a running turn
  * already says more.
  */
-export function threadShortStatus(
-  thread: PluginSidebarThread,
-): ShortStatus | null {
+export function threadShortStatus(thread: PluginSidebarThread): ShortStatus | null {
   if (thread.hasPendingInteraction) {
     return shortStatus("waiting-for-input", null);
   }
@@ -194,14 +182,8 @@ export function threadShortStatus(
   return status;
 }
 
-export function shortStatusLabel(
-  status: ShortStatus,
-  startedAt: number | undefined,
-  now: number,
-): string {
-  return status.showsDuration
-    ? statusWithDuration(status.label, startedAt, now)
-    : status.label;
+export function shortStatusLabel(status: ShortStatus, startedAt: number | undefined, now: number): string {
+  return status.showsDuration ? statusWithDuration(status.label, startedAt, now) : status.label;
 }
 
 export function threadStatusLabel(
@@ -222,9 +204,7 @@ function isMonitoringLabel(label: string | null): boolean {
 }
 
 /** Status palette shared by cards, child labels, and glyphs. */
-export function statusToneClass(
-  indicator: PluginSidebarThreadIndicator,
-): string {
+export function statusToneClass(indicator: PluginSidebarThreadIndicator): string {
   switch (indicator) {
     case "unread-error":
       return "text-[color:var(--bb-sidebar-tone-error)]";

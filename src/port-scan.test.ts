@@ -1,12 +1,6 @@
 // Adapted from bb-plugin-worktree-ports. See THIRD_PARTY_NOTICES.md.
 import { describe, expect, it } from "vitest";
-import {
-  attribute,
-  parseCwds,
-  parseDockerPorts,
-  parseDockerRows,
-  parseListeners,
-} from "./port-scan";
+import { attribute, parseCwds, parseDockerPorts, parseDockerRows, parseListeners } from "./port-scan";
 
 const LSOF = `COMMAND     PID      USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
 anton      5568 rbiggers    9u  IPv6 0x1a2b3c4d5e6f7890      0t0  TCP *:8089 (LISTEN)
@@ -64,9 +58,7 @@ describe("parseDockerPorts", () => {
   });
 
   it("keeps every distinct published port of a container", () => {
-    expect(
-      parseDockerPorts("0.0.0.0:1025->1025/tcp, 0.0.0.0:8025->8025/tcp"),
-    ).toEqual([
+    expect(parseDockerPorts("0.0.0.0:1025->1025/tcp, 0.0.0.0:8025->8025/tcp")).toEqual([
       { port: 1025, address: "0.0.0.0" },
       { port: 8025, address: "0.0.0.0" },
     ]);
@@ -115,4 +107,3 @@ describe("attribute", () => {
     expect(attribute("/elsewhere", roots)).toBeNull();
   });
 });
-

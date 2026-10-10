@@ -13,5 +13,4 @@ describe("workspace port indicators", () => {
     expect(result.get("env_b")).toEqual([{ port: 5432 }]);
     expect(result.get("env_missing")).toBeUndefined();
   });
-
 });

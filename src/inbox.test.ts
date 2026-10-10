@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
-import {
-  childNeedsYouCount,
-  childThreadsByParent,
-  childrenOf,
-} from "./ChildThreadList";
+import { childNeedsYouCount, childThreadsByParent, childrenOf } from "./ChildThreadList";
 import {
   ALL_PROJECTS,
   filterByProject,
@@ -21,9 +17,7 @@ import {
   visibleInboxThreads,
 } from "./inbox";
 
-function thread(
-  overrides: Partial<PluginSidebarThread> = {},
-): PluginSidebarThread {
+function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
     ...idleSidebarThreadFields,
     id: "thr_1",
@@ -75,25 +69,16 @@ describe("sortByCreatedAtDescending", () => {
       thread({ id: "a", createdAt: 2, updatedAt: 1 }),
       thread({ id: "b", createdAt: 1, updatedAt: 999, indicator: "runtime" }),
     ];
-    expect(sortByCreatedAtDescending(before).map((t) => t.id)).toEqual([
-      "a",
-      "b",
-    ]);
+    expect(sortByCreatedAtDescending(before).map((t) => t.id)).toEqual(["a", "b"]);
   });
 
   it("breaks ties on id so the order is stable", () => {
-    const ordered = sortByCreatedAtDescending([
-      thread({ id: "b", createdAt: 5 }),
-      thread({ id: "a", createdAt: 5 }),
-    ]);
+    const ordered = sortByCreatedAtDescending([thread({ id: "b", createdAt: 5 }), thread({ id: "a", createdAt: 5 })]);
     expect(ordered.map((t) => t.id)).toEqual(["a", "b"]);
   });
 
   it("does not mutate its input", () => {
-    const input = [
-      thread({ id: "a", createdAt: 1 }),
-      thread({ id: "b", createdAt: 2 }),
-    ];
+    const input = [thread({ id: "a", createdAt: 1 }), thread({ id: "b", createdAt: 2 })];
     sortByCreatedAtDescending(input);
     expect(input.map((t) => t.id)).toEqual(["a", "b"]);
   });
@@ -106,16 +91,10 @@ describe("sortSettledThreads", () => {
       ["new-thread", 900],
     ]);
     const ordered = sortSettledThreads(
-      [
-        thread({ id: "old-thread", createdAt: 999 }),
-        thread({ id: "new-thread", createdAt: 1 }),
-      ],
+      [thread({ id: "old-thread", createdAt: 999 }), thread({ id: "new-thread", createdAt: 1 })],
       (candidate) => settledAt.get(candidate.id) ?? null,
     );
-    expect(ordered.map((candidate) => candidate.id)).toEqual([
-      "new-thread",
-      "old-thread",
-    ]);
+    expect(ordered.map((candidate) => candidate.id)).toEqual(["new-thread", "old-thread"]);
   });
 
   it("falls back to the latest bb activity time", () => {
@@ -126,28 +105,19 @@ describe("sortSettledThreads", () => {
       ],
       () => null,
     );
-    expect(ordered.map((candidate) => candidate.id)).toEqual([
-      "attention",
-      "updated",
-    ]);
+    expect(ordered.map((candidate) => candidate.id)).toEqual(["attention", "updated"]);
   });
 });
 
 describe("threadDisplayTitle", () => {
   it("prefers the title, then the fallback, then a placeholder", () => {
     expect(threadDisplayTitle(thread({ title: "Real" }))).toBe("Real");
-    expect(
-      threadDisplayTitle(thread({ title: null, titleFallback: "Fallback" })),
-    ).toBe("Fallback");
-    expect(
-      threadDisplayTitle(thread({ title: null, titleFallback: null })),
-    ).toBe("Untitled thread");
+    expect(threadDisplayTitle(thread({ title: null, titleFallback: "Fallback" }))).toBe("Fallback");
+    expect(threadDisplayTitle(thread({ title: null, titleFallback: null }))).toBe("Untitled thread");
   });
 
   it("treats a whitespace-only title as absent", () => {
-    expect(
-      threadDisplayTitle(thread({ title: "   ", titleFallback: "Fallback" })),
-    ).toBe("Fallback");
+    expect(threadDisplayTitle(thread({ title: "   ", titleFallback: "Fallback" }))).toBe("Fallback");
   });
 });
 
@@ -159,20 +129,12 @@ describe("filterProjectsByName", () => {
   ];
 
   it("keeps every project for a blank query", () => {
-    expect(filterProjectsByName(projects, "   ").map((p) => p.id)).toEqual([
-      "all",
-      "p1",
-      "p2",
-    ]);
+    expect(filterProjectsByName(projects, "   ").map((p) => p.id)).toEqual(["all", "p1", "p2"]);
   });
 
   it("matches case-insensitively anywhere in the name", () => {
-    expect(filterProjectsByName(projects, "BAN").map((p) => p.id)).toEqual([
-      "p2",
-    ]);
-    expect(filterProjectsByName(projects, "pro").map((p) => p.id)).toEqual([
-      "all",
-    ]);
+    expect(filterProjectsByName(projects, "BAN").map((p) => p.id)).toEqual(["p2"]);
+    expect(filterProjectsByName(projects, "pro").map((p) => p.id)).toEqual(["all"]);
   });
 
   it("returns nothing when no name matches", () => {
@@ -187,10 +149,7 @@ describe("searchThreadsByTitle", () => {
       thread({ id: "b", title: "Something else" }),
       thread({ id: "c", title: null, titleFallback: "sidebar fallback" }),
     ];
-    expect(searchThreadsByTitle(threads, "SIDEBAR").map((t) => t.id)).toEqual([
-      "a",
-      "c",
-    ]);
+    expect(searchThreadsByTitle(threads, "SIDEBAR").map((t) => t.id)).toEqual(["a", "c"]);
   });
 
   it("returns everything for a blank query", () => {
@@ -201,19 +160,13 @@ describe("searchThreadsByTitle", () => {
 
 describe("filtering", () => {
   it("scopes to one project, or to all", () => {
-    const threads = [
-      thread({ id: "a", projectId: "p1" }),
-      thread({ id: "b", projectId: "p2" }),
-    ];
+    const threads = [thread({ id: "a", projectId: "p1" }), thread({ id: "b", projectId: "p2" })];
     expect(filterByProject(threads, "p1").map((t) => t.id)).toEqual(["a"]);
     expect(filterByProject(threads, null)).toHaveLength(2);
   });
 
   it("drops archived threads", () => {
-    const threads = [
-      thread({ id: "a" }),
-      thread({ id: "b", isArchived: true }),
-    ];
+    const threads = [thread({ id: "a" }), thread({ id: "b", isArchived: true })];
     expect(visibleInboxThreads(threads).map((t) => t.id)).toEqual(["a"]);
   });
 
@@ -240,9 +193,7 @@ describe("child threads", () => {
   // An orphan must stay visible: hidden here AND absent from any header chip
   // would make it unreachable everywhere.
   it("keeps a child whose parent is not on screen", () => {
-    const visible = hideChildrenOfVisibleParents([
-      thread({ id: "child", parentThreadId: "archived-parent" }),
-    ]);
+    const visible = hideChildrenOfVisibleParents([thread({ id: "child", parentThreadId: "archived-parent" })]);
     expect(visible.map((t) => t.id)).toEqual(["child"]);
   });
 
@@ -321,9 +272,7 @@ describe("child threads", () => {
       thread({ id: "a", parentThreadId: "parent", createdAt: 10 }),
     ];
     expect(childrenOf(threads, "parent").map((t) => t.id)).toEqual(["a", "b"]);
-    expect(
-      childrenOf([...threads].reverse(), "parent").map((t) => t.id),
-    ).toEqual(["a", "b"]);
+    expect(childrenOf([...threads].reverse(), "parent").map((t) => t.id)).toEqual(["a", "b"]);
   });
 
   it("excludes archived children from child helpers and attention counts", () => {
@@ -342,11 +291,11 @@ describe("child threads", () => {
       }),
     ];
 
-    expect(childrenOf(threads, "parent").map((thread) => thread.id)).toEqual([
-      "visible",
-    ]);
+    expect(childrenOf(threads, "parent").map((thread) => thread.id)).toEqual(["visible"]);
     expect(
-      childThreadsByParent(threads).get("parent")?.map((thread) => thread.id),
+      childThreadsByParent(threads)
+        .get("parent")
+        ?.map((thread) => thread.id),
     ).toEqual(["visible"]);
     expect(childNeedsYouCount(threads)).toBe(1);
   });
@@ -385,8 +334,6 @@ describe("reconcileProjectScope", () => {
   });
 
   it("returns to all projects when the selected project disappears", () => {
-    expect(reconcileProjectScope("deleted-project", projects)).toBe(
-      ALL_PROJECTS,
-    );
+    expect(reconcileProjectScope("deleted-project", projects)).toBe(ALL_PROJECTS);
   });
 });

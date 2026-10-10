@@ -57,10 +57,7 @@ export function pullRequestToneClass(pullRequest: DisplayPullRequest): string {
   ) {
     return "text-[color:var(--bb-sidebar-pr-alert)]";
   }
-  if (
-    pullRequest.state === "draft" ||
-    pullRequest.attention === "draft"
-  ) {
+  if (pullRequest.state === "draft" || pullRequest.attention === "draft") {
     return "text-muted-foreground/60";
   }
   if (pullRequest.state === "closed" || pullRequest.attention === "closed") {
@@ -88,5 +85,5 @@ export function mergeThreadPullRequests(
   if (!history.some((pullRequest) => pullRequest.url === current.url)) {
     return ownsWorkspace ? [current, ...history] : [...history];
   }
-  return history.map((pullRequest) => pullRequest.url === current.url ? current : pullRequest);
+  return history.map((pullRequest) => (pullRequest.url === current.url ? current : pullRequest));
 }

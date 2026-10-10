@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  describeReclaim,
-  planTerminalReclaim,
-  type ReclaimTerminal,
-} from "./reclaim";
+import { describeReclaim, planTerminalReclaim, type ReclaimTerminal } from "./reclaim";
 
 function terminal(overrides: Partial<ReclaimTerminal> = {}): ReclaimTerminal {
   return {
@@ -17,10 +13,7 @@ function terminal(overrides: Partial<ReclaimTerminal> = {}): ReclaimTerminal {
 describe("planTerminalReclaim", () => {
   it("closes only the terminals nobody typed in", () => {
     expect(
-      planTerminalReclaim([
-        terminal({ id: "term_untouched" }),
-        terminal({ id: "term_used", lastUserInputAt: 1 }),
-      ]),
+      planTerminalReclaim([terminal({ id: "term_untouched" }), terminal({ id: "term_used", lastUserInputAt: 1 })]),
     ).toEqual({ close: ["term_untouched"], keep: 1 });
   });
 
@@ -34,11 +27,10 @@ describe("planTerminalReclaim", () => {
   });
 
   it("counts a starting terminal as live", () => {
-    expect(
-      planTerminalReclaim([
-        terminal({ id: "term_starting", status: "starting", lastUserInputAt: 1 }),
-      ]),
-    ).toEqual({ close: [], keep: 1 });
+    expect(planTerminalReclaim([terminal({ id: "term_starting", status: "starting", lastUserInputAt: 1 })])).toEqual({
+      close: [],
+      keep: 1,
+    });
   });
 
   it("plans nothing for a thread with no terminals", () => {
@@ -74,9 +66,7 @@ describe("describeReclaim", () => {
         keptTerminals: 2,
         stoppedRuntime: true,
       }),
-    ).toBe(
-      "Agent session stopped · closed 1 terminal nobody used · 2 terminals left running",
-    );
+    ).toBe("Agent session stopped · closed 1 terminal nobody used · 2 terminals left running");
   });
 
   it("warns about surviving terminals even when nothing was closed", () => {

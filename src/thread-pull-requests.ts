@@ -6,11 +6,7 @@
 // module finds those URLs and asks the thread's host for their status via `gh`.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { portScanContract } from "./port-scan-contract";
-import {
-  createdPullRequestUrls,
-  pullRequestNumber,
-  type ThreadPullRequest,
-} from "./pull-requests";
+import { createdPullRequestUrls, pullRequestNumber, type ThreadPullRequest } from "./pull-requests";
 
 // bb rejects event pages larger than 100.
 const EVENT_PAGE_SIZE = 100;
@@ -65,17 +61,20 @@ export function createThreadPullRequests(bb: BbPluginApi) {
     const thread = await bb.sdk.threads.get({ threadId });
     if (!thread.environmentId) return;
     const environment = await bb.sdk.environments.get({ environmentId: thread.environmentId });
-    const { pullRequests } = await host.call("pullRequests", { urls: stale }, {
-      hostId: environment.hostId,
-      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
-    });
+    const { pullRequests } = await host.call(
+      "pullRequests",
+      { urls: stale },
+      {
+        hostId: environment.hostId,
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
+      },
+    );
     const checkedAt = Date.now();
     for (const pullRequest of pullRequests) {
       statuses.set(pullRequest.url, {
         value: pullRequest,
-        expiresAt: pullRequest.state === "merged" || pullRequest.state === "closed"
-          ? Infinity
-          : checkedAt + OPEN_STATUS_TTL_MS,
+        expiresAt:
+          pullRequest.state === "merged" || pullRequest.state === "closed" ? Infinity : checkedAt + OPEN_STATUS_TTL_MS,
       });
     }
   }
@@ -90,9 +89,15 @@ export function createThreadPullRequests(bb: BbPluginApi) {
         // gh missing, signed out, or the host is offline: list numbers only.
       }
       // Newest first, matching how the row badge shows the latest PR.
-      const pullRequests = [...urls].reverse().map((url) => statuses.get(url)?.value ?? {
-        url, number: pullRequestNumber(url), title: null, state: null,
-      });
+      const pullRequests = [...urls].reverse().map(
+        (url) =>
+          statuses.get(url)?.value ?? {
+            url,
+            number: pullRequestNumber(url),
+            title: null,
+            state: null,
+          },
+      );
       return { pullRequests };
     },
   };

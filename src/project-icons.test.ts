@@ -9,18 +9,12 @@ import {
 
 describe("project icon paths", () => {
   it("accepts supported project-relative image paths", () => {
-    expect(normalizeProjectIconPath("./public/brand.svg")).toBe(
-      "public/brand.svg",
-    );
-    expect(normalizeProjectIconPath("assets\\icon.PNG")).toBe(
-      "assets/icon.PNG",
-    );
+    expect(normalizeProjectIconPath("./public/brand.svg")).toBe("public/brand.svg");
+    expect(normalizeProjectIconPath("assets\\icon.PNG")).toBe("assets/icon.PNG");
   });
 
   it("discovers conventional root-level project icons", () => {
-    expect(PROJECT_ICON_CANDIDATES).toEqual(
-      expect.arrayContaining(["icon.svg", "icon.png", "icon.ico"]),
-    );
+    expect(PROJECT_ICON_CANDIDATES).toEqual(expect.arrayContaining(["icon.svg", "icon.png", "icon.ico"]));
   });
 
   it("rejects traversal, absolute paths, URLs, and non-images", () => {
@@ -31,20 +25,13 @@ describe("project icon paths", () => {
   });
 
   it("extracts local icon links without accepting remote assets", () => {
-    const href = extractProjectIconHref(
-      '<html><link sizes="any" href="/favicon.svg?v=2" rel="icon"></html>',
-    );
+    const href = extractProjectIconHref('<html><link sizes="any" href="/favicon.svg?v=2" rel="icon"></html>');
     expect(href).toBe("/favicon.svg");
-    expect(iconPathsForHref(href!)).toEqual([
-      "public/favicon.svg",
-      "favicon.svg",
-    ]);
+    expect(iconPathsForHref(href!)).toEqual(["public/favicon.svg", "favicon.svg"]);
     expect(iconPathsForHref("https://example.com/icon.svg")).toEqual([]);
-    expect(
-      extractProjectIconHref(
-        'export const links = () => [{ href: "assets/icon.png", rel: "icon" }];',
-      ),
-    ).toBe("assets/icon.png");
+    expect(extractProjectIconHref('export const links = () => [{ href: "assets/icon.png", rel: "icon" }];')).toBe(
+      "assets/icon.png",
+    );
   });
 
   it("builds one scoped route per project and revision", () => {

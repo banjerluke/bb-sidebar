@@ -2,12 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Calendar } from "./components/Calendar";
 import { usePortalScopeProps } from "./lib/portal-scope";
-import {
-  combineSnoozeDateTime,
-  defaultPickedSnooze,
-  formatPickedSnooze,
-  MAX_SNOOZE_MS,
-} from "./lifecycle";
+import { combineSnoozeDateTime, defaultPickedSnooze, formatPickedSnooze, MAX_SNOOZE_MS } from "./lifecycle";
 
 /**
  * "Pick date & time" for snooze, the custom entry Gmail, Slack, and Linear
@@ -72,9 +67,7 @@ export function SnoozePickerDialog({
           // Start on the selected day, so arrow keys move through the month.
           onOpenAutoFocus={(event) => {
             event.preventDefault();
-            contentRef.current
-              ?.querySelector<HTMLButtonElement>("[data-selected] button")
-              ?.focus();
+            contentRef.current?.querySelector<HTMLButtonElement>("[data-selected] button")?.focus();
           }}
           // The dialog renders inside a row; keep its clicks off the row's menu.
           onContextMenu={(event) => event.stopPropagation()}
@@ -115,9 +108,7 @@ export function SnoozePickerDialog({
             <p
               aria-live="polite"
               className={
-                problem
-                  ? "text-xs text-[color:var(--bb-sidebar-tone-error)]"
-                  : "text-xs text-muted-foreground"
+                problem ? "text-xs text-[color:var(--bb-sidebar-tone-error)]" : "text-xs text-muted-foreground"
               }
             >
               {problem ?? `Wakes ${formatPickedSnooze(wake!, now)}`}

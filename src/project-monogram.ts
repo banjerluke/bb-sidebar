@@ -10,7 +10,12 @@ const GENERIC_WORDS = new Set(["bb", "plugin", "the", "my"]);
 
 function words(name: string): string[] {
   // An npm scope or a path prefix says where the project lives, not what it is.
-  const base = name.trim().replace(/^@[^/]+\//u, "").split("/").at(-1) ?? "";
+  const base =
+    name
+      .trim()
+      .replace(/^@[^/]+\//u, "")
+      .split("/")
+      .at(-1) ?? "";
   return base
     .replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2")
     .split(/[^\p{L}\p{N}]+/u)
@@ -20,9 +25,7 @@ function words(name: string): string[] {
 /** The one letter that stands for a project without an icon. */
 export function projectMonogramLetter(name: string): string {
   const all = words(name);
-  const first =
-    all.find((word, index) => index === all.length - 1 || !GENERIC_WORDS.has(word.toLowerCase())) ??
-    "";
+  const first = all.find((word, index) => index === all.length - 1 || !GENERIC_WORDS.has(word.toLowerCase())) ?? "";
   return first ? [...first][0]!.toLocaleUpperCase() : "#";
 }
 

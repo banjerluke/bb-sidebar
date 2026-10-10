@@ -7,41 +7,24 @@ export function movePinnedId(
   targetId: string,
   placement: DropPlacement,
 ): string[] {
-  if (
-    movingId === targetId ||
-    !ids.includes(movingId) ||
-    !ids.includes(targetId)
-  ) {
+  if (movingId === targetId || !ids.includes(movingId) || !ids.includes(targetId)) {
     return [...ids];
   }
 
   const withoutMoving = ids.filter((id) => id !== movingId);
   const targetIndex = withoutMoving.indexOf(targetId);
   const insertionIndex = placement === "after" ? targetIndex + 1 : targetIndex;
-  return [
-    ...withoutMoving.slice(0, insertionIndex),
-    movingId,
-    ...withoutMoving.slice(insertionIndex),
-  ];
+  return [...withoutMoving.slice(0, insertionIndex), movingId, ...withoutMoving.slice(insertionIndex)];
 }
 
 /** Move one id by a keyboard-sized step. */
-export function movePinnedIdByOffset(
-  ids: readonly string[],
-  movingId: string,
-  offset: -1 | 1,
-): string[] {
+export function movePinnedIdByOffset(ids: readonly string[], movingId: string, offset: -1 | 1): string[] {
   const currentIndex = ids.indexOf(movingId);
   const targetIndex = currentIndex + offset;
   if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ids.length) {
     return [...ids];
   }
-  return movePinnedId(
-    ids,
-    movingId,
-    ids[targetIndex]!,
-    offset < 0 ? "before" : "after",
-  );
+  return movePinnedId(ids, movingId, ids[targetIndex]!, offset < 0 ? "before" : "after");
 }
 
 /** The neighboring ids expected by bb's threads.reorderPinned operation. */
@@ -60,9 +43,9 @@ export function pinnedNeighbors(
 }
 
 /** Sort the SDK's project groups by bb's global, binary-ordered pin key. */
-export function sortPinnedThreads<
-  T extends { readonly id: string; readonly pinSortKey?: string | null },
->(threads: readonly T[]): T[] {
+export function sortPinnedThreads<T extends { readonly id: string; readonly pinSortKey?: string | null }>(
+  threads: readonly T[],
+): T[] {
   return [...threads].sort((left, right) => {
     // Older SDKs omit pinSortKey; preserve their incoming order.
     const leftKey = left.pinSortKey;
@@ -149,7 +132,6 @@ export function rebaseMovedId(
   return [...currentIds];
 }
 
-
 /** A run of rows that moves as one: a lone thread, or a project's threads. */
 export interface OrderUnit {
   key: string;
@@ -178,9 +160,7 @@ export function rebaseMovedUnit(
   );
   const idsByKey = new Map(liveUnits.map((unit) => [unit.key, unit.ids]));
   const present = new Set(currentIds);
-  const expanded = movedKeys
-    .flatMap((key) => idsByKey.get(key) ?? [])
-    .filter((id) => present.has(id));
+  const expanded = movedKeys.flatMap((key) => idsByKey.get(key) ?? []).filter((id) => present.has(id));
   const slots = new Set(expanded);
   let next = 0;
   return currentIds.map((id) => (slots.has(id) ? expanded[next++]! : id));
@@ -199,7 +179,5 @@ export function orderSubsetInPlace<T extends { readonly id: string }>(
   const subset = [...new Set(orderedIds)].filter((id) => byId.has(id));
   const slots = new Set(subset);
   let next = 0;
-  return threads.map((thread) =>
-    slots.has(thread.id) ? byId.get(subset[next++]!)! : thread,
-  );
+  return threads.map((thread) => (slots.has(thread.id) ? byId.get(subset[next++]!)! : thread));
 }

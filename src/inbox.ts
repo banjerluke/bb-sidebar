@@ -2,14 +2,9 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 
 export const ALL_PROJECTS = "__all__";
 
-export function reconcileProjectScope(
-  scope: string,
-  projects: readonly { id: string }[],
-): string {
+export function reconcileProjectScope(scope: string, projects: readonly { id: string }[]): string {
   if (scope === ALL_PROJECTS) return scope;
-  return projects.some((project) => project.id === scope)
-    ? scope
-    : ALL_PROJECTS;
+  return projects.some((project) => project.id === scope) ? scope : ALL_PROJECTS;
 }
 
 /**
@@ -20,13 +15,10 @@ export function reconcileProjectScope(
  *
  * Ties break on id so the order is total and stable across renders.
  */
-export function sortByCreatedAtDescending<
-  T extends { readonly id: string; readonly createdAt: number },
->(threads: readonly T[]): T[] {
-  return [...threads].sort(
-    (left, right) =>
-      right.createdAt - left.createdAt || left.id.localeCompare(right.id),
-  );
+export function sortByCreatedAtDescending<T extends { readonly id: string; readonly createdAt: number }>(
+  threads: readonly T[],
+): T[] {
+  return [...threads].sort((left, right) => right.createdAt - left.createdAt || left.id.localeCompare(right.id));
 }
 
 /** Newest parked work first, falling back to bb's last activity timestamp. */
@@ -36,15 +28,10 @@ export function sortSettledThreads<
     readonly latestAttentionAt: number;
     readonly updatedAt: number;
   },
->(
-  threads: readonly T[],
-  settledAtFor: (thread: T) => number | null,
-): T[] {
+>(threads: readonly T[], settledAtFor: (thread: T) => number | null): T[] {
   return [...threads].sort((left, right) => {
-    const leftAt =
-      settledAtFor(left) ?? Math.max(left.latestAttentionAt, left.updatedAt);
-    const rightAt =
-      settledAtFor(right) ?? Math.max(right.latestAttentionAt, right.updatedAt);
+    const leftAt = settledAtFor(left) ?? Math.max(left.latestAttentionAt, left.updatedAt);
+    const rightAt = settledAtFor(right) ?? Math.max(right.latestAttentionAt, right.updatedAt);
     return rightAt - leftAt || left.id.localeCompare(right.id);
   });
 }
@@ -57,27 +44,17 @@ export function threadDisplayTitle(thread: PluginSidebarThread): string {
 }
 
 /** Substring match on the visible title only, preserving the incoming order. */
-export function searchThreadsByTitle(
-  threads: readonly PluginSidebarThread[],
-  query: string,
-): PluginSidebarThread[] {
+export function searchThreadsByTitle(threads: readonly PluginSidebarThread[], query: string): PluginSidebarThread[] {
   const normalized = query.trim().toLowerCase();
   if (normalized.length === 0) return [...threads];
-  return threads.filter((thread) =>
-    threadDisplayTitle(thread).toLowerCase().includes(normalized),
-  );
+  return threads.filter((thread) => threadDisplayTitle(thread).toLowerCase().includes(normalized));
 }
 
 /** Projects whose name matches the picker query; every project when blank. */
-export function filterProjectsByName<T extends { name: string }>(
-  projects: readonly T[],
-  query: string,
-): T[] {
+export function filterProjectsByName<T extends { name: string }>(projects: readonly T[], query: string): T[] {
   const normalized = query.trim().toLowerCase();
   if (normalized.length === 0) return [...projects];
-  return projects.filter((project) =>
-    project.name.toLowerCase().includes(normalized),
-  );
+  return projects.filter((project) => project.name.toLowerCase().includes(normalized));
 }
 
 export interface ProjectScope {
@@ -96,9 +73,7 @@ export function filterByProject(
 }
 
 /** Archived threads never belong in the inbox. */
-export function visibleInboxThreads(
-  threads: readonly PluginSidebarThread[],
-): PluginSidebarThread[] {
+export function visibleInboxThreads(threads: readonly PluginSidebarThread[]): PluginSidebarThread[] {
   return threads.filter((thread) => !thread.isArchived);
 }
 
@@ -123,14 +98,9 @@ export function partitionPinned(threads: readonly PluginSidebarThread[]): {
  * (parent archived, deleted, or filtered out by the project scope) stays in
  * the list, because hiding it would make it unreachable everywhere.
  */
-export function hideChildrenOfVisibleParents(
-  threads: readonly PluginSidebarThread[],
-): PluginSidebarThread[] {
+export function hideChildrenOfVisibleParents(threads: readonly PluginSidebarThread[]): PluginSidebarThread[] {
   const visibleIds = new Set(threads.map((thread) => thread.id));
-  return threads.filter(
-    (thread) =>
-      thread.parentThreadId === null || !visibleIds.has(thread.parentThreadId),
-  );
+  return threads.filter((thread) => thread.parentThreadId === null || !visibleIds.has(thread.parentThreadId));
 }
 
 /**
@@ -139,10 +109,7 @@ export function hideChildrenOfVisibleParents(
  * archived or in another project: the flat list hides those, but the child
  * still needs a way back to them.
  */
-export function parentOf(
-  threads: readonly PluginSidebarThread[],
-  threadId: string,
-): PluginSidebarThread | null {
+export function parentOf(threads: readonly PluginSidebarThread[], threadId: string): PluginSidebarThread | null {
   const thread = threads.find((candidate) => candidate.id === threadId);
   const parentThreadId = thread?.parentThreadId;
   if (!parentThreadId) return null;

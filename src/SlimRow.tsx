@@ -115,12 +115,21 @@ export function SlimRow({
           >
             {projectName && !isRenaming ? (
               <>
-                <ProjectFavicon projectId={thread.projectId} src={projectIconUrl} name={projectName} className="size-3" />
+                <ProjectFavicon
+                  projectId={thread.projectId}
+                  src={projectIconUrl}
+                  name={projectName}
+                  className="size-3"
+                />
                 <span
                   style={projectColor}
                   className={cn(
                     "max-w-[40%] shrink truncate",
-                    projectColor ? "bb-sidebar-project-name" : isActive ? "text-muted-foreground/70" : "text-muted-foreground/50 group-hover/slim:text-muted-foreground/70",
+                    projectColor
+                      ? "bb-sidebar-project-name"
+                      : isActive
+                        ? "text-muted-foreground/70"
+                        : "text-muted-foreground/50 group-hover/slim:text-muted-foreground/70",
                   )}
                 >
                   {projectName}
@@ -144,9 +153,7 @@ export function SlimRow({
               onEditingChange={setIsRenaming}
               className={cn(
                 "min-w-0 flex-1 truncate",
-                isActive
-                  ? "text-foreground"
-                  : "text-foreground/80 group-hover/slim:text-foreground",
+                isActive ? "text-foreground" : "text-foreground/80 group-hover/slim:text-foreground",
               )}
             />
           </span>
@@ -157,9 +164,7 @@ export function SlimRow({
           {jumpHint ? (
             <JumpHint label={jumpHint} />
           ) : (
-            <span
-              className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2"
-            >
+            <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
               <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">
                 {shelf === "parked" && parkedAt != null ? (
                   `Waiting ${Math.max(0, Math.floor((now - parkedAt) / 86_400_000))}d`
@@ -177,11 +182,7 @@ export function SlimRow({
                 <button
                   type="button"
                   aria-label={
-                    shelf === "parked"
-                      ? "Resume thread"
-                      : shelf === "snoozed"
-                      ? "Wake thread now"
-                      : "Un-settle thread"
+                    shelf === "parked" ? "Resume thread" : shelf === "snoozed" ? "Wake thread now" : "Un-settle thread"
                   }
                   onClick={(event) => {
                     event.preventDefault();
@@ -192,10 +193,7 @@ export function SlimRow({
                   // area — lands on the column.
                   className="pointer-events-auto absolute -right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 group-hover/slim:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
                 >
-                  <Icon
-                    name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"}
-                    className="size-3.5"
-                  />
+                  <Icon name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"} className="size-3.5" />
                 </button>
               </Tooltip>
             </span>

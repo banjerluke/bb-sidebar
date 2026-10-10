@@ -13,23 +13,17 @@ import {
  * slim rows and search results alike, and each would otherwise thread one
  * more value through three layers to reach it.
  */
-export const WorkingSinceContext =
-  createContext<WorkingSince>(EMPTY_WORKING_SINCE);
+export const WorkingSinceContext = createContext<WorkingSince>(EMPTY_WORKING_SINCE);
 
 export function useWorkingSinceContext(): WorkingSince {
   return useContext(WorkingSinceContext);
 }
 
 /** Track when each thread in the list started its current run of work. */
-export function useWorkingSince(
-  threads: readonly PluginSidebarThread[],
-): WorkingSince {
-  const [workingSince, setWorkingSince] =
-    useState<WorkingSince>(readWorkingSince);
+export function useWorkingSince(threads: readonly PluginSidebarThread[]): WorkingSince {
+  const [workingSince, setWorkingSince] = useState<WorkingSince>(readWorkingSince);
   useEffect(() => {
-    setWorkingSince((previous) =>
-      reconcileWorkingSince(previous, threads, Date.now()),
-    );
+    setWorkingSince((previous) => reconcileWorkingSince(previous, threads, Date.now()));
   }, [threads]);
   useEffect(() => {
     if (workingSince === EMPTY_WORKING_SINCE) return;

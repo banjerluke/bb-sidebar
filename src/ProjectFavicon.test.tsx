@@ -32,9 +32,7 @@ describe("ProjectFavicon", () => {
   });
 
   it("shows the project's letter tile while the icon loads and after it fails", () => {
-    const view = render(
-      <ProjectFavicon src="/project-icon?projectId=proj_tile&revision=0" name="bb-sidebar" />,
-    );
+    const view = render(<ProjectFavicon src="/project-icon?projectId=proj_tile&revision=0" name="bb-sidebar" />);
     const tile = () => view.container.querySelector(".bb-sidebar-monogram");
     expect(tile()?.getAttribute("data-letter")).toBe("S");
     // Drawn by CSS, so the letter never joins the row's text.

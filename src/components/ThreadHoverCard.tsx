@@ -5,7 +5,12 @@ import { usePortalScopeProps } from "../lib/portal-scope";
 const HOVER_CARD_OPENED = "bb-sidebar:thread-hover-card-opened";
 
 /** Hover preview with a keyboard path into its links. Blank areas pass clicks through. */
-export function ThreadHoverCard({ children, content, open, onOpenChange }: {
+export function ThreadHoverCard({
+  children,
+  content,
+  open,
+  onOpenChange,
+}: {
   children: ReactElement;
   content: ReactNode;
   open: boolean;
@@ -16,7 +21,9 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const restoreFocus = useRef(false);
   const pointerDown = useRef(false);
-  const releasePointer = useCallback(() => { pointerDown.current = false; }, []);
+  const releasePointer = useCallback(() => {
+    pointerDown.current = false;
+  }, []);
   const panelId = useId();
   const clearTimer = () => {
     clearTimeout(timer.current);
@@ -29,11 +36,14 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
       if (!panel.current?.contains(document.activeElement)) onOpenChange(false);
     }, 300);
   };
-  useEffect(() => () => {
-    clearTimeout(timer.current);
-    document.removeEventListener("pointerup", releasePointer);
-    document.removeEventListener("pointercancel", releasePointer);
-  }, [releasePointer]);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      document.removeEventListener("pointerup", releasePointer);
+      document.removeEventListener("pointercancel", releasePointer);
+    },
+    [releasePointer],
+  );
   useEffect(() => {
     if (!open) return;
     // A focused disclosure can keep its card open after pointer leave. A new
@@ -53,7 +63,13 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
       if (event.pointerType === "touch") return;
       const inside = [panel.current, anchor.current].some((element) => {
         const rect = element?.getBoundingClientRect();
-        return rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        return (
+          rect &&
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom
+        );
       });
       if (inside) clearTimer();
       else if (timer.current === undefined) scheduleClose();
@@ -64,7 +80,8 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
 
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange} modal={false}>
-      <Popover.Anchor asChild
+      <Popover.Anchor
+        asChild
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
@@ -76,7 +93,10 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
           document.addEventListener("pointerup", releasePointer, { once: true });
           document.addEventListener("pointercancel", releasePointer, { once: true });
         }}
-        onClick={() => { clearTimer(); onOpenChange(false); }}
+        onClick={() => {
+          clearTimer();
+          onOpenChange(false);
+        }}
         onPointerMove={(event) => {
           anchor.current = event.currentTarget;
           if (event.pointerType === "touch" || pointerDown.current) return;
@@ -93,7 +113,9 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
         }}
         onKeyDown={(event) => {
           if (event.key === "Tab" && !event.shiftKey && open) {
-            const first = panel.current?.querySelector<HTMLElement>("a[href], button:not([disabled]), [data-port-scroll]");
+            const first = panel.current?.querySelector<HTMLElement>(
+              "a[href], button:not([disabled]), [data-port-scroll]",
+            );
             if (first) {
               event.preventDefault();
               restoreFocus.current = true;
@@ -102,7 +124,9 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
           }
           if (event.key === "Escape") onOpenChange(false);
         }}
-      >{children}</Popover.Anchor>
+      >
+        {children}
+      </Popover.Anchor>
       <Popover.Portal>
         <Popover.Content
           {...usePortalScopeProps()}
@@ -117,7 +141,9 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
             if (restoreFocus.current) anchor.current?.focus();
             restoreFocus.current = false;
           }}
-          onEscapeKeyDown={() => { restoreFocus.current = true; }}
+          onEscapeKeyDown={() => {
+            restoreFocus.current = true;
+          }}
           onPointerEnter={clearTimer}
           onPointerLeave={scheduleClose}
           onFocusCapture={clearTimer}
@@ -134,7 +160,9 @@ export function ThreadHoverCard({ children, content, open, onOpenChange }: {
             else restoreFocus.current = false;
           }}
           className="pointer-events-none z-50 max-h-[calc(100dvh-24px)] w-64 max-w-[calc(100vw-24px)] overflow-y-auto rounded-lg border border-border bg-popover p-2.5 text-xs text-popover-foreground shadow-xl outline-none"
-        ><div id={`${panelId}-description`}>{content}</div></Popover.Content>
+        >
+          <div id={`${panelId}-description`}>{content}</div>
+        </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
   );

@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { PluginSidebarProject } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
@@ -49,21 +43,14 @@ export function ProjectScopeSelect({
     ],
     [projects],
   );
-  const matches = useMemo(
-    () => filterProjectsByName(options, query),
-    [options, query],
-  );
-  const scopeLabel =
-    options.find((option) => option.id === scope)?.name ?? ALL_PROJECTS_LABEL;
+  const matches = useMemo(() => filterProjectsByName(options, query), [options, query]);
+  const scopeLabel = options.find((option) => option.id === scope)?.name ?? ALL_PROJECTS_LABEL;
   // The highlight follows the list as filtering shrinks it under the cursor.
-  const highlighted =
-    matches.length === 0 ? -1 : Math.min(activeIndex, matches.length - 1);
+  const highlighted = matches.length === 0 ? -1 : Math.min(activeIndex, matches.length - 1);
 
   useEffect(() => {
     if (!open || highlighted < 0) return;
-    listRef.current
-      ?.querySelector(`[data-scope-option="${highlighted}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    listRef.current?.querySelector(`[data-scope-option="${highlighted}"]`)?.scrollIntoView({ block: "nearest" });
   }, [highlighted, open]);
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -125,11 +112,7 @@ export function ProjectScopeSelect({
         >
           <span className="flex min-w-0 items-center gap-1.5">
             {scope !== ALL_PROJECTS ? (
-              <ProjectFavicon
-                src={projectIconUrl(scope, projectIconRevision)}
-                name={scopeLabel}
-                className="size-3"
-              />
+              <ProjectFavicon src={projectIconUrl(scope, projectIconRevision)} name={scopeLabel} className="size-3" />
             ) : null}
             <span className="truncate">{scopeLabel}</span>
           </span>
@@ -138,20 +121,14 @@ export function ProjectScopeSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-48 p-0">
         <div className="flex items-center gap-1.5 border-b border-border px-2">
-          <Icon
-            name="Search"
-            className="size-3 shrink-0 opacity-50"
-            aria-hidden="true"
-          />
+          <Icon name="Search" className="size-3 shrink-0 opacity-50" aria-hidden="true" />
           <input
             role="combobox"
             aria-label="Filter projects"
             aria-expanded
             aria-autocomplete="list"
             aria-controls={LISTBOX_ID}
-            aria-activedescendant={
-              highlighted < 0 ? undefined : optionId(highlighted)
-            }
+            aria-activedescendant={highlighted < 0 ? undefined : optionId(highlighted)}
             value={query}
             placeholder="Filter projects"
             onChange={(event) => {
@@ -170,9 +147,7 @@ export function ProjectScopeSelect({
           className="max-h-72 overflow-y-auto p-1"
         >
           {matches.length === 0 ? (
-            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-              No projects found
-            </p>
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">No projects found</p>
           ) : (
             matches.map((option, index) => (
               <div

@@ -65,10 +65,7 @@ function isWorking(thread: AutoSettleThread): boolean {
 
 // Settling also stops the thread's runtime, so anything the sidebar would
 // refuse to park must keep it out of policy reach too.
-function cannotAutoSettle(
-  lifecycle: AutoSettleLifecycleState | null,
-  thread: AutoSettleThread,
-): boolean {
+function cannotAutoSettle(lifecycle: AutoSettleLifecycleState | null, thread: AutoSettleThread): boolean {
   return (
     thread.pinnedAt !== null ||
     !canPark({
@@ -86,22 +83,14 @@ export function autoSettleNeedsPullRequest(
   lifecycle: AutoSettleLifecycleState | null,
   thread: AutoSettleThread,
 ): boolean {
-  return (
-    lifecycle?.settledOverride == null &&
-    !cannotAutoSettle(lifecycle, thread)
-  );
+  return lifecycle?.settledOverride == null && !cannotAutoSettle(lifecycle, thread);
 }
 
 /** Invalid settings disable inactivity settling instead of hiding work. */
-export function parseAutoSettleAfterDays(
-  enabled: boolean,
-  rawDays: string,
-): number | null {
+export function parseAutoSettleAfterDays(enabled: boolean, rawDays: string): number | null {
   if (!enabled) return null;
   const days = Number(rawDays);
-  return Number.isInteger(days) &&
-    days >= MIN_AUTO_SETTLE_AFTER_DAYS &&
-    days <= MAX_AUTO_SETTLE_AFTER_DAYS
+  return Number.isInteger(days) && days >= MIN_AUTO_SETTLE_AFTER_DAYS && days <= MAX_AUTO_SETTLE_AFTER_DAYS
     ? days
     : null;
 }
@@ -134,17 +123,11 @@ export function decideAutoSettle({
   // state until the next evaluation can make a safe decision.
   if (pullRequest.outcome === "unknown") return "keep";
 
-  const activityAt = Math.max(
-    thread.createdAt,
-    thread.updatedAt,
-    thread.latestAttentionAt,
-  );
+  const activityAt = Math.max(thread.createdAt, thread.updatedAt, thread.latestAttentionAt);
   let shouldSettle = false;
 
   if (pullRequest.outcome === "available") {
-    const terminal =
-      pullRequest.state === "closed" ||
-      (pullRequest.state === "merged" && settings.onMerge);
+    const terminal = pullRequest.state === "closed" || (pullRequest.state === "merged" && settings.onMerge);
     if (terminal) {
       const pullRequestUpdatedAt = Date.parse(pullRequest.updatedAt);
       // A malformed terminal timestamp is not evidence that the PR finished
@@ -163,11 +146,8 @@ export function decideAutoSettle({
 
   if (!shouldSettle && settings.afterDays !== null) {
     const hasOpenPullRequest =
-      pullRequest.outcome === "available" &&
-      (pullRequest.state === "open" || pullRequest.state === "draft");
-    shouldSettle =
-      !hasOpenPullRequest &&
-      activityAt < now - settings.afterDays * DAY_MS;
+      pullRequest.outcome === "available" && (pullRequest.state === "open" || pullRequest.state === "draft");
+    shouldSettle = !hasOpenPullRequest && activityAt < now - settings.afterDays * DAY_MS;
   }
 
   if (shouldSettle === isAutomaticallySettled) return "keep";

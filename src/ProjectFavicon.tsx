@@ -1,9 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "./lib/utils";
-import {
-  projectMonogramColor,
-  projectMonogramLetter,
-} from "./project-monogram";
+import { projectMonogramColor, projectMonogramLetter } from "./project-monogram";
 import { useProjectColor, useProjectStripeColor, type ProjectStripeView } from "./ProjectColors";
 
 // Keyed by the icon route URL. A loaded entry holds the attempt URL that
@@ -25,8 +22,7 @@ function recordFailure(src: string, attempt: number): void {
   const count = attempt + 1;
   failedSources.set(src, {
     count,
-    retryAt:
-      Date.now() + Math.min(RETRY_BASE_MS * 2 ** (count - 1), RETRY_MAX_MS),
+    retryAt: Date.now() + Math.min(RETRY_BASE_MS * 2 ** (count - 1), RETRY_MAX_MS),
   });
 }
 
@@ -65,7 +61,15 @@ export function ProjectMonogram({
  * one project read as a group even when the project has its own icon. The row
  * must be `relative`.
  */
-export function ProjectStripe({ projectId, className, view }: { projectId: string; className?: string; view?: ProjectStripeView }) {
+export function ProjectStripe({
+  projectId,
+  className,
+  view,
+}: {
+  projectId: string;
+  className?: string;
+  view?: ProjectStripeView;
+}) {
   const color = useProjectStripeColor(projectId, view);
   if (!color) return null;
   return (
@@ -101,8 +105,7 @@ export function ProjectFavicon({
   const [, setRenderCount] = useState(0);
   const rerender = () => setRenderCount((count) => count + 1);
   const failure = src ? failedSources.get(src) : undefined;
-  const retryAt =
-    failure && failure.retryAt > Date.now() ? failure.retryAt : null;
+  const retryAt = failure && failure.retryAt > Date.now() ? failure.retryAt : null;
   useEffect(() => {
     if (retryAt === null) return;
     const timer = setTimeout(rerender, retryAt - Date.now());

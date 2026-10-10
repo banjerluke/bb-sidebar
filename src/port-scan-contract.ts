@@ -15,7 +15,9 @@ export const portScanContract = defineRpcContract({
     // Optional so an older host, which drops the field, falls back to the
     // stricter thread-owned check instead of failing the call.
     input: z.object({
-      root: rootSchema, threadId: z.string().min(1), ports: z.array(ownedPortTargetSchema).min(1).max(1000),
+      root: rootSchema,
+      threadId: z.string().min(1),
+      ports: z.array(ownedPortTargetSchema).min(1).max(1000),
       scope: portCloseScopeSchema.optional(),
     }),
     output: closePortsResultSchema,
@@ -29,9 +31,11 @@ export const portScanContract = defineRpcContract({
   scan: {
     input: z.object({ roots: z.array(rootSchema).max(10000) }),
     output: z.object({
-      ports: z.array(openPortSchema.extend({
-        environmentId: z.string(),
-      })),
+      ports: z.array(
+        openPortSchema.extend({
+          environmentId: z.string(),
+        }),
+      ),
     }),
   },
 });

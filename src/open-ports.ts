@@ -14,10 +14,12 @@ export const openPortSchema = z.object({
 export type OpenPort = z.infer<typeof openPortSchema>;
 
 export const portSnapshotSchema = z.object({
-  groups: z.array(z.object({
-    environmentId: z.string(),
-    ports: z.array(openPortSchema),
-  })),
+  groups: z.array(
+    z.object({
+      environmentId: z.string(),
+      ports: z.array(openPortSchema),
+    }),
+  ),
 });
 
 export type PortSnapshot = z.infer<typeof portSnapshotSchema>;
@@ -27,7 +29,10 @@ export function portsByEnvironment(snapshot: PortSnapshot): Map<string, OpenPort
   for (const group of snapshot.groups) {
     const ports = new Map(result.get(group.environmentId)?.map((port) => [port.port, port]));
     for (const port of group.ports) ports.set(port.port, port);
-    result.set(group.environmentId, [...ports.values()].sort((a, b) => a.port - b.port));
+    result.set(
+      group.environmentId,
+      [...ports.values()].sort((a, b) => a.port - b.port),
+    );
   }
   return result;
 }

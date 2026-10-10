@@ -26,11 +26,32 @@ export function ProjectColorSetting({ projectId, projectIds }: { projectId: stri
       setSaving(false);
     }
   };
-  return <SettingRow title="Color" description="Used when Project colors is enabled. The automatic color stays the same when you rename the project." control={
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <input type="color" aria-label="Project color" value={draft ?? color} disabled={saving} onChange={(event) => setDraft(event.target.value)} className="h-8 w-10 cursor-pointer rounded border border-border bg-background p-0.5 disabled:cursor-wait" />
-      {draft !== null && draft !== color ? <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void save(draft)}>{saving ? "Saving..." : "Save color"}</button> : null}
-      {overrides[projectId] ? <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void save(null)}>Reset color</button> : null}
-    </div>
-  } />;
+  return (
+    <SettingRow
+      title="Color"
+      description="Used when Project colors is enabled. The automatic color stays the same when you rename the project."
+      control={
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <input
+            type="color"
+            aria-label="Project color"
+            value={draft ?? color}
+            disabled={saving}
+            onChange={(event) => setDraft(event.target.value)}
+            className="h-8 w-10 cursor-pointer rounded border border-border bg-background p-0.5 disabled:cursor-wait"
+          />
+          {draft !== null && draft !== color ? (
+            <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void save(draft)}>
+              {saving ? "Saving..." : "Save color"}
+            </button>
+          ) : null}
+          {overrides[projectId] ? (
+            <button type="button" className={secondaryButtonClass} disabled={saving} onClick={() => void save(null)}>
+              Reset color
+            </button>
+          ) : null}
+        </div>
+      }
+    />
+  );
 }

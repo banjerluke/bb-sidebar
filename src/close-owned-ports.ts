@@ -38,11 +38,16 @@ export async function closeOwnedPortProcesses(
       result.failed.push(...requested.map((target) => target.port));
       continue;
     }
-    const owned = current.filter((port) => port.pid === pid && port.source === "process" &&
-      (scope === "workspace" || port.ownerThreadId === threadId));
-    const matched = requested.filter((target) => owned.some((port) =>
-      port.port === target.port &&
-      (!target.processStartedAt || port.processStartedAt === target.processStartedAt)));
+    const owned = current.filter(
+      (port) =>
+        port.pid === pid && port.source === "process" && (scope === "workspace" || port.ownerThreadId === threadId),
+    );
+    const matched = requested.filter((target) =>
+      owned.some(
+        (port) =>
+          port.port === target.port && (!target.processStartedAt || port.processStartedAt === target.processStartedAt),
+      ),
+    );
     result.skipped.push(...requested.filter((target) => !matched.includes(target)).map((target) => target.port));
     if (matched.length === 0) continue;
     try {

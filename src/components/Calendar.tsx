@@ -47,11 +47,7 @@ export function Calendar({
       }}
       components={{
         Chevron: ({ orientation }) => (
-          <Icon
-            name={orientation === "left" ? "ChevronLeft" : "ChevronRight"}
-            className="size-4"
-            aria-hidden="true"
-          />
+          <Icon name={orientation === "left" ? "ChevronLeft" : "ChevronRight"} className="size-4" aria-hidden="true" />
         ),
       }}
       {...props}

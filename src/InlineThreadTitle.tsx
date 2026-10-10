@@ -31,7 +31,12 @@ export function InlineThreadTitle({
     return () => {
       if (finished.current) return;
       finished.current = true;
-      const { draft: currentDraft, title: currentTitle, actions: currentActions, onEditingChange: notify } = latest.current;
+      const {
+        draft: currentDraft,
+        title: currentTitle,
+        actions: currentActions,
+        onEditingChange: notify,
+      } = latest.current;
       notify(false);
       const nextTitle = currentDraft.trim();
       if (nextTitle && nextTitle !== currentTitle) void currentActions.rename(thread.id, nextTitle);

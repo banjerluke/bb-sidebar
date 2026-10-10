@@ -55,11 +55,7 @@ export function reconcileWorkingSince(
  * the age label says "now", which is the wrong word after a status, so the
  * duration is left off instead.
  */
-export function statusWithDuration(
-  label: string,
-  startedAt: number | undefined,
-  now: number,
-): string {
+export function statusWithDuration(label: string, startedAt: number | undefined, now: number): string {
   if (startedAt === undefined) return label;
   const elapsed = relativeTimeLabel(startedAt, now);
   return elapsed === "now" ? label : `${label} · ${elapsed}`;
@@ -70,11 +66,7 @@ export function readWorkingSince(): WorkingSince {
     const stored = window.localStorage.getItem(WORKING_SINCE_STORAGE_KEY);
     if (stored === null) return EMPTY_WORKING_SINCE;
     const parsed: unknown = JSON.parse(stored);
-    if (
-      parsed === null ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed)
-    ) {
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return EMPTY_WORKING_SINCE;
     }
     const map = new Map<string, number>();
@@ -90,8 +82,5 @@ export function readWorkingSince(): WorkingSince {
 }
 
 export function writeWorkingSince(workingSince: WorkingSince): void {
-  safeSetItem(
-    WORKING_SINCE_STORAGE_KEY,
-    JSON.stringify(Object.fromEntries(workingSince)),
-  );
+  safeSetItem(WORKING_SINCE_STORAGE_KEY, JSON.stringify(Object.fromEntries(workingSince)));
 }

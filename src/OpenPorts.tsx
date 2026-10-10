@@ -17,11 +17,16 @@ function samePorts(left: ReadonlyMap<string, readonly OpenPort[]>, right: Readon
   if (left.size !== right.size) return false;
   return [...left].every(([environmentId, ports]) => {
     const other = right.get(environmentId);
-    return other?.length === ports.length && ports.every((port, index) => {
-      const candidate = other[index];
-      return Object.keys(port).length === Object.keys(candidate).length &&
-        Object.entries(port).every(([key, value]) => candidate[key as keyof OpenPort] === value);
-    });
+    return (
+      other?.length === ports.length &&
+      ports.every((port, index) => {
+        const candidate = other[index];
+        return (
+          Object.keys(port).length === Object.keys(candidate).length &&
+          Object.entries(port).every(([key, value]) => candidate[key as keyof OpenPort] === value)
+        );
+      })
+    );
   });
 }
 
@@ -37,7 +42,7 @@ export function OpenPortsProvider({ children }: { children: ReactNode }) {
     const isHidden = () => document.visibilityState === "hidden";
     let timer: ReturnType<typeof setTimeout> | undefined;
     function publish(next: ReadonlyMap<string, readonly OpenPort[]>) {
-      if (!disposed) setPorts((previous) => samePorts(previous, next) ? previous : next);
+      if (!disposed) setPorts((previous) => (samePorts(previous, next) ? previous : next));
     }
     async function refresh() {
       if (disposed || inFlight || isHidden()) return;
@@ -106,44 +111,56 @@ export function OpenPortDetails({ thread }: { thread: PluginSidebarThread }) {
         <span>Workspace ports ({ports.length})</span>
         <Icon name={expanded ? "ChevronUp" : "ChevronDown"} className="ml-auto size-3 shrink-0" aria-hidden />
       </button>
-      {expanded ? <div
-        id={listId}
-        role={scrolls ? "region" : undefined}
-        aria-label={scrolls ? "Workspace port list" : undefined}
-        tabIndex={scrolls ? 0 : undefined}
-        data-port-scroll={scrolls ? "" : undefined}
-        className={scrolls
-          ? "pointer-events-auto flex max-h-[min(12rem,30dvh)] flex-col gap-1.5 overflow-y-auto rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          : "flex flex-col gap-1.5"}
-      >
-      {ports.map((port) => {
-        const url = portBrowserUrl(port, thread.host?.id, localHostId);
-        return (
-        <div key={port.port} className="flex min-w-0 items-start gap-1.5 pl-5 text-xs leading-4">
-          <div className="min-w-0 flex-1">
-            <div className="break-words">
-              {url ? <UrlLink
-                href={url}
-                aria-label={`Open port ${port.port}`}
-                onClick={(event) => event.stopPropagation()}
-                className="pointer-events-auto rounded-sm underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                :{port.port}
-              </UrlLink> : <span>:{port.port}</span>}
-              {" "}{port.service ?? port.container ?? port.processName ?? "TCP listener"}
-            </div>
-            <div className="break-all text-[11px] text-muted-foreground">
-              {port.address ? `${port.address} · ` : ""}
-              {port.source === "docker" ? `Docker${port.container ? ` · ${port.container}` : ""}` : port.pid ? `PID ${port.pid}` : "TCP"}
-            </div>
-          </div>
-          {port.source === "process" && port.pid && port.pid > 1
-            ? <StopPortButton threadId={thread.id} port={port.port} pid={port.pid} />
-            : null}
+      {expanded ? (
+        <div
+          id={listId}
+          role={scrolls ? "region" : undefined}
+          aria-label={scrolls ? "Workspace port list" : undefined}
+          tabIndex={scrolls ? 0 : undefined}
+          data-port-scroll={scrolls ? "" : undefined}
+          className={
+            scrolls
+              ? "pointer-events-auto flex max-h-[min(12rem,30dvh)] flex-col gap-1.5 overflow-y-auto rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              : "flex flex-col gap-1.5"
+          }
+        >
+          {ports.map((port) => {
+            const url = portBrowserUrl(port, thread.host?.id, localHostId);
+            return (
+              <div key={port.port} className="flex min-w-0 items-start gap-1.5 pl-5 text-xs leading-4">
+                <div className="min-w-0 flex-1">
+                  <div className="break-words">
+                    {url ? (
+                      <UrlLink
+                        href={url}
+                        aria-label={`Open port ${port.port}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className="pointer-events-auto rounded-sm underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        :{port.port}
+                      </UrlLink>
+                    ) : (
+                      <span>:{port.port}</span>
+                    )}{" "}
+                    {port.service ?? port.container ?? port.processName ?? "TCP listener"}
+                  </div>
+                  <div className="break-all text-[11px] text-muted-foreground">
+                    {port.address ? `${port.address} · ` : ""}
+                    {port.source === "docker"
+                      ? `Docker${port.container ? ` · ${port.container}` : ""}`
+                      : port.pid
+                        ? `PID ${port.pid}`
+                        : "TCP"}
+                  </div>
+                </div>
+                {port.source === "process" && port.pid && port.pid > 1 ? (
+                  <StopPortButton threadId={thread.id} port={port.port} pid={port.pid} />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
-        );
-      })}
-      </div> : null}
+      ) : null}
     </div>
   );
 }
@@ -169,7 +186,9 @@ function StopPortButton({ threadId, port, pid }: { threadId: string; port: numbe
     try {
       const result = await rpc.call("stopWorkspacePort", { threadId, port: { port, pid } });
       if (result.failed.length) {
-        toast.error(`Could not stop the process on :${port}`, { description: `PID ${pid} refused the shutdown request.` });
+        toast.error(`Could not stop the process on :${port}`, {
+          description: `PID ${pid} refused the shutdown request.`,
+        });
       } else if (result.signalled.length) {
         toast.success(`Stop requested for :${port}`, {
           description: `PID ${pid} received a graceful shutdown request. Any other ports it serves close too.`,

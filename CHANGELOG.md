@@ -523,6 +523,5 @@
 [0.1.2]: https://github.com/yusuf8834/bb-sidebar/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yusuf8834/bb-sidebar/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yusuf8834/bb-sidebar/releases/tag/v0.1.0
-
 [0.2.16]: https://github.com/yusuf8834/bb-sidebar/compare/v0.2.15...v0.2.16
 [0.2.17]: https://github.com/yusuf8834/bb-sidebar/compare/v0.2.16...v0.2.17

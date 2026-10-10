@@ -20,9 +20,7 @@ import {
 export function useSidebarSettings(): SidebarSettingsValues | null {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const loadRequestSeq = useRef(0);
-  const [settings, setSettings] = useState<SidebarSettingsValues | null>(() =>
-    cachedSidebarSettings(rpc),
-  );
+  const [settings, setSettings] = useState<SidebarSettingsValues | null>(() => cachedSidebarSettings(rpc));
   const load = useCallback(async () => {
     const seq = ++loadRequestSeq.current;
     try {

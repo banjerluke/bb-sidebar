@@ -53,9 +53,7 @@ export function SettingsSection({
         </h2>
         <SaveIndicator status={status} />
       </div>
-      <div className="rounded-lg border border-border bg-card py-1.5">
-        {children}
-      </div>
+      <div className="rounded-lg border border-border bg-card py-1.5">{children}</div>
     </section>
   );
 }
@@ -132,13 +130,13 @@ export function SettingRow({
         <div className="min-w-0 flex-1 basis-48">
           <p className="flex flex-wrap items-center gap-2 text-sm text-foreground">
             {title}
-            {experimental ? <span className="rounded border border-border px-1.5 py-0.5 text-2xs font-normal text-muted-foreground">Experimental</span> : null}
+            {experimental ? (
+              <span className="rounded border border-border px-1.5 py-0.5 text-2xs font-normal text-muted-foreground">
+                Experimental
+              </span>
+            ) : null}
           </p>
-          {description ? (
-            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
+          {description ? <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</p> : null}
         </div>
         {control ? <div className="shrink-0">{control}</div> : null}
       </div>
@@ -187,10 +185,7 @@ export function Switch({
  * A native select, kept for its keyboard and screen-reader behaviour, styled
  * like bb's dropdown buttons. `className` sizes the wrapper.
  */
-export function SettingsSelect({
-  className,
-  ...props
-}: ComponentProps<"select">) {
+export function SettingsSelect({ className, ...props }: ComponentProps<"select">) {
   return (
     <span className={cn("relative inline-flex w-40", className)}>
       <select

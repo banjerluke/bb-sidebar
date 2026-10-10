@@ -24,9 +24,13 @@ export function useProjectColorOverrides(enabled = true) {
   }, [enabled, rpc]);
   useEffect(() => {
     void load();
-    return () => { request.current += 1; };
+    return () => {
+      request.current += 1;
+    };
   }, [load]);
-  useRealtime(PROJECT_COLORS_CHANNEL, () => { void load(); });
+  useRealtime(PROJECT_COLORS_CHANNEL, () => {
+    void load();
+  });
   useEffect(() => {
     if (connection === "connected" && previousConnection.current !== "connected") void load();
     previousConnection.current = connection;
@@ -39,14 +43,22 @@ const ProjectColorsContext = createContext<{
   display: ProjectColorDisplay;
 } | null>(null);
 
-export function ProjectColorsProvider({ enabled, display, projectIds, children }: {
+export function ProjectColorsProvider({
+  enabled,
+  display,
+  projectIds,
+  children,
+}: {
   enabled: boolean;
   display: ProjectColorDisplay;
   projectIds: readonly string[];
   children: ReactNode;
 }) {
   const { overrides } = useProjectColorOverrides(enabled);
-  const value = useMemo(() => enabled ? { colors: projectColorsById(projectIds, overrides), display } : null, [enabled, projectIds, overrides, display]);
+  const value = useMemo(
+    () => (enabled ? { colors: projectColorsById(projectIds, overrides), display } : null),
+    [enabled, projectIds, overrides, display],
+  );
   return <ProjectColorsContext.Provider value={value}>{children}</ProjectColorsContext.Provider>;
 }
 

@@ -6,9 +6,7 @@ import { reconcileWorkingSince, statusWithDuration } from "./working-since";
 const NOW = 1_000_000_000;
 const MINUTE = 60_000;
 
-function thread(
-  overrides: Partial<PluginSidebarThread> = {},
-): PluginSidebarThread {
+function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
     ...idleSidebarThreadFields,
     id: "thr_1",
@@ -45,31 +43,19 @@ function thread(
 
 describe("reconcileWorkingSince", () => {
   it("stamps a thread the first time it is seen working", () => {
-    const next = reconcileWorkingSince(
-      new Map(),
-      [thread({ id: "a", indicator: "runtime" })],
-      NOW,
-    );
+    const next = reconcileWorkingSince(new Map(), [thread({ id: "a", indicator: "runtime" })], NOW);
     expect(next.get("a")).toBe(NOW);
   });
 
   it("keeps the original stamp while the thread stays busy", () => {
     const first = new Map([["a", NOW - 5 * MINUTE]]);
-    const next = reconcileWorkingSince(
-      first,
-      [thread({ id: "a", indicator: "runtime" })],
-      NOW,
-    );
+    const next = reconcileWorkingSince(first, [thread({ id: "a", indicator: "runtime" })], NOW);
     expect(next.get("a")).toBe(NOW - 5 * MINUTE);
   });
 
   it("returns the same map when nothing changed, so no render is spent", () => {
     const first = new Map([["a", NOW - 5 * MINUTE]]);
-    const next = reconcileWorkingSince(
-      first,
-      [thread({ id: "a", indicator: "runtime" }), thread({ id: "b" })],
-      NOW,
-    );
+    const next = reconcileWorkingSince(first, [thread({ id: "a", indicator: "runtime" }), thread({ id: "b" })], NOW);
     expect(next).toBe(first);
   });
 
@@ -80,11 +66,7 @@ describe("reconcileWorkingSince", () => {
       ["a", NOW - 5 * MINUTE],
       ["gone", NOW - 5 * MINUTE],
     ]);
-    const next = reconcileWorkingSince(
-      first,
-      [thread({ id: "a", indicator: "waiting-for-input" })],
-      NOW,
-    );
+    const next = reconcileWorkingSince(first, [thread({ id: "a", indicator: "waiting-for-input" })], NOW);
     expect(next.size).toBe(0);
   });
 
@@ -111,12 +93,8 @@ describe("reconcileWorkingSince", () => {
 
 describe("statusWithDuration", () => {
   it("appends the elapsed bucket after a minute", () => {
-    expect(statusWithDuration("Working", NOW - 5 * MINUTE, NOW)).toBe(
-      "Working · 5m",
-    );
-    expect(statusWithDuration("Planning", NOW - 3 * 60 * MINUTE, NOW)).toBe(
-      "Planning · 3h",
-    );
+    expect(statusWithDuration("Working", NOW - 5 * MINUTE, NOW)).toBe("Working · 5m");
+    expect(statusWithDuration("Planning", NOW - 3 * 60 * MINUTE, NOW)).toBe("Planning · 3h");
   });
 
   it("stays bare under a minute, and without a stamp", () => {

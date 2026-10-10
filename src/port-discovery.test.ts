@@ -10,23 +10,40 @@ describe("sidebar port discovery", () => {
     let offline = false;
     const scan = vi.fn(async ({ hostId }: { hostId: string }) => {
       if (offline) throw new Error("Host offline");
-      return { ports: [
-        { environmentId: hostId === "host_a" ? "env_a" : "env_b", port: 3000, processName: "node", pid: 1234, address: "127.0.0.1", source: "process", ownerThreadId: "a" },
-        { environmentId: "unrequested", port: 9999 },
-      ] };
+      return {
+        ports: [
+          {
+            environmentId: hostId === "host_a" ? "env_a" : "env_b",
+            port: 3000,
+            processName: "node",
+            pid: 1234,
+            address: "127.0.0.1",
+            source: "process",
+            ownerThreadId: "a",
+          },
+          { environmentId: "unrequested", port: 9999 },
+        ],
+      };
     });
     const { bb, harness } = createFakePluginHost({
       experimental_callHostRpc: scan,
       sdk: {
-        threads: { list: async () => [
-          makeThreadResponse({ id: "a", environmentId: "env_a" }),
-          makeThreadResponse({ id: "a2", environmentId: "env_a" }),
-          makeThreadResponse({ id: "b", environmentId: "env_b" }),
-        ] },
-        environments: { get: async ({ environmentId }) => ({
-          id: environmentId, status: "ready", path: `/workspace/${environmentId}`,
-          hostId: environmentId === "env_a" ? "host_a" : "host_b",
-        }) as Environment },
+        threads: {
+          list: async () => [
+            makeThreadResponse({ id: "a", environmentId: "env_a" }),
+            makeThreadResponse({ id: "a2", environmentId: "env_a" }),
+            makeThreadResponse({ id: "b", environmentId: "env_b" }),
+          ],
+        },
+        environments: {
+          get: async ({ environmentId }) =>
+            ({
+              id: environmentId,
+              status: "ready",
+              path: `/workspace/${environmentId}`,
+              hostId: environmentId === "env_a" ? "host_a" : "host_b",
+            }) as Environment,
+        },
       },
     });
     const clock = vi.spyOn(Date, "now").mockReturnValue(100_000);
@@ -35,7 +52,14 @@ describe("sidebar port discovery", () => {
       const [first, second] = await Promise.all([discover(), discover()]);
       expect(first).toEqual(second);
       expect(first.groups.map((group) => group.environmentId).sort()).toEqual(["env_a", "env_b"]);
-      expect(first.groups.find((group) => group.environmentId === "env_a")?.ports[0]).toEqual({ port: 3000, processName: "node", pid: 1234, address: "127.0.0.1", source: "process", ownerThreadId: "a" });
+      expect(first.groups.find((group) => group.environmentId === "env_a")?.ports[0]).toEqual({
+        port: 3000,
+        processName: "node",
+        pid: 1234,
+        address: "127.0.0.1",
+        source: "process",
+        ownerThreadId: "a",
+      });
       expect(first.groups.find((group) => group.environmentId === "env_b")?.ports[0].ownerThreadId).toBeUndefined();
       expect(scan).toHaveBeenCalledTimes(2);
       await discover();
@@ -77,7 +101,12 @@ describe("sidebar port discovery", () => {
       maxEnvironments = Math.max(maxEnvironments, ++environmentActive);
       await new Promise((resolve) => setTimeout(resolve, 1));
       environmentActive--;
-      return { id: environmentId, status: "ready", path: moved ? "/moved" : `/workspace/${environmentId}`, hostId: environmentId } as Environment;
+      return {
+        id: environmentId,
+        status: "ready",
+        path: moved ? "/moved" : `/workspace/${environmentId}`,
+        hostId: environmentId,
+      } as Environment;
     });
     const scan = vi.fn(async () => {
       maxHosts = Math.max(maxHosts, ++hostActive);
@@ -85,7 +114,9 @@ describe("sidebar port discovery", () => {
       hostActive--;
       return { ports: [] };
     });
-    const list = vi.fn(async () => Array.from({ length: 20 }, (_, i) => makeThreadResponse({ id: `thr_${i}`, environmentId: `env_${i}` })));
+    const list = vi.fn(async () =>
+      Array.from({ length: 20 }, (_, i) => makeThreadResponse({ id: `thr_${i}`, environmentId: `env_${i}` })),
+    );
     const { bb, harness } = createFakePluginHost({
       experimental_callHostRpc: scan,
       sdk: { threads: { list }, environments: { get } },
@@ -109,11 +140,12 @@ describe("sidebar port discovery", () => {
       clock.mockReturnValue(62_000);
       await discover();
       expect(get).toHaveBeenCalledTimes(40);
-      expect(harness.inspection.experimental_hostRpcCalls.at(-1)?.input).toEqual({ roots: [{ environmentId: "env_19", path: "/moved" }] });
+      expect(harness.inspection.experimental_hostRpcCalls.at(-1)?.input).toEqual({
+        roots: [{ environmentId: "env_19", path: "/moved" }],
+      });
     } finally {
       clock.mockRestore();
       await harness.lifecycle.dispose();
     }
   });
-
 });

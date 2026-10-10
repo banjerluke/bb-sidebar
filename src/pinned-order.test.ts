@@ -12,29 +12,13 @@ import {
 
 describe("pinned ordering", () => {
   it("moves before and after another pinned thread", () => {
-    expect(movePinnedId(["a", "b", "c"], "c", "a", "before")).toEqual([
-      "c",
-      "a",
-      "b",
-    ]);
-    expect(movePinnedId(["a", "b", "c"], "a", "c", "after")).toEqual([
-      "b",
-      "c",
-      "a",
-    ]);
+    expect(movePinnedId(["a", "b", "c"], "c", "a", "before")).toEqual(["c", "a", "b"]);
+    expect(movePinnedId(["a", "b", "c"], "a", "c", "after")).toEqual(["b", "c", "a"]);
   });
 
   it("moves one keyboard step and stops at either edge", () => {
-    expect(movePinnedIdByOffset(["a", "b", "c"], "b", -1)).toEqual([
-      "b",
-      "a",
-      "c",
-    ]);
-    expect(movePinnedIdByOffset(["a", "b", "c"], "b", 1)).toEqual([
-      "a",
-      "c",
-      "b",
-    ]);
+    expect(movePinnedIdByOffset(["a", "b", "c"], "b", -1)).toEqual(["b", "a", "c"]);
+    expect(movePinnedIdByOffset(["a", "b", "c"], "b", 1)).toEqual(["a", "c", "b"]);
     expect(movePinnedIdByOffset(["a", "b"], "a", -1)).toEqual(["a", "b"]);
   });
 
@@ -51,28 +35,16 @@ describe("pinned ordering", () => {
 
   it("orders visible rows from a global pinned id list", () => {
     const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
-    expect(orderPinnedThreads(rows, ["hidden", "c", "a", "b"])).toEqual([
-      { id: "c" },
-      { id: "a" },
-      { id: "b" },
-    ]);
+    expect(orderPinnedThreads(rows, ["hidden", "c", "a", "b"])).toEqual([{ id: "c" }, { id: "a" }, { id: "b" }]);
   });
 
   it("keeps new inbox rows above the durable custom order", () => {
     const rows = [{ id: "new" }, { id: "a" }, { id: "b" }];
-    expect(orderInboxThreads(rows, ["b", "a"])).toEqual([
-      { id: "new" },
-      { id: "b" },
-      { id: "a" },
-    ]);
+    expect(orderInboxThreads(rows, ["b", "a"])).toEqual([{ id: "new" }, { id: "b" }, { id: "a" }]);
   });
 
   it("rebases a move onto the global order without reordering hidden rows", () => {
-    expect(rebaseMovedId(["a", "hidden", "b"], ["b", "a"], "a")).toEqual([
-      "hidden",
-      "b",
-      "a",
-    ]);
+    expect(rebaseMovedId(["a", "hidden", "b"], ["b", "a"], "a")).toEqual(["hidden", "b", "a"]);
   });
 
   it("drops an anchor that disappeared mid-drag instead of reinstating it", () => {
@@ -82,9 +54,7 @@ describe("pinned ordering", () => {
 
   it("keeps a reorder that landed elsewhere during the drag", () => {
     // The host swapped D and C while the pointer was down; only A moves.
-    expect(
-      rebaseMovedId(["a", "b", "d", "c"], ["b", "a", "c", "d"], "a"),
-    ).toEqual(["b", "a", "d", "c"]);
+    expect(rebaseMovedId(["a", "b", "d", "c"], ["b", "a", "c", "d"], "a")).toEqual(["b", "a", "d", "c"]);
   });
 
   it("leaves the order alone when the moved row is gone", () => {
@@ -100,34 +70,23 @@ describe("moving whole units", () => {
   ];
 
   it("packs a moved unit together and leaves rows outside the units alone", () => {
-    expect(
-      rebaseMovedUnit(
-        ["w1", "other", "x", "w2", "y"],
-        units,
-        ["x", "y", "project:web"],
-        "project:web",
-      ),
-    ).toEqual(["x", "other", "y", "w1", "w2"]);
+    expect(rebaseMovedUnit(["w1", "other", "x", "w2", "y"], units, ["x", "y", "project:web"], "project:web")).toEqual([
+      "x",
+      "other",
+      "y",
+      "w1",
+      "w2",
+    ]);
   });
 
   it("lands next to the nearest unit that outlived the gesture", () => {
     expect(
-      rebaseMovedUnit(
-        ["w1", "w2", "y"],
-        [units[0]!, units[2]!],
-        ["x", "project:web", "y"],
-        "project:web",
-      ),
+      rebaseMovedUnit(["w1", "w2", "y"], [units[0]!, units[2]!], ["x", "project:web", "y"], "project:web"),
     ).toEqual(["w1", "w2", "y"]);
   });
 
   it("previews part of a list without moving the rest", () => {
     const rows = ["a", "b", "c", "d"].map((id) => ({ id }));
-    expect(orderSubsetInPlace(rows, ["d", "b"]).map((row) => row.id)).toEqual([
-      "a",
-      "d",
-      "c",
-      "b",
-    ]);
+    expect(orderSubsetInPlace(rows, ["d", "b"]).map((row) => row.id)).toEqual(["a", "d", "c", "b"]);
   });
 });
