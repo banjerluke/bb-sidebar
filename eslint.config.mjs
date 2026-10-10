@@ -44,7 +44,7 @@ const appPatterns = [
   },
 ];
 // Match extensionless imports too: most imports of TSX modules omit the extension.
-const tsxNames = readdirSync("src", { recursive: true })
+const tsxNames = ["app.tsx", ...readdirSync("src", { recursive: true })]
   .filter((name) => name.endsWith(".tsx"))
   .map((name) =>
     name
