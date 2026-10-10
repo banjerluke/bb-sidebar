@@ -27,5 +27,5 @@ jobs:
       - name: Check BB SDK surface
         run: npx --no-install bb plugin types --check
 
-      - name: Run checks
+      - name: Run lint, format, Knip, typecheck, tests, and build
         run: npm run check

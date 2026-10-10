@@ -45,9 +45,14 @@
   ],
   "scripts": {
     "build": "bb plugin build",
-    "check": "npm run typecheck && npm test && npm run build",
+    "check": "npm run lint && npm run format:check && npm run knip && npm run typecheck && npm test && npm run build",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint app.tsx \"src/**/*.{ts,tsx}\" && node scripts/check-file-sizes.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip --no-config-hints",
+    "knip:report": "knip --config knip.report.ts --no-config-hints"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
@@ -78,13 +83,17 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.10.0",
+    "eslint": "^10.12.0",
     "hono": "^4.13.3",
     "jsdom": "^29.0.1",
+    "knip": "^5.88.1",
+    "prettier": "^3.9.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.4.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.71.1",
     "vaul": "^1.1.2",
     "vitest": "^4.1.1"
   }
