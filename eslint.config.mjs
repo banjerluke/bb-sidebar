@@ -54,6 +54,54 @@ const tsxNames = ["app.tsx", ...readdirSync("src", { recursive: true })]
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
   );
 
+function nodePatterns(serverLegacyImports = false) {
+  const legacyModules = ["sidebar-settings", "project-colors"];
+  const restrictedBrowserModules = serverLegacyImports
+    ? browserModules.filter((name) => !legacyModules.includes(name))
+    : browserModules;
+  return [
+    { group: ["react", "react/*"], message: "Node runtime modules must not import React." },
+    {
+      regex: `\\.tsx$|(^|/)(${tsxNames.join("|")})(\\.tsx)?$`,
+      message: "Node runtime modules must not import TSX app modules.",
+    },
+    {
+      regex: "(^|/)(use[^/]*$|(lib|components)(/|$))",
+      message: "Node runtime modules must not import browser hooks, lib, or components.",
+    },
+    {
+      regex: `(^|/)(${restrictedBrowserModules.join("|")})(\\.[cm]?[jt]sx?)?$`,
+      message: "Node runtime modules must not import browser modules.",
+    },
+    ...(serverLegacyImports
+      ? [
+          // SB-4 debt: only the server's existing settings constants, pure helpers, and type.
+          {
+            regex: "(^|/)sidebar-settings(\\.[cm]?[jt]sx?)?$",
+            allowImportNames: [
+              "CHILD_THREAD_ICON_STYLES",
+              "CHILD_THREAD_SORT_DIRECTIONS",
+              "CHILD_THREAD_SORT_FIELDS",
+              "childThreadSettingsOf",
+              "DEFAULT_SIDEBAR_SETTINGS",
+              "PROJECT_COLOR_DISPLAYS",
+              "projectColorDisplayOf",
+              "SIDEBAR_SETTINGS_CHANNEL",
+              "SidebarSettingsValues",
+            ],
+            message: "SB-4 debt permits only the server's existing settings imports.",
+          },
+          // SB-4 moves this channel constant to shared code; no other color imports are allowed.
+          {
+            regex: "(^|/)project-colors(\\.[cm]?[jt]sx?)?$",
+            allowImportNames: ["PROJECT_COLORS_CHANNEL"],
+            message: "SB-4 debt permits only PROJECT_COLORS_CHANNEL in the server.",
+          },
+        ]
+      : []),
+  ];
+}
+
 export default [
   { ignores: ["node_modules/**", "dist/**", "coverage/**", "tmp/**"] },
   {
@@ -97,16 +145,20 @@ export default [
   {
     files: nodeModules.map((name) => `src/${name}.ts`),
     rules: {
-      "no-restricted-imports": [
+      "no-restricted-imports": ["error", { patterns: nodePatterns() }],
+    },
+  },
+  {
+    files: ["src/server.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: nodePatterns(true) }],
+      // allowImportNames does not reject bare side-effect imports; SB-4 exceptions require bindings.
+      "no-restricted-syntax": [
         "error",
         {
-          patterns: [
-            { group: ["react", "react/*"], message: "Node runtime modules must not import React." },
-            {
-              regex: `\\.tsx$|(^|/)(${tsxNames.join("|")})(\\.tsx)?$`,
-              message: "Node runtime modules must not import TSX app modules.",
-            },
-          ],
+          selector:
+            "ImportDeclaration[specifiers.length=0][source.value=/(sidebar-settings|project-colors)([.][cm]?[jt]sx?)?$/]",
+          message: "SB-4 debt permits only existing named imports, not browser module side effects.",
         },
       ],
     },
