@@ -13,7 +13,11 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
   Their supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
   `regenerate-title`, `port-discovery`, `thread-ports`, `thread-pull-requests`,
   and `thread-tasks`, all under `src/`. Node/SDK server or host APIs are allowed.
-  These modules must not import React or TSX app modules, even for types.
+  These modules must not import React, TSX, browser `.ts` modules, `use*` hooks,
+  `lib/**`, or `components/**`, even for types. Only `server.ts` may import its
+  existing named constants, pure settings helpers, and `SidebarSettingsValues`
+  from `sidebar-settings`, plus `PROJECT_COLORS_CHANNEL` from `project-colors`.
+  These symbol-specific exceptions are SB-4 debt; move them to shared code there.
 - Browser `.ts` modules are `project-colors`, `title-generation-state`,
   `sidebar-settings`, `working-since`, `working-tree`, `drag-preview`,
   and `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
@@ -37,12 +41,14 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 
 ## Size and style budgets
 
-- New production files: at most 500 physical lines, enforced by
-  `scripts/check-file-sizes.mjs`. Its five explicit debt ceilings prevent growth
-  of existing oversized files. Reduce these ceilings when splitting those files.
+- Production files and `scripts/**/*.mjs`: at most 500 physical lines. Tests get
+  1,000. `scripts/check-file-sizes.mjs` records ceilings for five production files
+  and two tests: `ThreadInbox.test.tsx` and `server.test.ts`. Growth fails; shrinkage
+  also fails until the ceiling is lowered. Remove entries once within the default
+  budget. `SubagentsChip.test.tsx` is within 1,000 and needs no exception.
 - ESLint warns above 500 file lines or 200 function lines, ignoring blanks and
   comments. The function limit accommodates React components. Tests are exempt
-  from both size rules and the physical size gate; SB-3 splits the large tests.
+  from these ESLint warnings, but the physical gate applies; SB-3 splits large tests.
 - Prettier: two spaces, double quotes, semicolons, trailing commas, width 120.
 - Import boundaries and `@typescript-eslint/consistent-type-imports` are errors.
   Only `ports-host.test.ts` permits `typeof import()` annotations needed by
@@ -52,10 +58,11 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
 lint, format check, Knip, typecheck, Vitest suite, and BB plugin build, plus
-`npx --no-install bb plugin types --check`.
+`npx --no-install bb plugin types --check`. Typecheck includes both Knip configs.
 
 Use `npm run format` to format the repository. `npm run lint`,
 `npm run format:check`, and `npm run knip` can run individually.
 `npm run knip:report` reports deferred unused dependencies and exports/types;
 it currently exits 1. `knip.ts` preserves SDK peers and lists dependency debt
-for SB-8. Do not add new unused dependencies to that list.
+for SB-8. Export/type ignores cover only today's 25 debt files and issue types;
+new dead exports in clean files fail. Do not add new unused dependencies to the list.
