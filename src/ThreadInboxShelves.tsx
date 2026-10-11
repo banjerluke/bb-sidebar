@@ -13,7 +13,7 @@ import type { ConfiguredSnoozePreset } from "./lifecycle";
 import { projectIconUrl } from "./project-icons";
 import type { ProjectViewUnit } from "./inbox-layout";
 
-const SETTLED_PAGE_SIZE = 25;
+export const SETTLED_PAGE_SIZE = 25;
 
 /**
  * A collapsed shelf of parked threads. The header stays while anything is

@@ -1,7 +1,14 @@
 import type { Dispatch, RefObject, SetStateAction, ReactNode } from "react";
 import type { PluginSidebarThread, experimental_useSidebarThreads as useSidebarThreads } from "@get-bb/plugin-sdk/app";
 import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
-import { CompactShelf, DockableShelves, CollapsibleShelf, ProjectGroups, Shelf } from "./ThreadInboxShelves";
+import {
+  CompactShelf,
+  DockableShelves,
+  CollapsibleShelf,
+  ProjectGroups,
+  Shelf,
+  SETTLED_PAGE_SIZE,
+} from "./ThreadInboxShelves";
 import { ListAnimationContext, type ListAnimationController } from "./useListAutoAnimate";
 import { ACTIVE_SORT_MODES, isActiveSortMode, type ActiveSortMode, type ProjectViewUnit } from "./inbox-layout";
 import { Icon } from "./components/Icon";
@@ -20,8 +27,6 @@ import { OpenPortsProvider } from "./OpenPorts";
 import type { ConfiguredSnoozePreset } from "./lifecycle";
 import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-settings";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
-
-const SETTLED_PAGE_SIZE = 25;
 
 export interface ShelfExpansionState {
   active: boolean;

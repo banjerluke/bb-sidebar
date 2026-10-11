@@ -67,7 +67,6 @@ const SHELF_EXPANSION_STORAGE_KEY = "bb-sidebar:shelf-expansion:v1";
 const CHILD_EXPANSION_STORAGE_KEY = "bb-sidebar:child-expansion:v1";
 const PROJECT_COLLAPSE_STORAGE_KEY = "bb-sidebar:project-collapse:v1";
 const SETTLED_INITIAL_LIMIT = 10;
-const SETTLED_PAGE_SIZE = 25;
 
 function readCollapsedProjects(): Set<string> {
   try {
