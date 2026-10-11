@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
-import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
+import { inbox, thread, listProps, render, loadInboxApp, stubIntersectionObservers } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -10,28 +10,26 @@ await loadInboxApp();
 
 describe("pull request badge", () => {
   it("mounts pull request lookups only while the row is visible", async () => {
-    let notify!: (entries: Array<{ isIntersecting: boolean }>) => void;
-    const disconnect = vi.fn();
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        constructor(callback: typeof notify) {
-          notify = callback;
-        }
-        observe() {}
-        disconnect = disconnect;
-      },
-    );
+    const { observers, instances, notify } = stubIntersectionObservers();
+    const row = () => screen.getByRole("link", { name: "A thread" }).closest("li")!;
+    const asyncTimeout = { timeout: 5_000 };
     try {
       const view = withPr("none");
-      await screen.findByText("A thread");
+      await waitFor(() => expect(observers.has(row())).toBe(true), asyncTimeout);
       expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
-      await act(async () => notify([{ isIntersecting: true }]));
-      expect(await screen.findByRole("link", { name: "#412" })).toBeTruthy();
-      await act(async () => notify([{ isIntersecting: false }]));
-      expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
+      // Settings and lifecycle effects can remount the row. Notify the observer
+      // attached to the current element on every retry, including after showing the badge.
+      await waitFor(async () => {
+        await act(async () => notify(row(), true));
+        expect(screen.getByRole("link", { name: "#412" })).toBeTruthy();
+      }, asyncTimeout);
+      await waitFor(async () => {
+        await act(async () => notify(row(), false));
+        expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
+      }, asyncTimeout);
       view.unmount();
-      expect(disconnect).toHaveBeenCalledOnce();
+      for (const observer of instances) expect(observer.disconnect).toHaveBeenCalledOnce();
+      expect(observers.size).toBe(0);
     } finally {
       vi.unstubAllGlobals();
     }

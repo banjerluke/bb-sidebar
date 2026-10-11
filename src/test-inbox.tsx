@@ -14,6 +14,42 @@ export const toastMocks = {
 
 export const sonnerMock = () => ({ toast: toastMocks });
 
+export function stubIntersectionObservers() {
+  const observers = new Map<Element, TestIntersectionObserver>();
+  const instances: TestIntersectionObserver[] = [];
+  class TestIntersectionObserver {
+    private elements = new Set<Element>();
+
+    constructor(readonly callback: (entries: Array<{ target: Element; isIntersecting: boolean }>) => void) {
+      instances.push(this);
+    }
+
+    observe(element: Element) {
+      this.elements.add(element);
+      observers.set(element, this);
+    }
+
+    unobserve(element: Element) {
+      this.elements.delete(element);
+      if (observers.get(element) === this) observers.delete(element);
+    }
+
+    disconnect = vi.fn(() => {
+      for (const element of this.elements) this.unobserve(element);
+    });
+  }
+  vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
+  return {
+    observers,
+    instances,
+    notify(element: Element, isIntersecting: boolean) {
+      const observer = observers.get(element);
+      if (!observer) throw new Error("The row has no active IntersectionObserver");
+      observer.callback([{ target: element, isIntersecting }]);
+    },
+  };
+}
+
 Object.defineProperty(Element.prototype, "scrollIntoView", {
   configurable: true,
   value: vi.fn(),
