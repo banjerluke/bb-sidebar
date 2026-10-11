@@ -11,6 +11,8 @@ import { configuredSnoozePresetError } from "./lifecycle";
 import { portSnapshotSchema } from "./open-ports";
 import { threadPullRequestSchema } from "./pull-requests";
 import { ownedPortTargetSchema, closePortsResultSchema } from "./close-owned-ports";
+export type { OpenPort } from "./open-ports";
+export type { ThreadPullRequest } from "./pull-requests";
 export {
   LIFECYCLE_CHANNEL,
   INBOX_ORDER_CHANNEL,

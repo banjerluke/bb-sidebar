@@ -31,7 +31,7 @@ import {
   DEFAULT_SIDEBAR_SETTINGS,
   projectColorDisplayOf,
   type SidebarSettingsValues,
-} from "./sidebar-settings";
+} from "./sidebar-settings-values";
 import { canPark, hasLiveWork, isTurnInFlight, resolveShelf } from "./lifecycle";
 import { createPortDiscovery } from "./port-discovery";
 import { createThreadPortActions } from "./thread-ports";
@@ -49,13 +49,6 @@ import {
   SIDEBAR_SETTINGS_CHANNEL,
   PROJECT_COLORS_CHANNEL,
   PROJECT_ICONS_CHANNEL,
-} from "./contract";
-export {
-  bbSidebarRpcContract,
-  LIFECYCLE_CHANNEL,
-  INBOX_ORDER_CHANNEL,
-  type SettledCleanupPreview,
-  type SettledCleanupResult,
 } from "./contract";
 
 const migrations = [

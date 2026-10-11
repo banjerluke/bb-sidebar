@@ -7,7 +7,7 @@ const debtLimits = {
   "src/SidebarSettings.tsx": 535,
   "src/ThreadCard.tsx": 658,
   "src/ThreadInbox.tsx": 2005,
-  "src/server.ts": 2011,
+  "src/server.ts": 2004,
 };
 const files = [
   "app.tsx",

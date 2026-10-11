@@ -32,11 +32,10 @@ const typeImportsOverride = findOverride("src/**/*.ts");
 const appOverride = findOverride("src/components/**");
 const sharedOverride = findOverride("src/*.ts");
 const nodeOverride = findOverride("src/ports-host.ts");
-const serverOverride = findOverride("src/server.ts");
-const expectedOrder = [typeImportsOverride, appOverride, sharedOverride, nodeOverride, serverOverride];
+const expectedOrder = [typeImportsOverride, appOverride, sharedOverride, nodeOverride];
 const actualOrder = config.overrides.filter((override) => expectedOrder.includes(override));
 if (actualOrder.some((override, index) => override !== expectedOrder.at(index))) {
-  configError("Overrides must remain ordered: type imports, app, shared, Node, server.");
+  configError("Overrides must remain ordered: type imports, app, shared, Node.");
 }
 const appIncludes = appOverride.includes;
 const sharedIncludes = sharedOverride.includes;
@@ -65,10 +64,10 @@ const tsxPatterns = [
       }),
   ),
 ].sort();
-for (const override of [nodeOverride, serverOverride]) {
+for (const override of [nodeOverride]) {
   const patterns = findPattern(override, "Node runtime modules must not import TSX app modules.");
   if (JSON.stringify([...patterns].sort()) !== JSON.stringify(tsxPatterns)) {
-    console.error("biome.json: sync both Node TSX pattern lists with app.tsx and every src/**/*.tsx basename.");
+    console.error("biome.json: sync the Node TSX pattern list with app.tsx and every src/**/*.tsx basename.");
     failures++;
   }
 }
@@ -101,14 +100,13 @@ for (const input of files) {
     if (!browserOrShared || !specifier || !ts.isStringLiteralLike(specifier)) return;
     const name = specifier.text;
     const normalized = nodeBuiltins.has(name) && !name.startsWith("node:") ? `node:${name}` : name;
-    if (shared && normalized.startsWith("node:")) {
+    if (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized)) {
+      report(file, source, specifier, `Browser/shared code must not import ${name}, even for types.`);
+    } else if (shared && normalized.startsWith("node:")) {
       report(file, source, specifier, `Shared modules must not import Node built-in ${name}, even for types.`);
     } else if (
       !typeOnly &&
-      (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized) ||
-        normalized.startsWith("node:") ||
-        normalized === "better-sqlite3" ||
-        normalized.startsWith("better-sqlite3/"))
+      (normalized.startsWith("node:") || normalized === "better-sqlite3" || normalized.startsWith("better-sqlite3/"))
     ) {
       report(file, source, specifier, `Browser/shared code may only import types from ${name}.`);
     }

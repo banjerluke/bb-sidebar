@@ -6,18 +6,17 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
 
 - Browser entry: `app.tsx`. App code includes `src/*.tsx`, `src/components/**`,
   `src/lib/**`, `src/use*.ts`, and the browser modules listed below.
-  React, DOM APIs, and SDK app APIs belong here. No value imports of `server`,
-  `ports-host`, Node built-ins with or without `node:`, or `better-sqlite3`, even dynamically.
-  Type-only imports of Node modules are allowed.
+  React, DOM APIs, and SDK app APIs belong here. No imports of `server` or
+  `ports-host`, even for types. No value imports of Node built-ins with or
+  without `node:`, or `better-sqlite3`, even dynamically. Type-only imports of
+  other Node modules are allowed.
 - Node server entry: `src/server.ts`. Node host entry: `src/ports-host.ts`.
   Their supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
   `regenerate-title`, `port-discovery`, `thread-ports`, `thread-pull-requests`,
   and `thread-tasks`, all under `src/`. Node/SDK server or host APIs are allowed.
   These modules must not import React, TSX, browser `.ts` modules, `use*` hooks,
-  `lib/**`, or `components/**`, even for types. Only `server.ts` may import its
-  existing named constants, pure settings helpers, and `SidebarSettingsValues`
-  from `sidebar-settings`, plus `PROJECT_COLORS_CHANNEL` from `project-colors`.
-  These symbol-specific exceptions are SB-4 debt; move them to shared code there.
+  `lib/**`, or `components/**`, even for types. Pure settings definitions and
+  helpers live in shared `sidebar-settings-values.ts`.
 - Browser `.ts` modules are `project-colors`, `title-generation-state`,
   `sidebar-settings`, `working-since`, `working-tree`, `drag-preview`,
   and `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
@@ -29,9 +28,11 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
   Tests retain their runtime's boundaries; top-level `.ts` tests and test helpers
   may use Node test tooling. Keep the ordered classifications in `biome.json` in sync.
 
-The sidebar RPC contract lives in `src/server.ts` as `bbSidebarRpcContract`.
-App code imports it with `import type` today; SB-4 moves it to a shared module.
-The host port contract already lives in `src/port-scan-contract.ts`.
+The sidebar RPC contract lives in `src/contract.ts` as `bbSidebarRpcContract`.
+App code imports its types with `import type`. The contract re-exports all five
+realtime channels from `src/realtime-channels.ts`; browser value imports use
+that pure module to avoid loading schemas. The host port contract lives in
+`src/port-scan-contract.ts`.
 
 ## Browser persistence
 
@@ -49,13 +50,15 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 - Biome: two spaces, double quotes, semicolons, trailing commas, width 120.
   Markdown and YAML are no longer formatted. Biome has no line-count warnings;
   the physical gate still applies to tests; SB-3 splits large tests.
-- Biome's `noRestrictedImports` enforces Node/shared restrictions, including
-  server symbol exceptions and bare side-effect imports. `useImportType` is an error.
+- Biome's `noRestrictedImports` enforces Node/shared restrictions and bans
+  browser imports of Node entries, including types and bare side effects.
+  `useImportType` is an error.
   `jsxRuntime: reactClassic` preserves the old linter's treatment of React namespace
   imports in JSX files; it does not change TypeScript's `react-jsx` compilation.
 - Biome lacks `allowTypeImports`. `scripts/check-import-boundaries.mjs` enforces
-  browser value-only restrictions and shared Node built-in bans, including dynamic
-  imports. It permits browser type imports, checks the Node TSX name lists for drift,
+  browser Node entry bans, value-only restrictions for other Node modules,
+  and shared Node built-in bans, including dynamic imports. It permits browser
+  type imports of other Node modules and checks the Node TSX names for drift,
   and bans `import()` type annotations except
   in `ports-host.test.ts`, where Vitest's `importOriginal` needs them.
   Regular imports there still require type-only syntax when used only as types.

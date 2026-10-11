@@ -75,7 +75,12 @@
             "noRestrictedImports": {
               "level": "error",
               "options": {
-                "patterns": []
+                "patterns": [
+                  {
+                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*"],
+                    "message": "Browser/shared modules must not import Node entries, even for types."
+                  }
+                ]
               }
             }
           }
@@ -117,6 +122,10 @@
                   {
                     "group": ["react", "react/**", "node:*", "node:*/**", "react-dom", "react-dom/**"],
                     "message": "Shared modules must stay independent of React and Node."
+                  },
+                  {
+                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*"],
+                    "message": "Browser/shared modules must not import Node entries, even for types."
                   }
                 ]
               }
@@ -135,7 +144,8 @@
         "src/port-discovery.ts",
         "src/thread-ports.ts",
         "src/thread-pull-requests.ts",
-        "src/thread-tasks.ts"
+        "src/thread-tasks.ts",
+        "src/server.ts"
       ],
       "linter": {
         "rules": {
@@ -331,224 +341,6 @@
                       "**/settled-port-prompt.cjsx"
                     ],
                     "message": "Node runtime modules must not import browser modules."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/server.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": ["react", "react/**"],
-                    "message": "Node runtime modules must not import React."
-                  },
-                  {
-                    "group": [
-                      "**/*.tsx",
-                      "**/Calendar",
-                      "**/ChildThreadDisplay",
-                      "**/ChildThreadList",
-                      "**/CleanSettledDialog",
-                      "**/DeleteThreadDialog",
-                      "**/Disc",
-                      "**/Icon",
-                      "**/InlineThreadTitle",
-                      "**/JumpHints",
-                      "**/OpenPorts",
-                      "**/OpenPorts.test",
-                      "**/ParentChip",
-                      "**/ParentChip.test",
-                      "**/ParentThreadMenu",
-                      "**/Popover",
-                      "**/PortLinkSettings",
-                      "**/ProjectColorSetting",
-                      "**/ProjectColors",
-                      "**/ProjectColors.test",
-                      "**/ProjectContextMenu",
-                      "**/ProjectFavicon",
-                      "**/ProjectFavicon.test",
-                      "**/ProjectManagement",
-                      "**/ProjectScopeSelect",
-                      "**/ProjectSettings",
-                      "**/ProviderGlyph",
-                      "**/RowContextMenu",
-                      "**/SearchResults",
-                      "**/Select",
-                      "**/SidebarSettings",
-                      "**/SidebarSettings.test",
-                      "**/SlimRow",
-                      "**/SnoozePickerDialog",
-                      "**/SnoozeSelect",
-                      "**/StatusGlyph",
-                      "**/StatusSlot",
-                      "**/SubagentsChip",
-                      "**/SubagentsChip.test",
-                      "**/ThreadCard",
-                      "**/ThreadDetailsTooltip",
-                      "**/ThreadHoverCard",
-                      "**/ThreadHoverCard.test",
-                      "**/ThreadInbox",
-                      "**/ThreadInbox.active-representatives.test",
-                      "**/ThreadInbox.active-shelf.test",
-                      "**/ThreadInbox.attention.test",
-                      "**/ThreadInbox.auto-unpin.test",
-                      "**/ThreadInbox.child-badges.test",
-                      "**/ThreadInbox.child-expansion.test",
-                      "**/ThreadInbox.child-pin-policy.test",
-                      "**/ThreadInbox.child-status.test",
-                      "**/ThreadInbox.clean-preview.test",
-                      "**/ThreadInbox.drag-reorder.test",
-                      "**/ThreadInbox.hierarchy.test",
-                      "**/ThreadInbox.hover-subthreads.test",
-                      "**/ThreadInbox.inbox-order.test",
-                      "**/ThreadInbox.loading.test",
-                      "**/ThreadInbox.menu-editing.test",
-                      "**/ThreadInbox.menu-lifecycle.test",
-                      "**/ThreadInbox.menu-navigation.test",
-                      "**/ThreadInbox.metadata.test",
-                      "**/ThreadInbox.moving-projects.test",
-                      "**/ThreadInbox.navigation.test",
-                      "**/ThreadInbox.parent-menu.test",
-                      "**/ThreadInbox.parking-actions.test",
-                      "**/ThreadInbox.pinned-order.test",
-                      "**/ThreadInbox.pinning.test",
-                      "**/ThreadInbox.ports.test",
-                      "**/ThreadInbox.providers.test",
-                      "**/ThreadInbox.pull-requests.test",
-                      "**/ThreadInbox.registration.test",
-                      "**/ThreadInbox.search.test",
-                      "**/ThreadInbox.settings.test",
-                      "**/ThreadInbox.shelves.test",
-                      "**/ThreadInbox.woke.test",
-                      "**/ThreadInbox.working-shelf.test",
-                      "**/ThreadPullRequests",
-                      "**/ThreadTitle",
-                      "**/Tooltip",
-                      "**/Tooltip.test",
-                      "**/app",
-                      "**/settings-ui",
-                      "**/test-inbox",
-                      "**/useScrollFade.test",
-                      "**/wired.flows.test"
-                    ],
-                    "message": "Node runtime modules must not import TSX app modules."
-                  },
-                  {
-                    "group": ["**/use*", "**/lib", "**/lib/**", "**/components", "**/components/**"],
-                    "message": "Node runtime modules must not import browser hooks, lib, or components."
-                  },
-                  {
-                    "group": [
-                      "**/title-generation-state",
-                      "**/title-generation-state.ts",
-                      "**/title-generation-state.js",
-                      "**/title-generation-state.jsx",
-                      "**/title-generation-state.mts",
-                      "**/title-generation-state.mtsx",
-                      "**/title-generation-state.cts",
-                      "**/title-generation-state.ctsx",
-                      "**/title-generation-state.mjs",
-                      "**/title-generation-state.mjsx",
-                      "**/title-generation-state.cjs",
-                      "**/title-generation-state.cjsx",
-                      "**/working-since",
-                      "**/working-since.ts",
-                      "**/working-since.js",
-                      "**/working-since.jsx",
-                      "**/working-since.mts",
-                      "**/working-since.mtsx",
-                      "**/working-since.cts",
-                      "**/working-since.ctsx",
-                      "**/working-since.mjs",
-                      "**/working-since.mjsx",
-                      "**/working-since.cjs",
-                      "**/working-since.cjsx",
-                      "**/working-tree",
-                      "**/working-tree.ts",
-                      "**/working-tree.js",
-                      "**/working-tree.jsx",
-                      "**/working-tree.mts",
-                      "**/working-tree.mtsx",
-                      "**/working-tree.cts",
-                      "**/working-tree.ctsx",
-                      "**/working-tree.mjs",
-                      "**/working-tree.mjsx",
-                      "**/working-tree.cjs",
-                      "**/working-tree.cjsx",
-                      "**/drag-preview",
-                      "**/drag-preview.ts",
-                      "**/drag-preview.js",
-                      "**/drag-preview.jsx",
-                      "**/drag-preview.mts",
-                      "**/drag-preview.mtsx",
-                      "**/drag-preview.cts",
-                      "**/drag-preview.ctsx",
-                      "**/drag-preview.mjs",
-                      "**/drag-preview.mjsx",
-                      "**/drag-preview.cjs",
-                      "**/drag-preview.cjsx",
-                      "**/settled-port-prompt",
-                      "**/settled-port-prompt.ts",
-                      "**/settled-port-prompt.js",
-                      "**/settled-port-prompt.jsx",
-                      "**/settled-port-prompt.mts",
-                      "**/settled-port-prompt.mtsx",
-                      "**/settled-port-prompt.cts",
-                      "**/settled-port-prompt.ctsx",
-                      "**/settled-port-prompt.mjs",
-                      "**/settled-port-prompt.mjsx",
-                      "**/settled-port-prompt.cjs",
-                      "**/settled-port-prompt.cjsx"
-                    ],
-                    "message": "Node runtime modules must not import browser modules."
-                  },
-                  {
-                    "group": [
-                      "**/sidebar-settings",
-                      "**/sidebar-settings.ts",
-                      "**/sidebar-settings.js",
-                      "**/sidebar-settings.jsx",
-                      "**/sidebar-settings.mts",
-                      "**/sidebar-settings.mtsx",
-                      "**/sidebar-settings.cts",
-                      "**/sidebar-settings.ctsx",
-                      "**/sidebar-settings.mjs",
-                      "**/sidebar-settings.mjsx",
-                      "**/sidebar-settings.cjs",
-                      "**/sidebar-settings.cjsx"
-                    ],
-                    "importNamePattern": "(CHILD_THREAD_ICON_STYLES|CHILD_THREAD_SORT_DIRECTIONS|CHILD_THREAD_SORT_FIELDS|childThreadSettingsOf|DEFAULT_SIDEBAR_SETTINGS|PROJECT_COLOR_DISPLAYS|projectColorDisplayOf|SIDEBAR_SETTINGS_CHANNEL|SidebarSettingsValues)",
-                    "invertImportNamePattern": true,
-                    "message": "SB-4 debt permits only the server's existing settings imports."
-                  },
-                  {
-                    "group": [
-                      "**/project-colors",
-                      "**/project-colors.ts",
-                      "**/project-colors.js",
-                      "**/project-colors.jsx",
-                      "**/project-colors.mts",
-                      "**/project-colors.mtsx",
-                      "**/project-colors.cts",
-                      "**/project-colors.ctsx",
-                      "**/project-colors.mjs",
-                      "**/project-colors.mjsx",
-                      "**/project-colors.cjs",
-                      "**/project-colors.cjsx"
-                    ],
-                    "importNamePattern": "PROJECT_COLORS_CHANNEL",
-                    "invertImportNamePattern": true,
-                    "message": "SB-4 debt permits only PROJECT_COLORS_CHANNEL in the server."
                   }
                 ]
               }

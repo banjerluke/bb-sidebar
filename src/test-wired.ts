@@ -4,7 +4,8 @@ import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
 import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { afterEach, vi } from "vitest";
-import plugin, { bbSidebarRpcContract } from "./server";
+import plugin from "./server";
+import { bbSidebarRpcContract } from "./contract";
 import { createFakePluginHost, projectThread, projectsWith, standardProject } from "./test-server";
 import { inbox, sidebarSettings, listProps, defaultProviders } from "./test-inbox";
 

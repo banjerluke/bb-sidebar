@@ -6,10 +6,10 @@ import { experimental_defineHostEntry } from "@get-bb/plugin-sdk/host";
 import { closeOwnedPortProcesses } from "./close-owned-ports";
 import { portScanContract, type PortRoot } from "./port-scan-contract";
 import { attribute, parseCwds, parseDockerRows, parseListeners } from "./port-scan";
-import type { OpenPort } from "./open-ports";
+import type { OpenPort, ThreadPullRequest } from "./contract";
 import { isBbInternalListener, parseProcessCommands } from "./port-processes";
 import { macProcessEnvironment, threadIdFromEnvironment } from "./port-ownership";
-import { parseGhPullRequest, type ThreadPullRequest } from "./pull-requests";
+import { parseGhPullRequest } from "./pull-requests";
 
 const exec = promisify(execFile);
 
