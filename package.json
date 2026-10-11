@@ -28,7 +28,17 @@
     "host": "./src/ports-host.ts"
   },
   "keywords": ["bb-plugin", "sidebar", "threads", "inbox", "productivity"],
-  "files": ["dist", "src", "app.tsx", "tsconfig.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "files": [
+    "dist",
+    "src",
+    "!src/fixtures",
+    "!src/**/*.test.*",
+    "app.tsx",
+    "tsconfig.json",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "scripts": {
     "build": "bb plugin build",
     "fixture:db": "node scripts/make-fixture-db.mjs",

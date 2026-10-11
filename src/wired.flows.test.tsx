@@ -97,9 +97,21 @@ it("pins from the menu and persists a keyboard manual reorder through server and
   wired.unmount(initial);
   expect(wired.harness.inspection.sdk.callsTo("threads.pin")).toHaveLength(1);
   let slot = wired.mount();
-  await within(await screen.findByRole("region", { name: "Pinned" })).findByText("Work pin");
-  await screen.findByText("Work a");
-  fireEvent.keyDown(screen.getByRole("link", { name: "Work a" }), { key: "ArrowDown", altKey: true });
+  const sender = within(slot.container);
+  await within(await sender.findByRole("region", { name: "Pinned" })).findByText("Work pin");
+  const receiver = wired.mount();
+  const observer = within(receiver.container);
+  // Its initial read must finish before the mutation; only realtime can then refresh it.
+  await waitFor(() =>
+    expect(receiver.rpcReplies).toContainEqual({
+      method: "listInboxOrder",
+      result: { inboxThreadIds: [] },
+    }),
+  );
+  expect(within(observer.getByRole("region", { name: "Active" })).getAllByRole("listitem")[0]!.textContent).toContain(
+    "Work a",
+  );
+  fireEvent.keyDown(sender.getByRole("link", { name: "Work a" }), { key: "ArrowDown", altKey: true });
   await waitFor(() =>
     expect(wired.db.prepare("SELECT thread_id FROM inbox_order ORDER BY sort_index").all()).toEqual([
       { thread_id: "b" },
@@ -108,6 +120,13 @@ it("pins from the menu and persists a keyboard manual reorder through server and
   );
   await wired.flush();
   expect(JSON.parse(localStorage.getItem("bb-sidebar:inbox-order-cache:v1")!)).toEqual(["b", "a"]);
+  await waitFor(() =>
+    expect(within(observer.getByRole("region", { name: "Active" })).getAllByRole("listitem")[0]!.textContent).toContain(
+      "Work b",
+    ),
+  );
+  expect(receiver.rpcReplies).toContainEqual({ method: "listInboxOrder", result: { inboxThreadIds: ["b", "a"] } });
+  wired.unmount(receiver);
   wired.unmount(slot);
   slot = wired.mount();
   expect(within(screen.getByRole("region", { name: "Active" })).getAllByRole("listitem")[0]!.textContent).toContain(
@@ -139,8 +158,14 @@ it("saves settings in the real settings slot and publishes the Working shelf to 
 it("publishes a custom project color to both stripe and name", async () => {
   const wired = await createWired([item()]);
   await wired.call("updateSidebarSettings", { projectColorsEnabled: true });
-  wired.mount();
-  await screen.findByText("Work a");
+  const slot = wired.mount();
+  // The default stripe can render before the first read finishes; wait for that reply too.
+  await waitFor(() => expect(slot.rpcReplies).toContainEqual({ method: "getProjectColors", result: { colors: {} } }));
+  await waitFor(() =>
+    expect(
+      (row().querySelector("[data-project-stripe]") as HTMLElement).style.getPropertyValue("--bb-sidebar-project"),
+    ).toBe("#c398bf"),
+  );
   await wired.call("setProjectColor", { projectId: "proj_1", color: "#123456" });
   await waitFor(() =>
     expect(
@@ -197,13 +222,20 @@ it("Clean uses the real preview token and renders the cleanup result shape", asy
 it("thread.deleted clears lifecycle and order and publishes both channels to the app", async () => {
   const wired = await createWired([item(), item("b")]);
   await wired.call("park", { threadId: "a" });
+  await wired.call("park", { threadId: "b" });
   await wired.call("reorderInbox", { inboxThreadIds: ["a", "b"] });
   wired.mount();
-  expect(within(await shelf("Parked")).getByText("Work a")).toBeDefined();
+  const parked = await shelf("Parked");
+  expect(within(parked).getByText("Work a")).toBeDefined();
   await wired.event("thread.deleted", "a");
   expect(lifecycle(wired)).toBeUndefined();
   expect(wired.db.prepare("SELECT thread_id FROM inbox_order ORDER BY sort_index").all()).toEqual([{ thread_id: "b" }]);
   await waitFor(() => expect(JSON.parse(localStorage.getItem("bb-sidebar:inbox-order-cache:v1")!)).toEqual(["b"]));
-  expect(JSON.parse(localStorage.getItem("bb-sidebar:lifecycle-cache:v1")!)).toEqual([]);
-  expect(document.querySelector<HTMLElement>('[aria-label="Parked"]')?.hidden ?? true).toBe(true);
+  expect(
+    JSON.parse(localStorage.getItem("bb-sidebar:lifecycle-cache:v1")!).map((row: { threadId: string }) => row.threadId),
+  ).toEqual(["b"]);
+  const remaining = screen.getByRole("region", { name: "Parked" });
+  expect(within(remaining).getByText("Work b")).toBeDefined();
+  expect(within(remaining).queryByText("Work a")).toBeNull();
+  expect(within(remaining).getAllByRole("listitem")).toHaveLength(1);
 });
