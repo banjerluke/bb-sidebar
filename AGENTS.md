@@ -17,9 +17,10 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   other Node modules are allowed.
 - Node server entry: `src/server.ts`. Node host entry: `src/ports-host.ts`.
   Flat `src/server-*.ts` modules share `ServerContext` explicitly.
-  Their other supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
-  `regenerate-title`, `port-discovery`, `thread-ports`, `thread-pull-requests`,
-  and `thread-tasks`, all under `src/`. Node/SDK server or host APIs are
+  Their other supporting Node modules are `port-scan`, `auto-title`,
+  `cloud-title`, `regenerate-title`, `port-discovery`, `thread-ports`,
+  `thread-pull-requests`, and `thread-tasks`, all under `src/`. Node/SDK server
+  or host APIs are
   allowed. These modules must not import React, TSX, browser `.ts` modules,
   `use*` hooks, `lib/**`, or `components/**`, even for types. Pure settings
   definitions and helpers live in shared `sidebar-settings-values.ts`.
@@ -30,8 +31,9 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   type and `title-generation-state.ts` uses `useSyncExternalStore`
   intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding
-  `server-*.ts`, `use*.ts`,
-  `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must not import React, React DOM,
+  `server-*.ts`, `use*.ts`, `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must
+  not
+  import React, React DOM,
   Node built-ins, Node entries, TSX, browser `.ts` modules, `use*` hooks,
   `lib/**`, or `components/**`, even for types, or value-import SQLite.
   This is a dependency boundary; these modules are not necessarily free of
@@ -63,6 +65,16 @@ port contract lives in `src/port-scan-contract.ts`.
 The Node override uses `src/server-*.ts`; shared modules exclude that pattern.
 Browser/shared imports of those modules are forbidden, including types.
 
+Settings live in the single `sidebar_settings.settings_json` column. The
+server derives per-field fallbacks from `DEFAULT_SIDEBAR_SETTINGS`, validates
+with `sidebarSettingsSchema`, and keeps strict RPC input validation. The
+migration copies old columns into camelCase JSON with real boolean values.
+Old columns remain unused after migration and can be dropped with a table
+rebuild in a later major. A compatibility row satisfies their original
+NOT NULL constraints; NULL JSON still permits the legacy SDK settings import.
+The app reads server settings or the existing cache. Do not load zod or
+contract schemas in browser code; cache validation remains SB-7 work.
+
 ## Browser persistence
 
 Put persisted browser state through `src/lib/safe-storage.ts` and its
@@ -72,7 +84,7 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 ## Size and style budgets
 
 - Production files and `scripts/**/*.mjs`: at most 500 physical lines. Tests get
-  1,000. `scripts/check-file-sizes.mjs` records ceilings for five production
+  1,000. `scripts/check-file-sizes.mjs` records ceilings for four production
   files. Growth fails; shrinkage also fails until the ceiling is lowered.
   Remove entries once within the default budget. `SubagentsChip.test.tsx` is
   within 1,000 and needs no exception.
@@ -119,6 +131,7 @@ that list.
 
 `src/test-wired.ts` wires real app/server SDK RPC; `flush()` sends realtime.
 Fixtures in `src/fixtures/` have hashes; release data comes from pinned tags.
-Generate with `npm run fixture:db -- <new-path>`. The script creates a temporary
-git worktree at the release tag and imports that checkout's `server.ts`.
+Generate with `npm run fixture:db -- <new-path> [git-ref]`. The default remains
+pinned v0.2.34. An explicit tag or commit SHA generates a new schema snapshot
+from a temporary git worktree using that checkout's `server.ts`.
 Future schema changes add versions; never edit or overwrite old fixtures.
