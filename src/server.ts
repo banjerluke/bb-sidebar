@@ -4,9 +4,9 @@
 // Putting it on the thread would mean a schema change, a wire change, and a
 // HOST_DAEMON_PROTOCOL_VERSION bump for something only this sidebar
 // understands. Here, uninstalling the plugin removes its state with it.
-import { defineRpcContract, type BbPluginApi } from "@get-bb/plugin-sdk";
+import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
+import type { z } from "zod";
 import {
   autoSettleNeedsPullRequest,
   decideAutoSettle,
@@ -22,31 +22,41 @@ import { createTitleRegenerator } from "./regenerate-title";
 import { AUTO_TITLE_RECOVERY_MIGRATION, createAutoTitleRecovery } from "./auto-title";
 import {
   PROJECT_ICON_CANDIDATES,
-  PROJECT_ICONS_CHANNEL,
   extractProjectIconHref,
   iconPathsForHref,
   normalizeProjectIconPath,
 } from "./project-icons";
 import {
-  CHILD_THREAD_ICON_STYLES,
-  CHILD_THREAD_SORT_DIRECTIONS,
-  CHILD_THREAD_SORT_FIELDS,
   childThreadSettingsOf,
   DEFAULT_SIDEBAR_SETTINGS,
-  PROJECT_COLOR_DISPLAYS,
   projectColorDisplayOf,
-  SIDEBAR_SETTINGS_CHANNEL,
   type SidebarSettingsValues,
 } from "./sidebar-settings";
-import { canPark, configuredSnoozePresetError, hasLiveWork, isTurnInFlight, resolveShelf } from "./lifecycle";
-import { portSnapshotSchema } from "./open-ports";
+import { canPark, hasLiveWork, isTurnInFlight, resolveShelf } from "./lifecycle";
 import { createPortDiscovery } from "./port-discovery";
 import { createThreadPortActions } from "./thread-ports";
 import { createThreadPullRequests } from "./thread-pull-requests";
-import { threadPullRequestSchema } from "./pull-requests";
-import { ownedPortTargetSchema, closePortsResultSchema } from "./close-owned-ports";
+import type { ownedPortTargetSchema } from "./close-owned-ports";
 
-import { PROJECT_COLORS_CHANNEL } from "./project-colors";
+import {
+  bbSidebarRpcContract,
+  type cleanupIssueSchema,
+  type cleanupPreviewSchema,
+  type cleanupResultSchema,
+  sidebarSettingsSchema,
+  LIFECYCLE_CHANNEL,
+  INBOX_ORDER_CHANNEL,
+  SIDEBAR_SETTINGS_CHANNEL,
+  PROJECT_COLORS_CHANNEL,
+  PROJECT_ICONS_CHANNEL,
+} from "./contract";
+export {
+  bbSidebarRpcContract,
+  LIFECYCLE_CHANNEL,
+  INBOX_ORDER_CHANNEL,
+  type SettledCleanupPreview,
+  type SettledCleanupResult,
+} from "./contract";
 
 const migrations = [
   `CREATE TABLE IF NOT EXISTS thread_lifecycle (
@@ -149,353 +159,6 @@ interface SidebarSettingsDbRow {
   project_color_display: string;
 }
 
-const threadIdSchema = z.object({ threadId: z.string().trim().min(1) });
-
-/**
- * What parking a thread released. These counts are what the toast reminds the
- * user about, so they travel back with the acknowledgement rather than on the
- * realtime channel, which every other client would also receive.
- */
-const reclaimSchema = z.object({
-  closedTerminals: z.number().int().nonnegative(),
-  keptTerminals: z.number().int().nonnegative(),
-  stoppedRuntime: z.boolean(),
-});
-const orderedThreadIdsSchema = z
-  .array(z.string().trim().min(1))
-  .max(10_000)
-  .superRefine((threadIds, context) => {
-    if (new Set(threadIds).size !== threadIds.length) {
-      context.addIssue({
-        code: "custom",
-        message: "Thread ids must be unique",
-      });
-    }
-  });
-const threadIdsSchema = orderedThreadIdsSchema.min(1);
-const cleanupIssueSchema = z.object({
-  threadId: z.string(),
-  resource: z.enum(["thread", "terminal", "port"]),
-  message: z.string(),
-});
-const cleanupPreviewSchema = z.object({
-  token: z.string(),
-  threads: z.array(
-    z.object({
-      threadId: z.string(),
-      title: z.string(),
-      terminalCount: z.number().int().nonnegative(),
-      ports: z.array(z.number().int()),
-    }),
-  ),
-  skipped: z.array(cleanupIssueSchema),
-});
-const cleanupResultSchema = z.object({
-  closedTerminals: z.number().int().nonnegative(),
-  signalledPorts: z.array(z.object({ threadId: z.string(), port: z.number().int() })),
-  remainingPorts: z.array(z.object({ threadId: z.string(), port: z.number().int() })),
-  skipped: z.array(cleanupIssueSchema),
-  failed: z.array(cleanupIssueSchema),
-});
-export type SettledCleanupPreview = z.infer<typeof cleanupPreviewSchema>;
-export type SettledCleanupResult = z.infer<typeof cleanupResultSchema>;
-const projectIdSchema = z.string().trim().min(1);
-const projectIconPathSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(1_000)
-  .refine((path) => normalizeProjectIconPath(path) !== null, {
-    message: "Choose a relative SVG, PNG, ICO, JPEG, GIF, AVIF, or WebP path",
-  });
-const sidebarSettingsSchema = z
-  .object({
-    snoozePresets: z
-      .string()
-      .trim()
-      .min(1)
-      .max(500)
-      .refine((value) => configuredSnoozePresetError(value) === null, {
-        message: "Use one to eight valid snooze shortcuts",
-      }),
-    inactiveThreadsEnabled: z.boolean(),
-    inactiveAfterHours: z.number().int().min(1).max(720),
-    showRunningChildrenWhenCollapsed: z.boolean(),
-    autoSettleInactive: z.boolean(),
-    autoSettleAfterDays: z.number().int().min(1).max(90),
-    autoSettleOnMerge: z.boolean(),
-    childSortField: z.enum(CHILD_THREAD_SORT_FIELDS),
-    childSortDirection: z.enum(CHILD_THREAD_SORT_DIRECTIONS),
-    childIconStyle: z.enum(CHILD_THREAD_ICON_STYLES),
-    compactWorkingThreads: z.boolean(),
-    workingShelf: z.boolean(),
-    dockShelves: z.boolean(),
-    projectColorsEnabled: z.boolean(),
-    projectColorDisplay: z.enum(PROJECT_COLOR_DISPLAYS),
-  })
-  .strict();
-const uploadFilenameSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(255)
-  .refine(
-    (filename) => !filename.includes("/") && !filename.includes("\\") && normalizeProjectIconPath(filename) !== null,
-    { message: "Choose a supported image file" },
-  );
-const iconBase64Schema = z
-  .string()
-  .min(1)
-  .max(1_400_000)
-  .regex(/^[A-Za-z0-9+/]*={0,2}$/, "Invalid image data");
-export const bbSidebarRpcContract = defineRpcContract({
-  getThreadPorts: {
-    input: threadIdSchema,
-    output: z.object({ ports: z.array(ownedPortTargetSchema) }),
-  },
-  closeThreadPorts: {
-    input: threadIdSchema.extend({ ports: z.array(ownedPortTargetSchema).min(1).max(1000) }),
-    output: closePortsResultSchema,
-  },
-  previewSettledCleanup: {
-    input: z.object({ threadIds: threadIdsSchema }).strict(),
-    output: cleanupPreviewSchema,
-  },
-  cleanSettled: {
-    input: z.object({ token: z.string().uuid() }).strict(),
-    output: cleanupResultSchema,
-  },
-  stopWorkspacePort: {
-    input: threadIdSchema.extend({ port: ownedPortTargetSchema }).strict(),
-    output: closePortsResultSchema,
-  },
-  getOpenPorts: {
-    input: z.object({}).strict(),
-    output: portSnapshotSchema,
-  },
-  getThreadPullRequests: {
-    input: threadIdSchema.strict(),
-    output: z.object({ pullRequests: z.array(threadPullRequestSchema) }).strict(),
-  },
-  getThreadExecutionDetails: {
-    input: threadIdSchema.strict(),
-    output: z
-      .object({
-        model: z.string(),
-        reasoningLevel: z.string(),
-      })
-      .strict()
-      .nullable(),
-  },
-  setThreadParent: {
-    input: threadIdSchema.extend({ parentThreadId: z.string().trim().min(1).nullable() }).strict(),
-    output: z.object({ ok: z.boolean(), unpinFailed: z.literal(true).optional() }),
-  },
-  deleteThread: {
-    input: threadIdSchema.extend({ childThreadsConfirmed: z.boolean() }).strict(),
-    output: z.object({ ok: z.boolean() }),
-  },
-  regenerateTitle: {
-    input: threadIdSchema.strict(),
-    output: z.object({ title: z.string().min(1).max(100) }).strict(),
-  },
-  getProjectColors: {
-    input: z.object({}).strict(),
-    output: z.object({ colors: z.record(z.string(), z.string()) }),
-  },
-  setProjectColor: {
-    input: z
-      .object({
-        projectId: z.string().trim().min(1),
-        color: z
-          .string()
-          .regex(/^#[0-9a-fA-F]{6}$/)
-          .transform((value) => value.toLowerCase())
-          .nullable(),
-      })
-      .strict(),
-    output: z.object({ ok: z.boolean() }),
-  },
-  getSidebarSettings: {
-    input: z.object({}).strict(),
-    output: sidebarSettingsSchema,
-  },
-  updateSidebarSettings: {
-    // Save only edited fields. Full payloads from older clients remain valid.
-    input: sidebarSettingsSchema.partial(),
-    output: sidebarSettingsSchema,
-  },
-  listLifecycle: {
-    input: z.object({}),
-    output: z.object({
-      rows: z.array(
-        z.object({
-          threadId: z.string(),
-          parkedAt: z.number().nullable().optional(),
-          settledAt: z.number().nullable(),
-          settledOverride: z.enum(["active", "settled"]).nullable().optional(),
-          snoozedUntil: z.number().nullable(),
-          snoozedAt: z.number().nullable(),
-        }),
-      ),
-    }),
-  },
-  pin: { input: threadIdSchema, output: z.object({ ok: z.boolean() }) },
-  settle: {
-    input: threadIdSchema,
-    output: z.object({ ok: z.boolean(), reclaim: reclaimSchema, undoToken: z.string().uuid() }),
-  },
-  park: {
-    input: threadIdSchema,
-    output: z.object({ ok: z.boolean(), reclaim: reclaimSchema }),
-  },
-  resume: { input: threadIdSchema, output: z.object({ ok: z.boolean() }) },
-  unsettle: {
-    input: threadIdSchema.extend({ undoToken: z.string().uuid().optional() }),
-    output: z.object({ ok: z.boolean() }),
-  },
-  snooze: {
-    input: z.object({
-      threadId: z.string().trim().min(1),
-      // Absolute wake time, so a snooze means the same thing on every device.
-      snoozedUntil: z.number().int().positive(),
-    }),
-    output: z.object({ ok: z.boolean(), reclaim: reclaimSchema }),
-  },
-  releaseRuntimes: {
-    input: z.object({ threadIds: threadIdsSchema }).strict(),
-    output: z.object({ ok: z.boolean() }),
-  },
-  unsnooze: { input: threadIdSchema, output: z.object({ ok: z.boolean() }) },
-  acknowledgeWake: {
-    input: threadIdSchema,
-    output: z.object({ ok: z.boolean() }),
-  },
-  reorderPinned: {
-    input: z
-      .object({
-        threadId: z.string().trim().min(1),
-        previousThreadId: z.string().trim().min(1).nullable(),
-        nextThreadId: z.string().trim().min(1).nullable(),
-      })
-      .strict(),
-    output: z.object({ pinnedThreadIds: z.array(z.string()) }).strict(),
-  },
-  listInboxOrder: {
-    input: z.object({}).strict(),
-    output: z.object({ inboxThreadIds: z.array(z.string()) }).strict(),
-  },
-  reorderInbox: {
-    input: z.object({ inboxThreadIds: orderedThreadIdsSchema }).strict(),
-    output: z.object({ inboxThreadIds: z.array(z.string()) }).strict(),
-  },
-  evaluateAutoSettle: {
-    input: z.object({}).strict(),
-    output: z.object({ changedThreadIds: z.array(z.string()) }).strict(),
-  },
-  listProjectIconSettings: {
-    input: z.object({}).strict(),
-    output: z
-      .object({
-        projects: z.array(
-          z
-            .object({
-              id: z.string(),
-              name: z.string(),
-              customPath: z.string().nullable(),
-              customUploadName: z.string().nullable(),
-            })
-            .strict(),
-        ),
-      })
-      .strict(),
-  },
-  listProjects: {
-    input: z.object({}).strict(),
-    output: z
-      .object({
-        projects: z.array(
-          z
-            .object({
-              id: z.string(),
-              name: z.string(),
-            })
-            .strict(),
-        ),
-      })
-      .strict(),
-  },
-  renameProject: {
-    input: z.object({ projectId: projectIdSchema, name: z.string().trim().min(1).max(500) }).strict(),
-    output: z.object({ ok: z.literal(true) }).strict(),
-  },
-  projectPathHosts: {
-    input: z.object({ projectId: projectIdSchema }).strict(),
-    output: z.object({ hosts: z.array(z.object({ id: z.string(), name: z.string() }).strict()) }).strict(),
-  },
-  addProjectPath: {
-    input: z
-      .object({
-        projectId: projectIdSchema,
-        hostId: z.string().trim().min(1),
-        path: z.string().trim().min(1).max(4096),
-      })
-      .strict(),
-    output: z.object({ ok: z.literal(true) }).strict(),
-  },
-  removeProject: {
-    input: z
-      .object({
-        projectId: projectIdSchema,
-        confirmation: z.string().max(500),
-      })
-      .strict(),
-    output: z.object({ ok: z.literal(true) }).strict(),
-  },
-  searchProjectIconFiles: {
-    input: z
-      .object({
-        projectId: projectIdSchema,
-        query: z.string().trim().max(200),
-      })
-      .strict(),
-    output: z.object({ paths: z.array(z.string()) }).strict(),
-  },
-  setProjectIcon: {
-    input: z
-      .object({
-        projectId: projectIdSchema,
-        path: projectIconPathSchema.nullable(),
-      })
-      .strict(),
-    output: z
-      .object({
-        customPath: z.string().nullable(),
-        customUploadName: z.string().nullable(),
-      })
-      .strict(),
-  },
-  uploadProjectIcon: {
-    input: z
-      .object({
-        projectId: projectIdSchema,
-        filename: uploadFilenameSchema,
-        mimeType: z.string().max(100),
-        contentBase64: iconBase64Schema,
-      })
-      .strict(),
-    output: z
-      .object({
-        customPath: z.string().nullable(),
-        customUploadName: z.string().nullable(),
-      })
-      .strict(),
-  },
-});
-
-/** Channel the frontend re-reads on. */
-export const LIFECYCLE_CHANNEL = "lifecycle";
-export const INBOX_ORDER_CHANNEL = "inbox-order";
 interface StoredProjectIconRow {
   project_id: string;
   path: string;

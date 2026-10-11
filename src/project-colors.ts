@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-export const PROJECT_COLORS_CHANNEL = "project-colors";
+export { PROJECT_COLORS_CHANNEL } from "./realtime-channels";
 
 function hashId(id: string): number {
   let hash = 2166136261;
