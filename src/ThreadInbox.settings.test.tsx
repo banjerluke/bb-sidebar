@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
 import {
   inbox,
@@ -205,6 +205,7 @@ describe("sidebar settings", () => {
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(screen.queryByRole("combobox", { name: "Show project stripes in" })).toBeNull();
     expect(screen.queryByRole("switch", { name: "Archived shelf" })).toBeNull();
+    vi.useFakeTimers();
     fireEvent.click(toggle);
     const colorDisplay = screen.getByRole("combobox", { name: "Show project stripes in" });
     expect(colorDisplay).toHaveProperty("value", "all");
@@ -214,10 +215,13 @@ describe("sidebar settings", () => {
         .map((option) => option.textContent),
     ).toEqual(["Full and collapsed mode", "Full mode only", "Grouped projects only"]);
     fireEvent.change(colorDisplay, { target: { value: "grouped" } });
-    await waitFor(() => expect(saved).toMatchObject({ projectColorsEnabled: true, projectColorDisplay: "grouped" }));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(saved).toMatchObject({ projectColorsEnabled: true, projectColorDisplay: "grouped" });
     fireEvent.click(toggle);
     expect(screen.queryByRole("combobox", { name: "Show project stripes in" })).toBeNull();
-    await waitFor(() => expect(saved.projectColorsEnabled).toBe(false));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(saved.projectColorsEnabled).toBe(false);
+    vi.useRealTimers();
     fireEvent.click(toggle);
     expect(screen.getByRole("combobox", { name: "Show project stripes in" })).toHaveProperty("value", "grouped");
     const picker = await screen.findByLabelText("Project color");
@@ -362,6 +366,7 @@ describe("sidebar settings", () => {
         .map((item) => item.textContent);
 
     const snoozeInput = await screen.findByLabelText("Snooze shortcuts");
+    vi.useFakeTimers();
     fireEvent.change(snoozeInput, { target: { value: "later" } });
     expect(snoozeInput.getAttribute("aria-invalid")).toBe("true");
     expect(
@@ -385,13 +390,14 @@ describe("sidebar settings", () => {
     expect(inactiveHours.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText("Enter a whole number from 1 to 720.")).toBeDefined();
     // Past the save delay, nothing invalid has been sent.
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    await act(async () => vi.advanceTimersByTimeAsync(700));
     expect(saves).toEqual([]);
 
     // Turning the rule off hides the value it no longer uses.
     fireEvent.click(screen.getByRole("switch", { name: "Inactive shelf" }));
     expect(screen.queryByLabelText("Hours before inactive")).toBeNull();
-    await waitFor(() => expect(saves).toHaveLength(1));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(saves).toHaveLength(1);
     expect(saves[0]).toMatchObject({
       inactiveThreadsEnabled: false,
       inactiveAfterHours: defaultSidebarSettings.inactiveAfterHours,

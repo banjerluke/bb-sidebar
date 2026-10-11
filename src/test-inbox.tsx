@@ -243,8 +243,7 @@ function cleanupInboxTest() {
   cleanup();
   window.localStorage.clear();
   nextPinnedKey = 0;
-  toastMocks.success.mockReset();
-  toastMocks.error.mockReset();
+  for (const mock of Object.values(toastMocks)) mock.mockReset();
   vi.mocked(document.elementFromPoint).mockReset();
 }
 
