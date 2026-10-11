@@ -9,7 +9,6 @@ import {
   useSettings,
 } from "@get-bb/plugin-sdk/app";
 import { autoAnimate, type AnimationController } from "@formkit/auto-animate";
-import { toast } from "sonner";
 import { Icon, type IconName } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "./components/Select";
