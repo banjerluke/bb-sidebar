@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
 import {
+  projectOrderUnits,
+  expandProjectUnits,
+  isActiveSortMode,
+  sameOrder,
+  projectUnitKey,
+  type ProjectUnit,
   layoutActiveThreadsByProject,
   sortActiveThreads,
   visibleShelfThreads,
@@ -51,6 +57,22 @@ describe("layoutActiveThreadsByProject", () => {
     expect(layoutActiveThreadsByProject([a, b, c])).toEqual([
       { kind: "group", key: "project:p", projectId: "p", threads: [a, c] },
       { kind: "thread", key: "b", thread: b },
+    ]);
+  });
+  it("keeps two interleaved project groups and singleton rows at their first slots", () => {
+    const a = thread({ id: "a", projectId: "p" });
+    const b = thread({ id: "b", projectId: "s" });
+    const c = thread({ id: "c", projectId: "q" });
+    const d = thread({ id: "d", projectId: "p" });
+    const e = thread({ id: "e", projectId: "t" });
+    const f = thread({ id: "f", projectId: "q" });
+    const g = thread({ id: "g", projectId: "r" });
+    expect(layoutActiveThreadsByProject([a, b, c, d, e, f, g])).toEqual([
+      { kind: "group", key: "project:p", projectId: "p", threads: [a, d] },
+      { kind: "thread", key: "b", thread: b },
+      { kind: "group", key: "project:q", projectId: "q", threads: [c, f] },
+      { kind: "thread", key: "e", thread: e },
+      { kind: "thread", key: "g", thread: g },
     ]);
   });
   it("keeps singleton projects as ordinary rows", () => {
@@ -110,5 +132,73 @@ describe("activeRepresentativeThreadId", () => {
   it("terminates cyclic ancestry", () => {
     const cycle = [{ ...parent, parentThreadId: "child" }, child];
     expect(activeRepresentativeThreadId(cycle, "child", [])).toBeNull();
+  });
+});
+
+describe("projectOrderUnits", () => {
+  it("maps a single row to its id and a group to all member ids in order", () => {
+    const a = thread({ id: "a", projectId: "p" });
+    const b = thread({ id: "b", projectId: "p" });
+    const solo = thread({ id: "solo", projectId: "q" });
+    expect(
+      projectOrderUnits([
+        { kind: "thread", key: "solo", thread: solo },
+        { kind: "group", key: "project:p", projectId: "p", threads: [b, a] },
+      ]),
+    ).toEqual([
+      { key: "solo", ids: ["solo"] },
+      { key: "project:p", ids: ["b", "a"] },
+    ]);
+  });
+  it("returns no order units for an empty layout", () => {
+    expect(projectOrderUnits([])).toEqual([]);
+  });
+});
+
+describe("expandProjectUnits", () => {
+  const units: ProjectUnit[] = [
+    { kind: "thread", key: "solo", thread: thread({ id: "solo" }) },
+    { kind: "group", key: "project:p", projectId: "p", threads: [thread({ id: "a" }), thread({ id: "b" })] },
+  ];
+  it("follows the preview keys and preserves member order within a group", () => {
+    expect(expandProjectUnits(["project:p", "solo"], units)).toEqual(["a", "b", "solo"]);
+    expect(expandProjectUnits(["solo", "project:p"], units)).toEqual(["solo", "a", "b"]);
+  });
+  it("drops unknown keys without dropping the known units around them", () => {
+    expect(expandProjectUnits(["missing", "project:p", "deleted", "solo"], units)).toEqual(["a", "b", "solo"]);
+  });
+  it("returns no ids when the preview or layout is empty", () => {
+    expect(expandProjectUnits([], units)).toEqual([]);
+    expect(expandProjectUnits(["solo"], [])).toEqual([]);
+  });
+});
+
+describe("isActiveSortMode", () => {
+  it.each(["manual", "activity", "created", "project"])("accepts %s", (mode) => {
+    expect(isActiveSortMode(mode)).toBe(true);
+  });
+  it.each(["", "Manual", "activity ", "updated"])("rejects %j", (mode) => {
+    expect(isActiveSortMode(mode)).toBe(false);
+  });
+});
+
+describe("sameOrder", () => {
+  it("accepts equal sequences, including empty sequences", () => {
+    expect(sameOrder(["a", "b"], ["a", "b"])).toBe(true);
+    expect(sameOrder([], [])).toBe(true);
+  });
+  it("rejects reordered ids and unequal lengths in either direction", () => {
+    expect(sameOrder(["a", "b"], ["b", "a"])).toBe(false);
+    expect(sameOrder(["a"], ["a", "b"])).toBe(false);
+    expect(sameOrder(["a", "b"], ["a"])).toBe(false);
+  });
+});
+
+describe("projectUnitKey", () => {
+  it("gives each project a stable key distinct from thread ids", () => {
+    expect(projectUnitKey("p")).toBe("project:p");
+    expect(projectUnitKey("q")).toBe("project:q");
+    expect(projectUnitKey("p")).not.toBe(projectUnitKey("q"));
+    expect(projectUnitKey("p")).not.toBe("p");
   });
 });
