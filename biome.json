@@ -80,7 +80,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*"],
+                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*", "**/server-*"],
                     "message": "Browser/shared modules must not import Node entries, even for types."
                   }
                 ]
@@ -116,7 +116,8 @@
         "!src/drag-reorder.ts",
         "!src/drag-reorder-geometry.ts",
         "!src/drag-auto-scroll.ts",
-        "!src/settled-port-prompt.ts"
+        "!src/settled-port-prompt.ts",
+        "!src/server-*.ts"
       ],
       "linter": {
         "rules": {
@@ -130,7 +131,7 @@
                     "message": "Shared modules must stay independent of React and Node."
                   },
                   {
-                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*"],
+                    "group": ["**/server", "**/server.*", "**/ports-host", "**/ports-host.*", "**/server-*"],
                     "message": "Browser/shared modules must not import Node entries, even for types."
                   },
                   {
@@ -594,7 +595,8 @@
         "src/thread-ports.ts",
         "src/thread-pull-requests.ts",
         "src/thread-tasks.ts",
-        "src/server.ts"
+        "src/server.ts",
+        "src/server-*.ts"
       ],
       "linter": {
         "rules": {

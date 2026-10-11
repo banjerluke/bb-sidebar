@@ -1,0 +1,249 @@
+import type { ServerContext } from "./server-context";
+import type { createServerLifecycle, StoredLifecycleRow } from "./server-lifecycle";
+import type { createThreadPortActions } from "./thread-ports";
+import type { createServerSettings } from "./server-settings";
+import type { createServerSettleCleanup } from "./server-settle-cleanup";
+import {
+  autoSettleNeedsPullRequest,
+  decideAutoSettle,
+  parseAutoSettleAfterDays,
+  type AutoSettlePullRequest,
+} from "./auto-settle";
+import { threadTreeIds } from "./thread-tree";
+import { resolveShelf } from "./lifecycle";
+import { runThreadTasks } from "./thread-tasks";
+
+export function createServerPolicy(
+  ctx: ServerContext,
+  lifecycle: ReturnType<typeof createServerLifecycle>,
+  settings: Awaited<ReturnType<typeof createServerSettings>>,
+  cleanup: ReturnType<typeof createServerSettleCleanup>,
+  threadPortActions: ReturnType<typeof createThreadPortActions>,
+) {
+  const { readSidebarSettings } = settings;
+  const { reclaimThreadResources } = cleanup;
+  const { loadPolicyThreads, readAll, readOne, write, threadSignals, publishLifecycleChanges, wakeAncestors } =
+    lifecycle;
+  const loadPullRequests = async (environmentIds: readonly string[]) => {
+    const results = new Map<string, AutoSettlePullRequest>();
+    let nextIndex = 0;
+    const workers = Array.from({ length: Math.min(4, environmentIds.length) }, async () => {
+      while (nextIndex < environmentIds.length) {
+        const environmentId = environmentIds[nextIndex++]!;
+        try {
+          const result = await ctx.bb.sdk.environments.pullRequest({
+            environmentId,
+          });
+          if (result.outcome === "available") {
+            results.set(environmentId, {
+              outcome: "available",
+              state: result.pullRequest.state,
+              updatedAt: result.pullRequest.updatedAt,
+            });
+          } else if (result.outcome === "absent") {
+            results.set(environmentId, { outcome: "absent" });
+          } else {
+            results.set(environmentId, { outcome: "unknown" });
+          }
+        } catch {
+          results.set(environmentId, { outcome: "unknown" });
+        }
+      }
+    });
+    await Promise.all(workers);
+    return results;
+  };
+
+  const applyPolicyChanges = ctx.db.transaction(
+    (
+      changes: ReadonlyArray<{
+        decision: "settle" | "unsettle";
+        row: StoredLifecycleRow | null;
+        threadId: string;
+      }>,
+      now: number,
+    ) => {
+      for (const { decision, row, threadId } of changes) {
+        if (decision === "settle") {
+          write(
+            {
+              threadId,
+              settledAt: now,
+              settledOverride: null,
+              snoozedUntil: row?.snoozedUntil ?? null,
+              snoozedAt: row?.snoozedAt ?? null,
+            },
+            false,
+          );
+        } else if (row?.snoozedUntil != null) {
+          write(
+            {
+              ...row,
+              settledAt: null,
+              settledOverride: null,
+            },
+            false,
+          );
+        } else {
+          ctx.db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
+        }
+      }
+    },
+  );
+
+  let policyEvaluation: Promise<string[]> | null = null;
+
+  let policyEvaluationQueued = false;
+
+  let policySettingsRevision = 0;
+
+  const evaluatePolicies = (): Promise<string[]> => {
+    if (policyEvaluation !== null) {
+      policyEvaluationQueued = true;
+      return policyEvaluation;
+    }
+    const evaluation = (async () => {
+      const settingsRevision = policySettingsRevision;
+      const configured = readSidebarSettings();
+      let threads = await loadPolicyThreads(true);
+      const lifecycleByThreadId = new Map(readAll().map((row) => [row.threadId, row]));
+      const environmentIds = [
+        ...new Set(
+          threads.flatMap((thread) => {
+            if (
+              thread.environmentId === null ||
+              !autoSettleNeedsPullRequest(lifecycleByThreadId.get(thread.id) ?? null, thread)
+            ) {
+              return [];
+            }
+            return [thread.environmentId];
+          }),
+        ),
+      ];
+      const pullRequests = await loadPullRequests(environmentIds);
+      const now = Date.now();
+      const policySettings = {
+        afterDays: parseAutoSettleAfterDays(configured.autoSettleInactive, String(configured.autoSettleAfterDays)),
+        onMerge: configured.autoSettleOnMerge,
+      };
+      const decide = (keepThreadIds: ReadonlySet<string>) =>
+        threads.flatMap((thread) => {
+          if (keepThreadIds.has(thread.id) || (thread.visibility === "hidden" && thread.parentThreadId === null))
+            return [];
+          // Re-read after every lookup so a concurrent Park action wins.
+          const row = readOne(thread.id);
+          const decision = decideAutoSettle({
+            lifecycle: row,
+            now,
+            pullRequest:
+              thread.environmentId === null
+                ? { outcome: "absent" }
+                : (pullRequests.get(thread.environmentId) ?? {
+                    outcome: "unknown",
+                  }),
+            settings: policySettings,
+            thread,
+          });
+          return decision === "keep" ? [] : [{ decision, row, threadId: thread.id }];
+        });
+      let changes = decide(new Set());
+      // Settling stops the runtime, which kills what its agent left running in
+      // the background, and bb cannot see that work when the provider does not
+      // report it. A thread still serving a port, such as a dev server, stays
+      // out of policy reach until it stops.
+      const settling = new Set(changes.flatMap((change) => (change.decision === "settle" ? [change.threadId] : [])));
+      if (settling.size > 0) {
+        const servingPorts = await threadPortActions.threadsServingPorts(
+          threads.filter((thread) => settling.has(thread.id)),
+          threads,
+        );
+        // A child may have been created or restarted during the lookups.
+        // Recheck the tree before settling, using only scanned candidates.
+        threads = await loadPolicyThreads(true);
+        changes = decide(servingPorts).filter(
+          (change) => change.decision !== "settle" || settling.has(change.threadId),
+        );
+      }
+      // A parent can only leave the inbox once its whole tree is settled.
+      // Descendants keep their own PR, inactivity, pin, and live-work rules.
+      const settlingIds = new Set(
+        changes.filter((change) => change.decision === "settle").map((change) => change.threadId),
+      );
+      const restoringIds = new Set(
+        changes.filter((change) => change.decision === "unsettle").map((change) => change.threadId),
+      );
+      const byId = new Map(threads.map((thread) => [thread.id, thread]));
+      changes = changes.filter(
+        (change) =>
+          change.decision !== "settle" ||
+          threadTreeIds(threads, change.threadId).every((id) => {
+            if (settlingIds.has(id)) return true;
+            if (restoringIds.has(id)) return false;
+            const thread = byId.get(id)!;
+            return resolveShelf(readOne(id) ?? undefined, threadSignals(thread), now) === "settled";
+          }),
+      );
+      // Settings can change while PRs or ports are loading. The queued pass
+      // uses the latest rules; this older pass must not move or stop threads.
+      if (settingsRevision !== policySettingsRevision || changes.length === 0) return [];
+      applyPolicyChanges(changes, now);
+      const cleanupRows = new Map(changes.map((change) => [change.threadId, readOne(change.threadId)]));
+      const changedThreadIds = new Set(changes.map((change) => change.threadId));
+      publishLifecycleChanges([...changedThreadIds]);
+      for (const change of changes) {
+        if (change.decision === "unsettle") {
+          for (const id of await wakeAncestors(byId.get(change.threadId)!, { automaticOnly: true, threadsById: byId }))
+            changedThreadIds.add(id);
+        }
+      }
+      // Outside the transaction, because releasing a runtime is a network call
+      // and holding a write lock open across one would block every other write.
+      await runThreadTasks(
+        changes.flatMap((change) => (change.decision === "settle" ? [change.threadId] : [])),
+        async (threadId) => {
+          await reclaimThreadResources(threadId, byId.get(threadId), cleanupRows.get(threadId), undefined, (thread) => {
+            if (settingsRevision === policySettingsRevision) return true;
+            const current = readSidebarSettings();
+            // A changed rule may return this thread to Active. Only finish its
+            // reclaim if it still qualifies under the new rules.
+            return (
+              decideAutoSettle({
+                lifecycle: null,
+                now: Date.now(),
+                pullRequest:
+                  thread.environmentId === null
+                    ? { outcome: "absent" }
+                    : (pullRequests.get(thread.environmentId) ?? { outcome: "unknown" }),
+                settings: {
+                  afterDays: parseAutoSettleAfterDays(current.autoSettleInactive, String(current.autoSettleAfterDays)),
+                  onMerge: current.autoSettleOnMerge,
+                },
+                thread,
+              }) === "settle"
+            );
+          });
+        },
+        4,
+      );
+      return [...changedThreadIds];
+    })();
+    const settledEvaluation = evaluation.finally(() => {
+      if (policyEvaluation !== settledEvaluation) return;
+      policyEvaluation = null;
+      if (!policyEvaluationQueued) return;
+      policyEvaluationQueued = false;
+      void evaluatePolicies().catch((error) => {
+        ctx.bb.log.error(
+          `Queued automatic settle evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    });
+    policyEvaluation = settledEvaluation;
+    return settledEvaluation;
+  };
+  const settingsChanged = () => {
+    policySettingsRevision += 1;
+  };
+
+  return { evaluatePolicies, settingsChanged };
+}

@@ -32,6 +32,9 @@ const typeImportsOverride = findOverride("src/**/*.ts");
 const appOverride = findOverride("src/components/**");
 const sharedOverride = findOverride("src/*.ts");
 const nodeOverride = findOverride("src/ports-host.ts");
+if (!nodeOverride.includes.includes("src/server-*.ts") || !sharedOverride.includes.includes("!src/server-*.ts")) {
+  configError("Server modules must be classified as Node with src/server-*.ts.");
+}
 const sharedBrowserPatterns = [
   "Shared modules must not import TSX app modules.",
   "Shared modules must not import browser hooks, lib, or components.",
@@ -114,7 +117,7 @@ for (const input of files) {
     const normalized = nodeBuiltins.has(name) && !name.startsWith("node:") ? `node:${name}` : name;
     if (shared && sharedBrowserPatterns.some((glob) => matchesGlob(name, glob))) {
       report(file, source, specifier, `Shared modules must not import browser module ${name}, even for types.`);
-    } else if (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized)) {
+    } else if (/(^|\/)(server(?:-[^/]+)?|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized)) {
       report(file, source, specifier, `Browser/shared code must not import ${name}, even for types.`);
     } else if (shared && normalized.startsWith("node:")) {
       report(file, source, specifier, `Shared modules must not import Node built-in ${name}, even for types.`);

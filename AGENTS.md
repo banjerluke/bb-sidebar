@@ -16,7 +16,8 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   without `node:`, or `better-sqlite3`, even dynamically. Type-only imports of
   other Node modules are allowed.
 - Node server entry: `src/server.ts`. Node host entry: `src/ports-host.ts`.
-  Their supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
+  Flat `src/server-*.ts` modules share `ServerContext` explicitly.
+  Their other supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
   `regenerate-title`, `port-discovery`, `thread-ports`, `thread-pull-requests`,
   and `thread-tasks`, all under `src/`. Node/SDK server or host APIs are
   allowed. These modules must not import React, TSX, browser `.ts` modules,
@@ -28,7 +29,8 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
   type and `title-generation-state.ts` uses `useSyncExternalStore`
   intentionally.
-- Shared modules today are all other top-level `src/*.ts`, excluding `use*.ts`,
+- Shared modules today are all other top-level `src/*.ts`, excluding
+  `server-*.ts`, `use*.ts`,
   `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must not import React, React DOM,
   Node built-ins, Node entries, TSX, browser `.ts` modules, `use*` hooks,
   `lib/**`, or `components/**`, even for types, or value-import SQLite.
@@ -42,6 +44,24 @@ The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 contract re-exports all five realtime channels from `src/realtime-channels.ts`;
 browser value imports use that pure module to avoid loading schemas. The host
 port contract lives in `src/port-scan-contract.ts`.
+
+## Server modules
+
+- `server-context`: SDK/database context and handler types.
+- `server-settings`: settings reads, writes, and legacy import.
+- `server-lifecycle`: lifecycle rows, shelves, ancestor wakes, inbox order,
+  thread loading, and locks for pin/parent changes.
+- `server-project-icons`: icon resolution, caches, overrides, and uploads.
+- `server-project-colors`: project color reads and writes.
+- `server-project-management`: project names, paths, and removal.
+- `server-settle-cleanup`: cleanup previews, cleanup, and runtime reclaim.
+- `server-settle-actions`: tree settle, return to Active, and Undo snapshots.
+- `server-policy`: automatic settle evaluation and settings revisions.
+- `server-handlers`: RPC handlers assembled from the modules.
+- `server.ts`: migrations, context creation, wiring, HTTP, and events.
+
+The Node override uses `src/server-*.ts`; shared modules exclude that pattern.
+Browser/shared imports of those modules are forbidden, including types.
 
 ## Browser persistence
 
