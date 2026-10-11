@@ -2,7 +2,7 @@ pre-commit:
   commands:
     biome:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts,json,jsonc,css,graphql,gql,html}"
-      run: npx --no-install biome check --no-errors-on-unmatched {staged_files}
+      run: npx --no-install @biomejs/biome check --no-errors-on-unmatched {staged_files}
     import-boundaries:
       glob: "*.{ts,tsx}"
       run: node scripts/check-import-boundaries.mjs {staged_files}

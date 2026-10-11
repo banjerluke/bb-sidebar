@@ -42,9 +42,8 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 ## Size and style budgets
 
 - Production files and `scripts/**/*.mjs`: at most 500 physical lines. Tests get
-  1,000. `scripts/check-file-sizes.mjs` records ceilings for five production files
-  and two tests: `ThreadInbox.test.tsx` and `server.test.ts`. Growth fails; shrinkage
-  also fails until the ceiling is lowered. Remove entries once within the default
+  1,000. `scripts/check-file-sizes.mjs` records ceilings for five production files.
+  Growth fails; shrinkage also fails until the ceiling is lowered. Remove entries once within the default
   budget. `SubagentsChip.test.tsx` is within 1,000 and needs no exception.
 - Biome: two spaces, double quotes, semicolons, trailing commas, width 120.
   Markdown and YAML are no longer formatted. Biome has no line-count warnings;
@@ -65,6 +64,8 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
 lint, format check, Knip, typecheck, Vitest suite, and BB plugin build, plus
 `npx --no-install bb plugin types --check`. Typecheck includes both Knip configs.
+
+A fresh checkout or worktree must run `npm ci` before its first commit because the pre-commit hook runs the local Biome binary.
 
 Use `npm run format` to format the repository. `npm run lint`,
 `npm run format:check`, and `npm run knip` can run individually.
