@@ -5,7 +5,7 @@ import {
   useRpc,
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import type { ThreadPullRequest } from "./pull-requests";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";

@@ -8,7 +8,7 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import { threadDisplayTitle } from "./inbox";
 import { usePortalScopeProps } from "./lib/portal-scope";
 

@@ -8,7 +8,7 @@ import {
   useRealtime,
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import { ThreadHoverCard } from "./components/ThreadHoverCard";
 import { threadDisplayTitle } from "./inbox";
 import { Icon, type IconName } from "./components/Icon";

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import { PROJECT_ICONS_CHANNEL } from "./project-icons";
 import { cn } from "./lib/utils";
 import { SettingRow, SettingsSection, SettingsSelect, secondaryButtonClass } from "./settings-ui";

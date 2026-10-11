@@ -7,7 +7,7 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
 import { DeleteThreadDialog } from "./DeleteThreadDialog";
 import { SnoozePickerDialog } from "./SnoozePickerDialog";

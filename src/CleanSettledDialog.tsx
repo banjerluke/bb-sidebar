@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { experimental_useSidebarThreadActions as useSidebarThreadActions, useRpc } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { usePortalScopeProps } from "./lib/portal-scope";
-import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult } from "./server";
+import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult } from "./contract";
 
 export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: string[]; onNavigate: () => void }) {
   const rpc = useRpc<typeof bbSidebarRpcContract>();

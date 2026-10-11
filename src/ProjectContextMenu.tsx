@@ -3,7 +3,7 @@ import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useBbContext, useBbNavigate, useRpc, type PluginSidebarProject } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import type { bbSidebarRpcContract } from "./server";
+import type { bbSidebarRpcContract } from "./contract";
 import { usePortalScopeProps } from "./lib/portal-scope";
 
 const itemClass =
