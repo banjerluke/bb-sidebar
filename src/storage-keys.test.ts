@@ -40,6 +40,19 @@ it("declares every production storage key once in the registry", () => {
   );
 });
 
+it("keeps storage and event key construction inside their registries", () => {
+  const registries = new Set(["src/lib/storage-keys.ts", "src/lib/browser-events.ts"]);
+  // Match the prefix alone so interpolation and concatenation cannot hide a key.
+  const unexpected = sources
+    .filter(({ file }) => !registries.has(file))
+    .flatMap(({ file, content }) =>
+      [...content.matchAll(/["'`]bb-sidebar:/g)].map(
+        (match) => `${file}:${content.slice(0, match.index).split("\n").length}`,
+      ),
+    );
+  expect(unexpected).toEqual([]);
+});
+
 it("keeps production localStorage access inside the shared storage helpers", () => {
   const accesses = sources.filter(({ content }) => content.includes("localStorage")).map(({ file }) => file);
   expect(accesses).toEqual(["src/lib/safe-storage.ts", "src/lib/storage-codec.ts"]);
