@@ -1,17 +1,22 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { expect, it } from "vitest";
 import { BROWSER_EVENTS } from "./lib/browser-events";
 import { PLUGIN_STORAGE_KEYS, STORAGE_KEYS } from "./lib/storage-keys";
 
+// Golden fixtures and tests retain literal keys as compatibility evidence.
+const sources = [
+  "app.tsx",
+  ...readdirSync("src", { recursive: true, encoding: "utf8" })
+    .filter((file) => /\.(ts|tsx)$/.test(file) && !/\.test\./.test(file) && !basename(file).startsWith("test-"))
+    .map((file) => `src/${file}`),
+]
+  .sort()
+  .map((file) => ({ file, content: readFileSync(file, "utf8") }));
+
 it("declares every production storage key once in the registry", () => {
-  // Golden fixtures and tests deliberately retain literal keys as compatibility evidence.
-  const files = execFileSync("rg", ["--files", "src", "-g", "*.ts", "-g", "*.tsx", "-g", "!*.test.*"])
-    .toString()
-    .trim()
-    .split("\n");
-  const occurrences = files.flatMap((file) =>
-    [...readFileSync(file, "utf8").matchAll(/["'`]bb-sidebar:[\w:-]+["'`]/g)].map((match) => ({
+  const occurrences = sources.flatMap(({ file, content }) =>
+    [...content.matchAll(/["'`]bb-sidebar:[\w:-]+["'`]/g)].map((match) => ({
       file,
       key: match[0].slice(1, -1),
     })),
@@ -36,22 +41,6 @@ it("declares every production storage key once in the registry", () => {
 });
 
 it("keeps production localStorage access inside the shared storage helpers", () => {
-  const accesses = execFileSync("rg", [
-    "-l",
-    "localStorage",
-    "src",
-    "-g",
-    "*.ts",
-    "-g",
-    "*.tsx",
-    "-g",
-    "!*.test.*",
-    "-g",
-    "!test-*",
-  ])
-    .toString()
-    .trim()
-    .split("\n")
-    .sort();
+  const accesses = sources.filter(({ content }) => content.includes("localStorage")).map(({ file }) => file);
   expect(accesses).toEqual(["src/lib/safe-storage.ts", "src/lib/storage-codec.ts"]);
 });
