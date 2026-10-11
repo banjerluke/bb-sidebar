@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { matchesGlob, relative, resolve } from "node:path";
 import ts from "typescript";
 
@@ -46,6 +47,7 @@ const sourceFiles = [
     .map((name) => `src/${name}`),
 ];
 const files = process.argv.length > 2 ? process.argv.slice(2) : sourceFiles;
+const nodeBuiltins = new Set(builtinModules);
 const matches = (file, globs) =>
   globs.some((glob) => !glob.startsWith("!") && matchesGlob(file, glob)) &&
   !globs.some((glob) => glob.startsWith("!") && matchesGlob(file, glob.slice(1)));
@@ -93,25 +95,33 @@ for (const input of files) {
   const file = relative(process.cwd(), resolve(input)).replaceAll("\\", "/");
   if (!sourceFiles.includes(file)) continue;
   const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
-  const browserOrShared = matches(file, appIncludes) || matches(file, sharedIncludes);
+  const shared = matches(file, sharedIncludes);
+  const browserOrShared = matches(file, appIncludes) || shared;
+  function checkSpecifier(specifier, typeOnly = false) {
+    if (!browserOrShared || !specifier || !ts.isStringLiteralLike(specifier)) return;
+    const name = specifier.text;
+    const normalized = nodeBuiltins.has(name) && !name.startsWith("node:") ? `node:${name}` : name;
+    if (shared && normalized.startsWith("node:")) {
+      report(file, source, specifier, `Shared modules must not import Node built-in ${name}, even for types.`);
+    } else if (
+      !typeOnly &&
+      (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized) ||
+        normalized.startsWith("node:") ||
+        normalized === "better-sqlite3" ||
+        normalized.startsWith("better-sqlite3/"))
+    ) {
+      report(file, source, specifier, `Browser/shared code may only import types from ${name}.`);
+    }
+  }
   function visit(node) {
     // Preserve consistent-type-imports' annotation ban, including its sole Vitest exception.
     if (ts.isImportTypeNode(node) && file !== "src/ports-host.test.ts") {
       report(file, source, node, "Use a top-level import type instead of an import() type annotation.");
     }
-    if (browserOrShared && (ts.isImportDeclaration(node) || ts.isExportDeclaration(node))) {
-      const specifier = node.moduleSpecifier;
-      if (specifier && ts.isStringLiteral(specifier) && !isTypeOnly(node)) {
-        const name = specifier.text;
-        if (
-          /(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(name) ||
-          name.startsWith("node:") ||
-          name === "better-sqlite3" ||
-          name.startsWith("better-sqlite3/")
-        ) {
-          report(file, source, specifier, `Browser/shared code may only import types from ${name}.`);
-        }
-      }
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      checkSpecifier(node.moduleSpecifier, isTypeOnly(node));
+    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      checkSpecifier(node.arguments.at(0));
     }
     ts.forEachChild(node, visit);
   }

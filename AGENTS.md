@@ -7,7 +7,7 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
 - Browser entry: `app.tsx`. App code includes `src/*.tsx`, `src/components/**`,
   `src/lib/**`, `src/use*.ts`, and the browser modules listed below.
   React, DOM APIs, and SDK app APIs belong here. No value imports of `server`,
-  `ports-host`, `node:*`, or `better-sqlite3`, including relative paths from subfolders.
+  `ports-host`, Node built-ins with or without `node:`, or `better-sqlite3`, even dynamically.
   Type-only imports of Node modules are allowed.
 - Node server entry: `src/server.ts`. Node host entry: `src/ports-host.ts`.
   Their supporting Node modules are `port-scan`, `auto-title`, `cloud-title`,
@@ -23,7 +23,7 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
   and `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
   type and `title-generation-state.ts` uses `useSyncExternalStore` intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding `use*.ts`,
-  `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must not import React or `node:*`,
+  `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must not import React, React DOM, or Node built-ins,
   even for types, or value-import the Node entries or SQLite. This is a dependency
   boundary; these modules are not necessarily free of side effects or DOM access.
   Tests retain their runtime's boundaries; top-level `.ts` tests and test helpers
@@ -54,8 +54,9 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
   `jsxRuntime: reactClassic` preserves the old linter's treatment of React namespace
   imports in JSX files; it does not change TypeScript's `react-jsx` compilation.
 - Biome lacks `allowTypeImports`. `scripts/check-import-boundaries.mjs` enforces
-  browser/shared value-only restrictions, permits explicit type imports, checks
-  the Node TSX name lists for drift, and bans `import()` type annotations except
+  browser value-only restrictions and shared Node built-in bans, including dynamic
+  imports. It permits browser type imports, checks the Node TSX name lists for drift,
+  and bans `import()` type annotations except
   in `ports-host.test.ts`, where Vitest's `importOriginal` needs them.
   Regular imports there still require type-only syntax when used only as types.
 
