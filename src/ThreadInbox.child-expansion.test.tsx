@@ -31,9 +31,7 @@ describe("ThreadInbox", () => {
     await waitFor(() =>
       expect(JSON.parse(localStorage.getItem(key)!)).toEqual([...oldIds.slice(2), "a-newest", "b-next"]),
     );
-    // 200 threads rendered twice: the default 5s budget leaves this stress
-    // case no headroom on a loaded CI runner.
-  }, 30_000);
+  });
 
   it("restores child expansion outside the parent card body", () => {
     window.localStorage.setItem("bb-sidebar:child-expansion:v1", JSON.stringify(["parent"]));
