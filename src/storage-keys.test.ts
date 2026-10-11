@@ -16,14 +16,15 @@ it("declares every production storage key once in the registry", () => {
       key: match[0].slice(1, -1),
     })),
   );
-  const storage = occurrences.filter(({ key }) => !Object.values(BROWSER_EVENTS).includes(key as never));
+  const events = new Set<string>(Object.values(BROWSER_EVENTS));
+  const storage = occurrences.filter(({ key }) => !events.has(key));
   expect(storage.map(({ key }) => key).sort()).toEqual(
     Object.values(STORAGE_KEYS)
       .map(({ key }) => key)
       .sort(),
   );
   expect(storage.every(({ file }) => file === "src/lib/storage-keys.ts")).toBe(true);
-  expect(occurrences.filter(({ key }) => Object.values(BROWSER_EVENTS).includes(key as never))).toEqual(
+  expect(occurrences.filter(({ key }) => events.has(key))).toEqual(
     Object.values(BROWSER_EVENTS).map((key) => ({ file: "src/lib/browser-events.ts", key })),
   );
   expect(new Set(PLUGIN_STORAGE_KEYS).size).toBe(PLUGIN_STORAGE_KEYS.length);
@@ -32,4 +33,25 @@ it("declares every production storage key once in the registry", () => {
       .sort((a, b) => a.evictionPriority - b.evictionPriority)
       .map(({ key }) => key),
   );
+});
+
+it("keeps production localStorage access inside the shared storage helpers", () => {
+  const accesses = execFileSync("rg", [
+    "-l",
+    "localStorage",
+    "src",
+    "-g",
+    "*.ts",
+    "-g",
+    "*.tsx",
+    "-g",
+    "!*.test.*",
+    "-g",
+    "!test-*",
+  ])
+    .toString()
+    .trim()
+    .split("\n")
+    .sort();
+  expect(accesses).toEqual(["src/lib/safe-storage.ts", "src/lib/storage-codec.ts"]);
 });
