@@ -26,7 +26,7 @@ const tsxPatterns = [
       .filter((file) => file.endsWith(".tsx"))
       .map((file) => {
         const name = file.split("/").at(-1).slice(0, -4);
-        return `**/${name}{,.tsx}`;
+        return `**/${name}`;
       }),
   ),
 ].sort();
