@@ -1,3 +1,5 @@
+import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
+
 export const CHILD_THREAD_SORT_FIELDS = ["created", "activity"] as const;
 export type ChildThreadSortField = (typeof CHILD_THREAD_SORT_FIELDS)[number];
 export const CHILD_THREAD_SORT_DIRECTIONS = ["ascending", "descending"] as const;
@@ -35,8 +37,6 @@ export interface SidebarSettingsValues {
   /** Where project stripes appear; enabled project names are always colored. */
   projectColorDisplay: ProjectColorDisplay;
 }
-
-import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
 
 export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   snoozePresets: DEFAULT_SNOOZE_PRESET_CONFIG,
