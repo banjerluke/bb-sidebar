@@ -2,7 +2,7 @@ import { afterEach, vi } from "vitest";
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
-import { idleSidebarThreadFields } from "./test-fixtures";
+import { deferred, idleSidebarThreadFields } from "./test-fixtures";
 import type { SidebarProvider } from "./ProviderGlyph";
 
 export const toastMocks = {
@@ -234,15 +234,7 @@ export function nestedInteractiveControls(root: HTMLElement): string[] {
   );
 }
 
-export function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
+export { deferred };
 
 afterEach(() => {
   cleanup();

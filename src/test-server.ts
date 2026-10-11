@@ -2,6 +2,7 @@ import { afterEach, vi } from "vitest";
 import { createFakePluginHost as createHost, makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import plugin, { type StoredLifecycleRow } from "./server";
+import { deferred } from "./test-fixtures";
 
 // Default both SDK listings to the test's thread fixture. Host-boundary tests
 // override them separately to reproduce visibility, paging and stale replies.
@@ -195,10 +196,4 @@ export async function loadPlugin(
   return harness;
 }
 
-export function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
+export { deferred };
