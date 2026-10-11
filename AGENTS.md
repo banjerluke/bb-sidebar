@@ -67,8 +67,9 @@ lint, format check, Knip, typecheck, Vitest suite, and BB plugin build, plus
 
 Use `npm run format` to format the repository. `npm run lint`,
 `npm run format:check`, and `npm run knip` can run individually.
-`npm ci` installs lefthook via `prepare`, including in worktrees. Pre-commit runs
-Biome check and import boundaries on staged files, plus the full size gate.
+`npm ci` installs lefthook via `prepare` into the common `.git/hooks` for the main
+checkout and every worktree; branches without `lefthook.yml` skip these checks.
+Pre-commit runs Biome check and import boundaries on staged files, plus the size gate.
 Pre-push runs `npm run check`. Hooks check files without applying fixes.
 `npm run knip:report` reports deferred unused dependencies and exports/types;
 it currently exits 1. `knip.ts` preserves SDK peers and lists dependency debt
