@@ -122,3 +122,42 @@ export function useDragAutoScroll(activeReorderCancelRef: RefObject<(() => void)
     clickSuppressionRef.current = armClickSuppression(key);
   };
 }
+
+export function listenForDrag({
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  onKeyDown,
+  cancel,
+  onVisibilityChange,
+}: {
+  onPointerMove: (event: PointerEvent) => void;
+  onPointerUp: (event: PointerEvent) => void;
+  onPointerCancel: (event: PointerEvent) => void;
+  onKeyDown: (event: KeyboardEvent) => void;
+  cancel: () => void;
+  onVisibilityChange: () => void;
+}) {
+  window.addEventListener("pointermove", onPointerMove, {
+    passive: false,
+  });
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointercancel", onPointerCancel);
+  window.addEventListener("keydown", onKeyDown);
+  // A gesture interrupted by lost focus, a hidden tab or a resize has no
+  // drop target left worth guessing at.
+  window.addEventListener("blur", cancel);
+  window.addEventListener("resize", cancel);
+  window.addEventListener("pagehide", cancel);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  return () => {
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerCancel);
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("blur", cancel);
+    window.removeEventListener("resize", cancel);
+    window.removeEventListener("pagehide", cancel);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  };
+}

@@ -1,15 +1,15 @@
+import { useInboxShelfThreads } from "./useInboxShelfThreads";
+import { createDragReorderHandler } from "./useDragReorder";
+import type { InboxDragOrder } from "./useDragReorderGeometry";
+import { ThreadInboxView, type ShelfExpansionState } from "./ThreadInboxView";
 import { useQuantizedNow } from "./useQuantizedNow";
 import { useProjectIconRevision } from "./useProjectIconRevision";
-import { useRenamingShelfLocks, threadNeedsAttention } from "./useRenamingShelfLocks";
-import { useDragAutoScroll, createDragAutoScroll, findScrollContainer } from "./useDragAutoScroll";
-import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
-import { CompactShelf, DockableShelves, CollapsibleShelf, ProjectGroups, Shelf } from "./ThreadInboxShelves";
-import { useListAutoAnimate, createListAnimationController, ListAnimationContext } from "./useListAutoAnimate";
+import { useRenamingShelfLocks } from "./useRenamingShelfLocks";
+import { useDragAutoScroll } from "./useDragAutoScroll";
+import { useListAutoAnimate, createListAnimationController } from "./useListAutoAnimate";
 import {
-  ACTIVE_SORT_MODES,
   isActiveSortMode,
   sameOrder,
-  type ReorderMode,
   PROJECT_UNIT_KEY_PREFIX,
   projectUnitKey,
   layoutActiveThreadsByProject,
@@ -17,8 +17,8 @@ import {
   expandProjectUnits,
   sortActiveThreads,
   visibleShelfThreads,
-  activeRepresentativeThreadId,
   type ActiveSortMode,
+  type ReorderMode,
   type ProjectViewUnit,
 } from "./inbox-layout";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -30,37 +30,25 @@ import {
   type PluginThreadListProps,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
-import { Icon } from "./components/Icon";
-import { cn } from "./lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "./components/Select";
-import { ProjectScopeSelect } from "./ProjectScopeSelect";
-import { ProjectColorsProvider } from "./ProjectColors";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
-import { SearchResults } from "./SearchResults";
 import { childThreadsByParent, collapsedChildThreads } from "./ChildThreadList";
-import { ChildThreadDisplayContext, useChildThreadDisplayValue } from "./ChildThreadDisplay";
+import { useChildThreadDisplayValue } from "./ChildThreadDisplay";
 import { useLifecycle } from "./useLifecycle";
-import { createDragPreview } from "./drag-preview";
+import type { createDragPreview } from "./drag-preview";
 import { usePinnedReorder } from "./usePinnedReorder";
 import { useInboxReorder } from "./useInboxReorder";
-import { WorkingSinceContext, useWorkingSince } from "./useWorkingSince";
-import { JumpHintsContext, useJumpHints } from "./JumpHints";
+import { useWorkingSince } from "./useWorkingSince";
+import { useJumpHints } from "./JumpHints";
 import { useSidebarSettings } from "./useSidebarSettings";
-import { OpenPortsProvider } from "./OpenPorts";
 import {
   ALL_PROJECTS,
   filterByProject,
-  hideChildrenOfVisibleParents,
-  partitionPinned,
   reconcileProjectScope,
   searchThreadsByTitle,
-  sortByCreatedAtDescending,
-  sortSettledThreads,
   threadDisplayTitle,
   visibleInboxThreads,
 } from "./inbox";
 import {
-  movePinnedId,
   movePinnedIdByOffset,
   orderPinnedThreads,
   orderSubsetInPlace,
@@ -68,11 +56,10 @@ import {
   rebaseMovedUnit,
 } from "./pinned-order";
 import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets } from "./lifecycle";
-import { DEFAULT_INACTIVE_AFTER_HOURS, isInactiveThread, parseInactiveAfterHours } from "./inactive";
+import { DEFAULT_INACTIVE_AFTER_HOURS, parseInactiveAfterHours } from "./inactive";
 import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
-import { isWorkingTree } from "./working-tree";
-import { SCROLL_FADE_CLASS, useScrollFade } from "./useScrollFade";
+import { useScrollFade } from "./useScrollFade";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion, safeSetItem } from "./lib/safe-storage";
 const ACTIVE_GROUPING_STORAGE_KEY = "bb-sidebar:active-grouping:v1";
 const ACTIVE_SORT_STORAGE_KEY = "bb-sidebar:active-sort:v1";
@@ -108,16 +95,6 @@ function readChildExpansion(): Set<string> {
   }
 }
 
-interface ShelfExpansionState {
-  active: boolean;
-  pinned: boolean;
-  working: boolean;
-  inactive: boolean;
-  parked: boolean;
-  snoozed: boolean;
-  settled: boolean;
-}
-
 const DEFAULT_SHELF_EXPANSION: ShelfExpansionState = {
   active: true,
   pinned: true,
@@ -148,13 +125,6 @@ function readShelfExpansion(): ShelfExpansionState {
     return DEFAULT_SHELF_EXPANSION;
   }
 }
-
-const ACTIVE_SORT_LABELS: Record<ActiveSortMode, string> = {
-  manual: "Manual order",
-  activity: "Recent activity",
-  created: "Date created",
-  project: "Project",
-};
 
 function readActiveSort(): ActiveSortMode {
   try {
@@ -267,77 +237,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     parked,
     snoozed,
     settled,
-  } = useMemo(() => {
-    const allVisible = visibleInboxThreads(threads);
-    const scoped = filterByProject(allVisible, scope === ALL_PROJECTS ? null : scope);
-    // Children live in their parent's header chip instead of the flat list;
-    // an orphan whose parent is not on screen stays here.
-    const visible = hideChildrenOfVisibleParents(scoped);
-    const active: typeof visible = [];
-    const onParkedShelf: typeof visible = [];
-    const onSnoozeShelf: typeof visible = [];
-    const onSettledShelf: typeof visible = [];
-    for (const thread of visible) {
-      const shelf = lifecycle.shelfFor(thread);
-      if (shelf === "parked") onParkedShelf.push(thread);
-      else if (shelf === "snoozed") onSnoozeShelf.push(thread);
-      else if (shelf === "settled") onSettledShelf.push(thread);
-      else active.push(thread);
-    }
-    const split = partitionPinned(active);
-    const activeUnpinned: typeof split.inbox = [];
-    const working: typeof split.inbox = [];
-    const inactive: typeof split.inbox = [];
-    for (const thread of split.inbox) {
-      const lockedShelf = renamingShelfLocks.get(thread.id);
-      const needsAttention = threadNeedsAttention(thread);
-      if (lockedShelf === "active") {
-        activeUnpinned.push(thread);
-        continue;
-      }
-      if (lockedShelf === "working" && workingShelfEnabled && !needsAttention && !lifecycle.wokeFor(thread)) {
-        working.push(thread);
-        continue;
-      }
-      if (lockedShelf === "inactive" && !needsAttention) {
-        inactive.push(thread);
-        continue;
-      }
-      // A thread with work running anywhere under it waits on the Working
-      // shelf, unless it just woke from a snooze: that is news for Active.
-      if (
-        workingShelfEnabled &&
-        !lifecycle.wokeFor(thread) &&
-        isWorkingTree(thread, childrenByParentId.get(thread.id) ?? [], childrenByParentId)
-      ) {
-        working.push(thread);
-      } else if (isInactiveThread(thread, now, inactiveAfterHours)) {
-        inactive.push(thread);
-      } else {
-        activeUnpinned.push(thread);
-      }
-    }
-    const allSplit = partitionPinned(allVisible);
-    return {
-      activeListThreadId: activeRepresentativeThreadId(threads, activeThreadId, visible),
-      // BB supplies pinned rows in the user's persisted pin order.
-      pinnedBase: split.pinned,
-      inboxBase: sortByCreatedAtDescending(activeUnpinned),
-      workingBase: sortByCreatedAtDescending(working),
-      inactiveBase: sortByCreatedAtDescending(inactive),
-      // Keep a global order behind project-scoped and parked views. Child and
-      // parked rows are included because they can become visible later; a
-      // reorder elsewhere must not silently discard their old slot.
-      allPinnedBase: allSplit.pinned,
-      allInboxBase: sortByCreatedAtDescending(allSplit.inbox),
-      parked: sortSettledThreads(onParkedShelf, lifecycle.parkedAtFor),
-      // Soonest wake first: "what comes back next" is the shelf's question.
-      snoozed: [...onSnoozeShelf].sort(
-        (left, right) => (lifecycle.wakeAtFor(left) ?? 0) - (lifecycle.wakeAtFor(right) ?? 0),
-      ),
-      settled: sortSettledThreads(onSettledShelf, lifecycle.settledAtFor),
-    };
-  }, [
+  } = useInboxShelfThreads({
     activeThreadId,
     childrenByParentId,
     inactiveAfterHours,
@@ -347,18 +247,13 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     scope,
     threads,
     workingShelfEnabled,
-  ]);
+  });
 
   const pinnedReorder = usePinnedReorder(allPinnedBase);
   const inboxReorder = useInboxReorder(allInboxBase);
   // A "unit" drag moves whole project-view units, so its ids are unit keys
   // rather than thread ids.
-  const [dragOrder, setDragOrder] = useState<{
-    shelf: "pinned" | "inbox";
-    mode: ReorderMode;
-    movingId: string;
-    ids: string[];
-  } | null>(null);
+  const [dragOrder, setDragOrder] = useState<InboxDragOrder | null>(null);
   const dragOrderRef = useRef(dragOrder);
   dragOrderRef.current = dragOrder;
   const dragPreviewRef = useRef<ReturnType<typeof createDragPreview> | null>(null);
@@ -600,222 +495,20 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     return {
       disabled: target.isReordering,
       isDragging: dragOrder?.shelf === shelf && dragOrder.movingId === key,
-      onPointerDown: (event) => {
-        // Touch has no hover and no spare axis here: the row fills the width, so
-        // a finger dragging it is far more likely to mean "scroll the shelf".
-        // Reordering by touch needs a long-press to claim the gesture, which
-        // this does not implement, so it declines the gesture instead of
-        // competing with the scroller for it.
-        if (target.isReordering || event.button !== 0 || event.pointerType === "touch") {
-          return;
-        }
-
-        activeReorderCancelRef.current?.();
-        const pointerId = event.pointerId;
-        const startX = event.clientX;
-        const startY = event.clientY;
-        const movingId = key;
-        // Captured while the event is still being dispatched, which is the only
-        // time `currentTarget` is meaningful.
-        const rowAnchor = event.currentTarget;
-        let engaged = false;
-        let finished = false;
-        let previousUserSelect = "";
-        let previousCursor = "";
-        let listElement: HTMLElement | null = null;
-        let scrollContainer: HTMLElement | null = null;
-        let pointerX = startX;
-        let pointerY = startY;
-        let resolvedY = startY;
-        let reorderDirection = 0;
-        const autoScroll = createDragAutoScroll(
-          () => ({ finished, engaged, scrollContainer, pointerX, pointerY }),
-          reorderAt,
-        );
-
-        function cleanup() {
-          window.removeEventListener("pointermove", onPointerMove);
-          window.removeEventListener("pointerup", onPointerUp);
-          window.removeEventListener("pointercancel", onPointerCancel);
-          window.removeEventListener("keydown", onKeyDown);
-          window.removeEventListener("blur", cancel);
-          window.removeEventListener("resize", cancel);
-          window.removeEventListener("pagehide", cancel);
-          document.removeEventListener("visibilitychange", onVisibilityChange);
-          autoScroll.stop();
-          if (engaged) {
-            document.body.style.userSelect = previousUserSelect;
-            document.body.style.cursor = previousCursor;
-            dragPreviewRef.current?.destroy();
-            dragPreviewRef.current = null;
-            listAnimationController.resume();
-          }
-          if (activeReorderCancelRef.current === cancel) {
-            activeReorderCancelRef.current = null;
-          }
-        }
-
-        function cancel() {
-          if (finished) return;
-          finished = true;
-          cleanup();
-          if (engaged) {
-            dragOrderRef.current = null;
-            setDragOrder(null);
-          }
-        }
-
-        function engage() {
-          engaged = true;
-          previousUserSelect = document.body.style.userSelect;
-          previousCursor = document.body.style.cursor;
-          document.body.style.userSelect = "none";
-          document.body.style.cursor = "grabbing";
-          listAnimationController.suspend();
-          suppressDragClick(movingId);
-          listElement = rowAnchor.closest("ul");
-          scrollContainer = findScrollContainer(listElement);
-          resolvedY = startY + (scrollContainer?.scrollTop ?? 0);
-          if (listElement) dragPreviewRef.current = createDragPreview(listElement);
-          const next = {
-            shelf,
-            movingId,
-            ...reorderScopeRef.current(movingId, shelf),
-          };
-          dragOrderRef.current = next;
-          setDragOrder(next);
-          autoScroll.start();
-        }
-
-        function reorderAt(clientX: number, clientY: number) {
-          const current = dragOrderRef.current;
-          if (!current || current.shelf !== shelf) return;
-          // Content coordinates include auto-scroll. Keep the last direction
-          // when the pointer is stationary: a tall neighbour can occupy the
-          // cursor after a swap, but must not swap back without a reversal.
-          const contentY = clientY + (scrollContainer?.scrollTop ?? 0);
-          if (contentY !== resolvedY) reorderDirection = Math.sign(contentY - resolvedY);
-          resolvedY = contentY;
-          const visibleIds = reorderScopeRef.current(movingId, shelf).ids;
-          const hit = document.elementFromPoint(clientX, clientY);
-          const hitRow = hit instanceof Element ? hit.closest("li") : null;
-          // A whole project is one target among the top-level units; inside
-          // a project's own drag, its header is not a row at all.
-          const unitRow = hit instanceof Element ? hit.closest<HTMLElement>("[data-reorder-unit]") : null;
-          const row =
-            current.mode === "unit" ? (unitRow ?? hitRow) : hitRow?.hasAttribute("data-reorder-unit") ? null : hitRow;
-          const targetThreadId = row
-            ?.querySelector<HTMLAnchorElement>("[data-sidebar-thread-id]")
-            ?.getAttribute("data-sidebar-thread-id");
-          const targetId =
-            current.mode === "unit" && unitRow
-              ? unitRow.getAttribute("data-reorder-unit")
-              : current.mode === "unit"
-                ? storedProjectUnitsRef.current.find((unit) =>
-                    unit.kind === "thread"
-                      ? unit.thread.id === targetThreadId
-                      : unit.threads.some((thread) => thread.id === targetThreadId),
-                  )?.key
-                : targetThreadId;
-
-          let nextIds: string[] | null = null;
-          if (row && targetId && visibleIds.includes(targetId) && current.movingId !== targetId) {
-            const targetDirection = Math.sign(current.ids.indexOf(targetId) - current.ids.indexOf(current.movingId));
-            if (targetDirection === reorderDirection) {
-              nextIds = movePinnedId(current.ids, current.movingId, targetId, targetDirection < 0 ? "before" : "after");
-            }
-          } else if (!targetId && listElement) {
-            // Headers, padding and the run-off below the last row are not rows,
-            // so hit-testing alone strands a drag aimed at either end of a
-            // shelf. Resolve those against the list box instead — but only
-            // directly above or below it, or a pointer parked off to the side
-            // of the sidebar would keep snapping the row to an end.
-            const listRect = listElement.getBoundingClientRect();
-            const within = clientX >= listRect.left && clientX <= listRect.right;
-            const before = within && clientY < listRect.top && reorderDirection < 0;
-            const after = within && clientY > listRect.bottom && reorderDirection > 0;
-            const edgeId = before
-              ? current.ids.find((id) => id !== current.movingId)
-              : after
-                ? [...current.ids].reverse().find((id) => id !== current.movingId)
-                : undefined;
-            if (edgeId) {
-              nextIds = movePinnedId(current.ids, current.movingId, edgeId, before ? "before" : "after");
-            }
-          }
-
-          if (!nextIds || sameOrder(nextIds, current.ids)) return;
-          dragPreviewRef.current?.capture();
-          const next = { ...current, ids: nextIds };
-          dragOrderRef.current = next;
-          setDragOrder(next);
-        }
-
-        function onPointerMove(moveEvent: PointerEvent) {
-          if (finished || moveEvent.pointerId !== pointerId) return;
-          // A button let go outside the window never delivers its pointerup.
-          if ((moveEvent.buttons & 1) === 0) {
-            cancel();
-            return;
-          }
-          pointerX = moveEvent.clientX;
-          pointerY = moveEvent.clientY;
-          if (!engaged) {
-            const deltaX = moveEvent.clientX - startX;
-            const deltaY = moveEvent.clientY - startY;
-            // Radial distance, but still vertical-dominant: a sideways gesture
-            // belongs to the host's drag-to-split, not to reordering.
-            if (Math.hypot(deltaX, deltaY) < 6 || Math.abs(deltaY) <= Math.abs(deltaX)) {
-              return;
-            }
-            engage();
-          }
-          moveEvent.preventDefault();
-          reorderAt(moveEvent.clientX, moveEvent.clientY);
-        }
-
-        function onPointerUp(upEvent: PointerEvent) {
-          if (finished || upEvent.pointerId !== pointerId) return;
-          // Auto-scroll and host updates both move the list under a pointer
-          // that never moved again, so the last pointermove is not necessarily
-          // the last word on where this row belongs.
-          if (engaged) reorderAt(upEvent.clientX, upEvent.clientY);
-          const current = dragOrderRef.current;
-          finished = true;
-          cleanup();
-          if (!engaged || !current || current.shelf !== shelf) return;
-
-          dragOrderRef.current = null;
-          setDragOrder(null);
-          commitReorder(shelf, current.mode, current.ids, current.movingId);
-        }
-
-        function onPointerCancel(cancelEvent: PointerEvent) {
-          if (cancelEvent.pointerId === pointerId) cancel();
-        }
-
-        function onKeyDown(keyEvent: KeyboardEvent) {
-          if (keyEvent.key === "Escape") cancel();
-        }
-
-        function onVisibilityChange() {
-          if (document.visibilityState === "hidden") cancel();
-        }
-
-        window.addEventListener("pointermove", onPointerMove, {
-          passive: false,
-        });
-        window.addEventListener("pointerup", onPointerUp);
-        window.addEventListener("pointercancel", onPointerCancel);
-        window.addEventListener("keydown", onKeyDown);
-        // A gesture interrupted by lost focus, a hidden tab or a resize has no
-        // drop target left worth guessing at.
-        window.addEventListener("blur", cancel);
-        window.addEventListener("resize", cancel);
-        window.addEventListener("pagehide", cancel);
-        document.addEventListener("visibilitychange", onVisibilityChange);
-        activeReorderCancelRef.current = cancel;
-      },
+      onPointerDown: createDragReorderHandler({
+        key,
+        shelf,
+        target,
+        activeReorderCancelRef,
+        dragOrderRef,
+        dragPreviewRef,
+        listAnimationController,
+        suppressDragClick,
+        reorderScopeRef,
+        storedProjectUnitsRef,
+        setDragOrder,
+        commitReorder,
+      }),
       onKeyDown: (event) => {
         if (!event.altKey || target.isReordering || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
           return;
@@ -945,281 +638,60 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   );
 
   return (
-    <ListAnimationContext.Provider value={listAnimationController}>
-      <ProjectColorsProvider
-        enabled={sidebarSettings?.projectColorsEnabled === true}
-        display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
-        projectIds={projects.map((project) => project.id)}
-      >
-        <WorkingSinceContext.Provider value={workingSince}>
-          <ChildThreadDisplayContext.Provider value={childDisplay}>
-            <OpenPortsProvider>
-              <JumpHintsContext.Provider value={jumpHints}>
-                <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
-                  {/* The one control the host has no equivalent for. Everything else in
-            the chrome above — New thread, search — is bb's and stays bb's. */}
-                  <div className="flex shrink-0 items-center gap-1 px-2 pb-1">
-                    <ProjectScopeSelect
-                      scope={scope}
-                      projects={projects}
-                      projectIconRevision={projectIconRevision}
-                      onScopeChange={setScope}
-                    />
-                  </div>
-
-                  <p role="status" aria-live="polite" className="sr-only">
-                    {reorderAnnouncement}
-                  </p>
-
-                  <div
-                    ref={attachScrollFadeRef}
-                    className={cn("min-h-0 flex-1 overflow-y-auto px-1.5 pb-2", SCROLL_FADE_CLASS)}
-                  >
-                    {status === "loading" ? (
-                      <ThreadListLoading />
-                    ) : status === "error" ? (
-                      <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
-                        Could not load threads.
-                      </p>
-                    ) : isSearching && searchResults.length === 0 ? (
-                      <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
-                        No threads found
-                      </p>
-                    ) : isSearching ? (
-                      <SearchResults
-                        threads={searchResults}
-                        projectNameById={projectNameById}
-                        projectIconRevision={projectIconRevision}
-                        activeThreadId={activeThreadId}
-                        now={now}
-                        wokeThreadIds={wokeThreadIds}
-                        onAcknowledgeWake={(threadId) => void lifecycle.acknowledgeWake(threadId)}
-                        onNavigate={onNavigate}
-                      />
-                    ) : (
-                      <DockableShelves
-                        docked={dockShelvesEnabled}
-                        attachUpperRef={attachShelvesAutoAnimateRef}
-                        attachLowerRef={attachDockAutoAnimateRef}
-                        upper={
-                          <>
-                            {pinned.length > 0 ? (
-                              <CollapsibleShelf
-                                label="Pinned"
-                                icon="Pin"
-                                count={pinned.length}
-                                expanded={expandedShelves.pinned}
-                                onToggle={() =>
-                                  setExpandedShelves((current) => ({
-                                    ...current,
-                                    pinned: !current.pinned,
-                                  }))
-                                }
-                              >
-                                <Shelf label={null}>
-                                  {visiblePinned.map((thread) => renderActiveThread(thread, "pinned"))}
-                                </Shelf>
-                              </CollapsibleShelf>
-                            ) : null}
-                            {inbox.length > 0 ? (
-                              <CollapsibleShelf
-                                label="Active"
-                                icon="Pulse"
-                                count={inbox.length}
-                                expanded={expandedShelves.active}
-                                onToggle={() =>
-                                  setExpandedShelves((current) => ({
-                                    ...current,
-                                    active: !current.active,
-                                  }))
-                                }
-                                action={
-                                  <Select
-                                    value={activeSortMode}
-                                    onValueChange={(value) => {
-                                      if (isActiveSortMode(value)) setActiveSortMode(value);
-                                    }}
-                                  >
-                                    <SelectTrigger
-                                      aria-label={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                                      title={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                                      className={cn(
-                                        "absolute bottom-1 right-[1.875rem] z-10 size-4 h-4 w-4 border-0 p-0 text-muted-foreground/40 shadow-none hover:bg-sidebar-accent hover:text-muted-foreground focus:ring-0 focus-visible:ring-1 focus-visible:ring-ring [&>svg:last-child]:hidden",
-                                        activeSortMode !== "manual" && "bg-sidebar-accent/60 text-muted-foreground/80",
-                                      )}
-                                    >
-                                      <Icon name="ArrowUpDown" className="size-3" />
-                                    </SelectTrigger>
-                                    <SelectContent align="end" className="min-w-40">
-                                      {ACTIVE_SORT_MODES.map((mode) => (
-                                        <SelectItem key={mode} value={mode} className="text-xs">
-                                          {ACTIVE_SORT_LABELS[mode]}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                }
-                              >
-                                {activeSortMode === "project" ? (
-                                  <ProjectGroups
-                                    units={inboxProjectView}
-                                    projectNameById={projectNameById}
-                                    projectIconRevision={projectIconRevision}
-                                    onToggle={toggleProjectCollapse}
-                                    reorderControls={(unit, name) =>
-                                      reorderControls(unit.key, "inbox", `${name} project`)
-                                    }
-                                    renderThread={(thread, grouped) =>
-                                      renderActiveThread(thread, "inbox", true, !grouped)
-                                    }
-                                  />
-                                ) : visibleInbox.length > 0 ? (
-                                  <Shelf label={null}>
-                                    {sortedVisibleInbox.map((thread) => renderActiveThread(thread, "inbox"))}
-                                  </Shelf>
-                                ) : null}
-                              </CollapsibleShelf>
-                            ) : null}
-                            {pinned.length === 0 &&
-                            inbox.length === 0 &&
-                            working.length === 0 &&
-                            inactive.length === 0 ? (
-                              <ActiveEmptyState />
-                            ) : null}
-                            {pinned.length === 0 &&
-                            inbox.length === 0 &&
-                            working.length > 0 &&
-                            inactive.length === 0 ? (
-                              <WorkingEmptyState />
-                            ) : null}
-                          </>
-                        }
-                        lower={
-                          <>
-                            {working.length > 0 ? (
-                              <CollapsibleShelf
-                                label="Working"
-                                icon="Loading"
-                                animateIcon
-                                count={working.length}
-                                expanded={expandedShelves.working}
-                                onToggle={() =>
-                                  setExpandedShelves((current) => ({
-                                    ...current,
-                                    working: !current.working,
-                                  }))
-                                }
-                              >
-                                <Shelf label={null}>
-                                  {/* One line, like every shelf after Active. */}
-                                  {visibleWorking.map((thread) =>
-                                    renderActiveThread(thread, "inbox", false, true, true, "working"),
-                                  )}
-                                </Shelf>
-                              </CollapsibleShelf>
-                            ) : null}
-                            {inactive.length > 0 ? (
-                              <CollapsibleShelf
-                                label="Inactive"
-                                icon="PauseCircle"
-                                count={inactive.length}
-                                expanded={expandedShelves.inactive}
-                                onToggle={() =>
-                                  setExpandedShelves((current) => ({
-                                    ...current,
-                                    inactive: !current.inactive,
-                                  }))
-                                }
-                              >
-                                <Shelf label={null}>
-                                  {visibleInactive.map((thread) =>
-                                    renderActiveThread(thread, "inbox", false, true, false, "inactive"),
-                                  )}
-                                </Shelf>
-                              </CollapsibleShelf>
-                            ) : null}
-                            <CompactShelf
-                              label="Snoozed"
-                              onPark={parkThread}
-                              onSettle={settleThread}
-                              onSnooze={snoozeThread}
-                              icon="Clock"
-                              threads={snoozed}
-                              projectNameById={projectNameById}
-                              expanded={expandedShelves.snoozed}
-                              onToggle={() =>
-                                setExpandedShelves((current) => ({
-                                  ...current,
-                                  snoozed: !current.snoozed,
-                                }))
-                              }
-                              shelf="snoozed"
-                              visibleThreads={visibleSnoozed}
-                              activeThreadId={activeThreadId}
-                              lifecycle={lifecycle}
-                              snoozePresets={snoozePresets}
-                              onNavigate={onNavigate}
-                              projectIconRevision={projectIconRevision}
-                            />
-                            <CompactShelf
-                              label="Parked"
-                              onPark={parkThread}
-                              onSettle={settleThread}
-                              onSnooze={snoozeThread}
-                              icon="Car"
-                              threads={parked}
-                              projectNameById={projectNameById}
-                              expanded={expandedShelves.parked}
-                              onToggle={() =>
-                                setExpandedShelves((current) => ({
-                                  ...current,
-                                  parked: !current.parked,
-                                }))
-                              }
-                              shelf="parked"
-                              visibleThreads={visibleParked}
-                              activeThreadId={activeThreadId}
-                              lifecycle={lifecycle}
-                              snoozePresets={snoozePresets}
-                              onNavigate={onNavigate}
-                              projectIconRevision={projectIconRevision}
-                            />
-                            <CompactShelf
-                              label="Settled"
-                              onPark={parkThread}
-                              onSettle={settleThread}
-                              onSnooze={snoozeThread}
-                              icon="Meditation"
-                              threads={settled}
-                              projectNameById={projectNameById}
-                              expanded={expandedShelves.settled}
-                              onToggle={() =>
-                                setExpandedShelves((current) => ({
-                                  ...current,
-                                  settled: !current.settled,
-                                }))
-                              }
-                              shelf="settled"
-                              visibleThreads={visibleSettled}
-                              activeThreadId={activeThreadId}
-                              lifecycle={lifecycle}
-                              snoozePresets={snoozePresets}
-                              onNavigate={onNavigate}
-                              projectIconRevision={projectIconRevision}
-                              settledLimit={settledLimit}
-                              onLoadMore={() => setSettledLimit((limit) => limit + SETTLED_PAGE_SIZE)}
-                            />
-                          </>
-                        }
-                      />
-                    )}
-                  </div>
-                </div>
-              </JumpHintsContext.Provider>
-            </OpenPortsProvider>
-          </ChildThreadDisplayContext.Provider>
-        </WorkingSinceContext.Provider>
-      </ProjectColorsProvider>
-    </ListAnimationContext.Provider>
+    <ThreadInboxView
+      listAnimationController={listAnimationController}
+      sidebarSettings={sidebarSettings}
+      projects={projects}
+      workingSince={workingSince}
+      childDisplay={childDisplay}
+      jumpHints={jumpHints}
+      jumpHintsRootRef={jumpHintsRootRef}
+      scope={scope}
+      projectIconRevision={projectIconRevision}
+      setScope={setScope}
+      reorderAnnouncement={reorderAnnouncement}
+      attachScrollFadeRef={attachScrollFadeRef}
+      status={status}
+      isSearching={isSearching}
+      searchResults={searchResults}
+      projectNameById={projectNameById}
+      activeThreadId={activeThreadId}
+      now={now}
+      wokeThreadIds={wokeThreadIds}
+      lifecycle={lifecycle}
+      onNavigate={onNavigate}
+      dockShelvesEnabled={dockShelvesEnabled}
+      attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
+      attachDockAutoAnimateRef={attachDockAutoAnimateRef}
+      pinned={pinned}
+      expandedShelves={expandedShelves}
+      setExpandedShelves={setExpandedShelves}
+      visiblePinned={visiblePinned}
+      renderActiveThread={renderActiveThread}
+      inbox={inbox}
+      activeSortMode={activeSortMode}
+      setActiveSortMode={setActiveSortMode}
+      inboxProjectView={inboxProjectView}
+      toggleProjectCollapse={toggleProjectCollapse}
+      reorderControls={reorderControls}
+      visibleInbox={visibleInbox}
+      sortedVisibleInbox={sortedVisibleInbox}
+      working={working}
+      inactive={inactive}
+      visibleWorking={visibleWorking}
+      visibleInactive={visibleInactive}
+      parkThread={parkThread}
+      settleThread={settleThread}
+      snoozeThread={snoozeThread}
+      snoozed={snoozed}
+      snoozePresets={snoozePresets}
+      visibleSnoozed={visibleSnoozed}
+      parked={parked}
+      visibleParked={visibleParked}
+      settled={settled}
+      visibleSettled={visibleSettled}
+      settledLimit={settledLimit}
+      setSettledLimit={setSettledLimit}
+    />
   );
 }

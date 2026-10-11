@@ -30,7 +30,7 @@ export function createListAnimationController() {
   };
 }
 
-type ListAnimationController = ReturnType<typeof createListAnimationController>;
+export type ListAnimationController = ReturnType<typeof createListAnimationController>;
 export const ListAnimationContext = createContext<ListAnimationController | null>(null);
 
 export function useListAutoAnimate<T extends HTMLElement>(owner?: ListAnimationController) {
