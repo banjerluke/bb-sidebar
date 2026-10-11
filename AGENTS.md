@@ -27,7 +27,7 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test mea
   even for types, or value-import the Node entries or SQLite. This is a dependency
   boundary; these modules are not necessarily free of side effects or DOM access.
   Tests retain their runtime's boundaries; top-level `.ts` tests and test helpers
-  may use Node test tooling. Keep the lists in `eslint.config.mjs` in sync.
+  may use Node test tooling. Keep the ordered classifications in `biome.json` in sync.
 
 The sidebar RPC contract lives in `src/server.ts` as `bbSidebarRpcContract`.
 App code imports it with `import type` today; SB-4 moves it to a shared module.
@@ -46,13 +46,18 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
   and two tests: `ThreadInbox.test.tsx` and `server.test.ts`. Growth fails; shrinkage
   also fails until the ceiling is lowered. Remove entries once within the default
   budget. `SubagentsChip.test.tsx` is within 1,000 and needs no exception.
-- ESLint warns above 500 file lines or 200 function lines, ignoring blanks and
-  comments. The function limit accommodates React components. Tests are exempt
-  from these ESLint warnings, but the physical gate applies; SB-3 splits large tests.
-- Prettier: two spaces, double quotes, semicolons, trailing commas, width 120.
-- Import boundaries and `@typescript-eslint/consistent-type-imports` are errors.
-  Only `ports-host.test.ts` permits `typeof import()` annotations needed by
-  Vitest's `importOriginal`; its regular imports still require type-only syntax.
+- Biome: two spaces, double quotes, semicolons, trailing commas, width 120.
+  Markdown and YAML are no longer formatted. Biome has no line-count warnings;
+  the physical gate still applies to tests; SB-3 splits large tests.
+- Biome's `noRestrictedImports` enforces Node/shared restrictions, including
+  server symbol exceptions and bare side-effect imports. `useImportType` is an error.
+  `jsxRuntime: reactClassic` preserves the old linter's treatment of React namespace
+  imports in JSX files; it does not change TypeScript's `react-jsx` compilation.
+- Biome lacks `allowTypeImports`. `scripts/check-import-boundaries.mjs` enforces
+  browser/shared value-only restrictions, permits explicit type imports, checks
+  the Node TSX name lists for drift, and bans `import()` type annotations except
+  in `ports-host.test.ts`, where Vitest's `importOriginal` needs them.
+  Regular imports there still require type-only syntax when used only as types.
 
 ## Checks
 
@@ -62,6 +67,9 @@ lint, format check, Knip, typecheck, Vitest suite, and BB plugin build, plus
 
 Use `npm run format` to format the repository. `npm run lint`,
 `npm run format:check`, and `npm run knip` can run individually.
+`npm ci` installs lefthook via `prepare`, including in worktrees. Pre-commit runs
+Biome check and import boundaries on staged files, plus the full size gate.
+Pre-push runs `npm run check`. Hooks check files without applying fixes.
 `npm run knip:report` reports deferred unused dependencies and exports/types;
 it currently exits 1. `knip.ts` preserves SDK peers and lists dependency debt
 for SB-8. Export/type ignores cover only today's 25 debt files and issue types;
