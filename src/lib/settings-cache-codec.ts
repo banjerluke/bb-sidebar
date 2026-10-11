@@ -1,3 +1,4 @@
+import type { StorageCodec } from "./storage-codec";
 import {
   childThreadSettingsOf,
   DEFAULT_SIDEBAR_SETTINGS,
@@ -43,3 +44,8 @@ export function decodeSettingsCache(input: unknown): SidebarSettingsValues | nul
     projectColorDisplay: projectColorDisplayOf(value.projectColorDisplay),
   } as SidebarSettingsValues);
 }
+
+export const settingsCacheCodec: StorageCodec<SidebarSettingsValues> = {
+  decode: (stored) => (stored ? decodeSettingsCache(JSON.parse(stored)) : null),
+  encode: JSON.stringify,
+};

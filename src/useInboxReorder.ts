@@ -6,12 +6,9 @@ import type { bbSidebarRpcContract } from "./contract";
 import { INBOX_ORDER_CHANNEL } from "./realtime-channels";
 import { orderInboxThreads } from "./pinned-order";
 import { createCachedRpcState } from "./lib/cached-rpc-state";
-import { decodeInboxOrder } from "./lib/inbox-order-codec";
+import { inboxOrderCodec } from "./lib/inbox-order-codec";
 
-const orderCache = createCachedRpcState<readonly string[]>(STORAGE_KEYS.inboxOrder.key, {
-  decode: (stored) => decodeInboxOrder(JSON.parse(stored ?? "null")),
-  encode: JSON.stringify,
-});
+const orderCache = createCachedRpcState(STORAGE_KEYS.inboxOrder.key, inboxOrderCodec);
 
 export interface InboxReorderApi {
   threads: PluginSidebarThread[];
