@@ -1,3 +1,12 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  experimental_useSidebarThreadActions as useSidebarThreadActions,
+  experimental_useSidebarThreads as useSidebarThreads,
+  experimental_useProviders as useProviders,
+  type PluginSidebarThread,
+  type PluginThreadListProps,
+  useSettings,
+} from "@get-bb/plugin-sdk/app";
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
 import { createDragReorderHandler } from "./drag-reorder";
 import type { InboxDragOrder } from "./drag-reorder-geometry";
@@ -21,15 +30,6 @@ import {
   type ReorderMode,
   type ProjectViewUnit,
 } from "./inbox-layout";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  experimental_useSidebarThreads as useSidebarThreads,
-  experimental_useProviders as useProviders,
-  type PluginSidebarThread,
-  type PluginThreadListProps,
-  useSettings,
-} from "@get-bb/plugin-sdk/app";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
 import { childThreadsByParent, collapsedChildThreads } from "./ChildThreadList";
 import { useChildThreadDisplayValue } from "./ChildThreadDisplay";

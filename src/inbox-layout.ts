@@ -5,6 +5,12 @@ import { visibleInboxThreads } from "./inbox";
 export const ACTIVE_SORT_MODES = ["manual", "activity", "created", "project"] as const;
 export type ActiveSortMode = (typeof ACTIVE_SORT_MODES)[number];
 
+export type ReorderMode = "thread" | "unit";
+
+export function isActiveSortMode(value: string): value is ActiveSortMode {
+  return ACTIVE_SORT_MODES.some((mode) => mode === value);
+}
+
 // A project needs this many Active threads before it earns a header; below
 // it, its threads stay ordinary cards, so a list of one-thread projects reads
 // exactly like manual order.
@@ -80,6 +86,10 @@ export function expandProjectUnits(keys: readonly string[], units: readonly Proj
   return keys.flatMap((key) => idsByKey.get(key) ?? []);
 }
 
+export function sameOrder(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
 export function sortActiveThreads(
   threads: readonly PluginSidebarThread[],
   mode: ActiveSortMode,
@@ -122,11 +132,3 @@ export function activeRepresentativeThreadId(
   }
   return null;
 }
-export function isActiveSortMode(value: string): value is ActiveSortMode {
-  return ACTIVE_SORT_MODES.some((mode) => mode === value);
-}
-export function sameOrder(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((id, index) => id === right[index]);
-}
-
-export type ReorderMode = "thread" | "unit";
