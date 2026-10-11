@@ -53,6 +53,19 @@ const snapshots = [
     },
   },
 ];
+const databaseSnapshots = [
+  ...snapshots,
+  {
+    version: "json-e77d70b",
+    settings: {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...releaseSettings,
+      projectColorsEnabled: true,
+      projectColorDisplay: "full",
+    },
+  },
+];
+
 const expectedRows = [
   {
     threadId: "parked",
@@ -131,7 +144,7 @@ it("v0.2.34 contains only its released settings schema and cache shape", () => {
   expect(JSON.parse(storage["bb-sidebar:settings-cache:v1"])).toEqual(releaseSettings);
 });
 
-it.each(snapshots)(
+it.each(databaseSnapshots)(
   "reads both boolean values after upgrading $version without editing the fixture",
   async ({ version }) => {
     const wired = await createWired([], { fixture: fixturePath(`sidebar-${version}.sqlite`) });
@@ -154,6 +167,12 @@ it.each(snapshots)(
         db.prepare(`UPDATE sidebar_settings SET inactive_threads_enabled = 1,
           show_running_children_when_collapsed = 1, auto_settle_inactive = 1, auto_settle_on_merge = 1
           WHERE id = 1`).run();
+        const columns = db.prepare("PRAGMA table_info(sidebar_settings)").all() as Array<{ name: string }>;
+        if (columns.some(({ name }) => name === "settings_json")) {
+          db.prepare(`UPDATE sidebar_settings SET settings_json = json_set(settings_json,
+            '$.inactiveThreadsEnabled', json('true'), '$.showRunningChildrenWhenCollapsed', json('true'),
+            '$.autoSettleInactive', json('true'), '$.autoSettleOnMerge', json('true')) WHERE id = 1`).run();
+        }
       } finally {
         db.close();
       }
@@ -212,7 +231,7 @@ function assertSettingsControls(container: HTMLElement, settings: (typeof snapsh
   if (!settings.projectColorsEnabled) fireEvent.click(colors);
 }
 
-it.each(snapshots)(
+it.each(databaseSnapshots)(
   "opens $version in current fake host storage and preserves settings and lifecycle",
   async ({ version, settings }) => {
     const database = fixturePath(`sidebar-${version}.sqlite`);
@@ -342,4 +361,19 @@ it.each(snapshots)("reads $version legacy grouping when active-sort is absent", 
   wired.mount();
   expect(screen.getByRole("combobox", { name: "Sort active threads: Project" })).toBeDefined();
   expect(screen.getByRole("region", { name: "Sidebar project" })).toBeDefined();
+});
+
+it("JSON snapshot records the new schema and stores real JSON boolean values", () => {
+  const db = new Database(fixturePath("sidebar-json-e77d70b.sqlite"), { readonly: true });
+  try {
+    const columns = db.prepare("PRAGMA table_info(sidebar_settings)").all() as Array<{ name: string }>;
+    expect(columns.map(({ name }) => name)).toContain("settings_json");
+    expect(db.prepare("SELECT COUNT(*) AS n FROM _bb_migrations").get()).toEqual({ n: 23 });
+    const row = db.prepare("SELECT settings_json FROM sidebar_settings WHERE id = 1").get() as {
+      settings_json: string;
+    };
+    expect(JSON.parse(row.settings_json)).toEqual(databaseSnapshots[2]!.settings);
+  } finally {
+    db.close();
+  }
 });

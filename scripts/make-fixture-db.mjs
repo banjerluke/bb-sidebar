@@ -1,3 +1,5 @@
+// Usage: npm run fixture:db -- <new-output.sqlite> [git-ref]
+// Defaults to pinned v0.2.34; an explicit ref may be a tag or commit SHA.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { registerHooks } from "node:module";
@@ -9,11 +11,15 @@ import ts from "typescript";
 
 const RELEASE_TAG = "v0.2.34";
 const RELEASE_COMMIT = "e7ab8a399f440479e15f87d695c020754560da16";
-if (process.argv.length !== 3) throw new Error("Usage: npm run fixture:db -- <new-output.sqlite>");
+if (process.argv.length < 3 || process.argv.length > 4) {
+  throw new Error("Usage: npm run fixture:db -- <new-output.sqlite> [git-ref]");
+}
+const sourceRef = process.argv[3] ?? RELEASE_TAG;
 const output = resolve(process.argv[2]);
 if (existsSync(output)) throw new Error(`Refusing to overwrite fixture: ${output}`);
-const release = execFileSync("git", ["rev-parse", `${RELEASE_TAG}^{commit}`], { encoding: "utf8" }).trim();
-if (release !== RELEASE_COMMIT) throw new Error(`${RELEASE_TAG} no longer points to ${RELEASE_COMMIT}`);
+const release = execFileSync("git", ["rev-parse", `${sourceRef}^{commit}`], { encoding: "utf8" }).trim();
+if (sourceRef === RELEASE_TAG && release !== RELEASE_COMMIT)
+  throw new Error(`${RELEASE_TAG} no longer points to ${RELEASE_COMMIT}`);
 
 // Load the release factory, including extensionless local TS imports, without
 // building a second schema or loading HEAD's production modules.
@@ -43,12 +49,12 @@ registerHooks({
 });
 
 const directory = mkdtempSync(join(tmpdir(), "sidebar-release-"));
-const checkout = join(directory, RELEASE_TAG);
+const checkout = join(directory, sourceRef === RELEASE_TAG ? RELEASE_TAG : "snapshot");
 const realNow = Date.now;
 let harness;
 let addedWorktree = false;
 try {
-  execFileSync("git", ["worktree", "add", "--quiet", "--detach", checkout, RELEASE_TAG]);
+  execFileSync("git", ["worktree", "add", "--quiet", "--detach", checkout, release]);
   addedWorktree = true;
   // The tag and this repo pin the same SDK; reuse installed dependencies only.
   symlinkSync(resolve("node_modules"), join(checkout, "node_modules"), "dir");
@@ -68,12 +74,47 @@ try {
   insert.run("child", null, 1_799_999_000_000, "settled", null, null);
   db.prepare("INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)").run("second", 0);
   db.prepare("INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)").run("first", 1);
-  db.prepare(`INSERT INTO sidebar_settings
+  const columns = db
+    .prepare("PRAGMA table_info(sidebar_settings)")
+    .all()
+    .map(({ name }) => name);
+  if (columns.includes("settings_json")) {
+    await harness.behavior.callRpc("updateSidebarSettings", {
+      ...(await harness.behavior.callRpc("getSidebarSettings", {})),
+      snoozePresets: "1h, 4h, 2d",
+      inactiveThreadsEnabled: false,
+      inactiveAfterHours: 12,
+      autoSettleInactive: false,
+      autoSettleAfterDays: 7,
+      autoSettleOnMerge: false,
+      showRunningChildrenWhenCollapsed: false,
+      childSortField: "activity",
+      childSortDirection: "descending",
+      childIconStyle: "provider",
+      compactWorkingThreads: true,
+      workingShelf: true,
+      dockShelves: true,
+      projectColorsEnabled: true,
+      projectColorDisplay: "full",
+    });
+  } else {
+    db.prepare(`INSERT INTO sidebar_settings
     (id, snooze_presets, inactive_threads_enabled, inactive_after_hours,
      auto_settle_inactive, auto_settle_after_days, auto_settle_on_merge,
      show_running_children_when_collapsed, child_sort_field, child_sort_direction,
      child_icon_style, compact_working_threads, working_shelf, dock_shelves)
     VALUES (1, '1h, 4h, 2d', 0, 12, 0, 7, 0, 0, 'activity', 'descending', 'provider', 1, 1, 1)`).run();
+  }
+  if (columns.includes("project_colors_enabled")) {
+    // Unreleased and JSON snapshots retain the earlier preview's legacy value.
+    db.prepare("UPDATE sidebar_settings SET archived_shelf_enabled = 1 WHERE id = 1").run();
+    if (!columns.includes("settings_json")) {
+      db.prepare(
+        "UPDATE sidebar_settings SET project_colors_enabled = 1, project_color_display = 'full' WHERE id = 1",
+      ).run();
+    }
+    db.prepare("INSERT INTO project_colors (project_id, color) VALUES (?, ?)").run("proj_1", "#123456");
+  }
   db.prepare("INSERT INTO project_icons (project_id, path, updated_at) VALUES (?, ?, ?)").run(
     "proj_1",
     "assets/logo.png",
@@ -94,7 +135,7 @@ try {
   mkdirSync(dirname(output), { recursive: true });
   // SQLite also refuses an existing target, including one created after our check.
   db.prepare("VACUUM INTO ?").run(output);
-  console.log(`Generated ${output} from ${RELEASE_TAG} (${RELEASE_COMMIT})`);
+  console.log(`Generated ${output} from ${sourceRef} (${release})`);
 } finally {
   Date.now = realNow;
   try {
