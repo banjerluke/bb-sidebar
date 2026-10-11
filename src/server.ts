@@ -37,7 +37,6 @@ import { createPortDiscovery } from "./port-discovery";
 import { createThreadPortActions } from "./thread-ports";
 import { createThreadPullRequests } from "./thread-pull-requests";
 import type { ownedPortTargetSchema } from "./contract";
-
 import {
   bbSidebarRpcContract,
   type cleanupIssueSchema,
@@ -50,7 +49,6 @@ import {
   PROJECT_COLORS_CHANNEL,
   PROJECT_ICONS_CHANNEL,
 } from "./contract";
-
 const migrations = [
   `CREATE TABLE IF NOT EXISTS thread_lifecycle (
      thread_id      TEXT PRIMARY KEY,
@@ -115,7 +113,6 @@ const migrations = [
    )`,
   `ALTER TABLE sidebar_settings ADD COLUMN project_color_display TEXT NOT NULL DEFAULT 'all'`,
 ];
-
 export interface StoredLifecycleRow {
   threadId: string;
   parkedAt?: number | null;
@@ -124,7 +121,6 @@ export interface StoredLifecycleRow {
   snoozedUntil: number | null;
   snoozedAt: number | null;
 }
-
 interface LifecycleDbRow {
   thread_id: string;
   parked_at: number | null;
@@ -133,7 +129,6 @@ interface LifecycleDbRow {
   snoozed_until: number | null;
   snoozed_at: number | null;
 }
-
 interface SidebarSettingsDbRow {
   snooze_presets: string;
   inactive_threads_enabled: number;
@@ -151,13 +146,11 @@ interface SidebarSettingsDbRow {
   project_colors_enabled: number;
   project_color_display: string;
 }
-
 interface StoredProjectIconRow {
   project_id: string;
   path: string;
   updated_at: number;
 }
-
 interface StoredProjectIconUploadRow {
   project_id: string;
   filename: string;
@@ -166,7 +159,6 @@ interface StoredProjectIconUploadRow {
   size_bytes: number;
   updated_at: number;
 }
-
 interface ResolvedProjectIcon {
   content: string;
   contentEncoding: "base64" | "utf8";
@@ -174,7 +166,6 @@ interface ResolvedProjectIcon {
   path: string;
   sizeBytes: number;
 }
-
 const PROJECT_ICON_SOURCE_FILES = [
   "index.html",
   "public/index.html",
@@ -187,7 +178,6 @@ const PROJECT_ICON_SOURCE_FILES = [
 const PROJECT_ICON_MAX_BYTES = 1_000_000;
 const PROJECT_ICON_CACHE_MS = 5 * 60_000;
 const PROJECT_ICON_MISS_CACHE_MS = 30_000;
-
 // Only a file that does not exist is a real miss. Any other read failure, such
 // as a host that is still connecting, must not be cached as "no icon".
 function isMissingFileError(error: unknown): boolean {
@@ -203,7 +193,6 @@ function isMissingFileError(error: unknown): boolean {
     (typeof message === "string" && /ENOENT|not found|does not exist/i.test(message))
   );
 }
-
 function iconMimeType(path: string, reported: string): string {
   const lower = path.toLowerCase();
   if (lower.endsWith(".svg")) return "image/svg+xml";
@@ -215,18 +204,20 @@ function iconMimeType(path: string, reported: string): string {
   if (lower.endsWith(".webp")) return "image/webp";
   return reported;
 }
-
+interface ServerContext {
+  bb: BbPluginApi;
+  db: ReturnType<BbPluginApi["storage"]["database"]>;
+}
 export default async function plugin(bb: BbPluginApi) {
-  const getOpenPorts = createPortDiscovery(bb);
-  const threadPortActions = createThreadPortActions(bb);
-  const threadPullRequests = createThreadPullRequests(bb);
-  const regenerateTitle = createTitleRegenerator(bb);
-  const db = bb.storage.database();
-  bb.storage.migrate(db, migrations);
-  createAutoTitleRecovery(bb, regenerateTitle);
-
+  const ctx: ServerContext = { bb, db: bb.storage.database() };
+  const getOpenPorts = createPortDiscovery(ctx.bb);
+  const threadPortActions = createThreadPortActions(ctx.bb);
+  const threadPullRequests = createThreadPullRequests(ctx.bb);
+  const regenerateTitle = createTitleRegenerator(ctx.bb);
+  ctx.bb.storage.migrate(ctx.db, migrations);
+  createAutoTitleRecovery(ctx.bb, regenerateTitle);
   const readSidebarSettings = (): SidebarSettingsValues => {
-    const row = db
+    const row = ctx.db
       .prepare(
         `SELECT snooze_presets, inactive_threads_enabled,
                 inactive_after_hours, show_running_children_when_collapsed,
@@ -262,8 +253,9 @@ export default async function plugin(bb: BbPluginApi) {
       : { ...DEFAULT_SIDEBAR_SETTINGS };
   };
   const writeSidebarSettings = (values: SidebarSettingsValues): void => {
-    db.prepare(
-      `INSERT INTO sidebar_settings (
+    ctx.db
+      .prepare(
+        `INSERT INTO sidebar_settings (
          id, snooze_presets, inactive_threads_enabled,
          inactive_after_hours, show_running_children_when_collapsed,
          auto_settle_inactive,
@@ -289,30 +281,30 @@ export default async function plugin(bb: BbPluginApi) {
          dock_shelves = excluded.dock_shelves,
          project_colors_enabled = excluded.project_colors_enabled,
          project_color_display = excluded.project_color_display`,
-    ).run(
-      values.snoozePresets,
-      values.inactiveThreadsEnabled ? 1 : 0,
-      values.inactiveAfterHours,
-      values.showRunningChildrenWhenCollapsed ? 1 : 0,
-      values.autoSettleInactive ? 1 : 0,
-      values.autoSettleAfterDays,
-      values.autoSettleOnMerge ? 1 : 0,
-      values.childSortField,
-      values.childSortDirection,
-      values.childIconStyle,
-      values.compactWorkingThreads ? 1 : 0,
-      values.workingShelf ? 1 : 0,
-      values.dockShelves ? 1 : 0,
-      values.projectColorsEnabled ? 1 : 0,
-      values.projectColorDisplay,
-    );
+      )
+      .run(
+        values.snoozePresets,
+        values.inactiveThreadsEnabled ? 1 : 0,
+        values.inactiveAfterHours,
+        values.showRunningChildrenWhenCollapsed ? 1 : 0,
+        values.autoSettleInactive ? 1 : 0,
+        values.autoSettleAfterDays,
+        values.autoSettleOnMerge ? 1 : 0,
+        values.childSortField,
+        values.childSortDirection,
+        values.childIconStyle,
+        values.compactWorkingThreads ? 1 : 0,
+        values.workingShelf ? 1 : 0,
+        values.dockShelves ? 1 : 0,
+        values.projectColorsEnabled ? 1 : 0,
+        values.projectColorDisplay,
+      );
   };
-
-  const hasStoredSidebarSettings = db.prepare(`SELECT 1 FROM sidebar_settings WHERE id = 1`).get() !== undefined;
+  const hasStoredSidebarSettings = ctx.db.prepare(`SELECT 1 FROM sidebar_settings WHERE id = 1`).get() !== undefined;
   if (!hasStoredSidebarSettings) {
     try {
-      const legacy = await bb.sdk.plugins.getSettings({
-        pluginId: bb.pluginId,
+      const legacy = await ctx.bb.sdk.plugins.getSettings({
+        pluginId: ctx.bb.pluginId,
       });
       const values = legacy.values;
       const hasLegacyValues = [
@@ -367,14 +359,13 @@ export default async function plugin(bb: BbPluginApi) {
       // A new install has no previous settings generation to migrate.
     }
   }
-
   const projectIconCache = new Map<string, { expiresAt: number; icon: ResolvedProjectIcon | null }>();
   const pendingProjectIconResolutions = new Map<string, Promise<ResolvedProjectIcon | null>>();
   const projectIconGenerations = new Map<string, number>();
   const defaultProjectHostIds = new Map<string, Promise<string | null>>();
   const readProjectIconOverride = (projectId: string): string | null =>
     (
-      db
+      ctx.db
         .prepare(
           `SELECT project_id, path, updated_at
              FROM project_icons
@@ -383,7 +374,7 @@ export default async function plugin(bb: BbPluginApi) {
         .get(projectId) as StoredProjectIconRow | undefined
     )?.path ?? null;
   const readProjectIconUpload = (projectId: string): StoredProjectIconUploadRow | null =>
-    (db
+    (ctx.db
       .prepare(
         `SELECT project_id, filename, mime_type, content_base64,
                 size_bytes, updated_at
@@ -402,13 +393,11 @@ export default async function plugin(bb: BbPluginApi) {
       }
     }
   };
-
   const projectIconGeneration = (projectId: string): number => projectIconGenerations.get(projectId) ?? 0;
-
   const defaultProjectHostId = async (projectId: string): Promise<string | null> => {
     let pending = defaultProjectHostIds.get(projectId);
     if (!pending) {
-      pending = bb.sdk.projects
+      pending = ctx.bb.sdk.projects
         .get({ projectId })
         .then(
           (project) => project.sources.find((source) => source.isDefault)?.hostId ?? project.sources[0]?.hostId ?? null,
@@ -418,17 +407,15 @@ export default async function plugin(bb: BbPluginApi) {
     }
     return pending;
   };
-
   const readProjectFile = async (projectId: string, environmentId: string | null, path: string) => {
     if (environmentId) {
-      return bb.sdk.projects.fileContent({ projectId, environmentId, path });
+      return ctx.bb.sdk.projects.fileContent({ projectId, environmentId, path });
     }
     const hostId = await defaultProjectHostId(projectId);
     return hostId
-      ? bb.sdk.projects.fileContent({ projectId, hostId, path })
-      : bb.sdk.projects.fileContent({ projectId, path });
+      ? ctx.bb.sdk.projects.fileContent({ projectId, hostId, path })
+      : ctx.bb.sdk.projects.fileContent({ projectId, path });
   };
-
   const tryProjectIcon = async (
     projectId: string,
     environmentId: string | null,
@@ -449,7 +436,6 @@ export default async function plugin(bb: BbPluginApi) {
       throw error;
     }
   };
-
   const resolveProjectIconUncached = async (
     projectId: string,
     environmentId: string | null,
@@ -477,7 +463,6 @@ export default async function plugin(bb: BbPluginApi) {
     const customPath = readProjectIconOverride(projectId);
     if (customPath) candidates.push(customPath);
     candidates.push(...PROJECT_ICON_CANDIDATES);
-
     let icon: ResolvedProjectIcon | null = null;
     let unavailable = false;
     for (const candidate of new Set(candidates)) {
@@ -489,7 +474,6 @@ export default async function plugin(bb: BbPluginApi) {
       }
       if (icon) break;
     }
-
     if (!icon) {
       for (const sourcePath of PROJECT_ICON_SOURCE_FILES) {
         try {
@@ -513,7 +497,6 @@ export default async function plugin(bb: BbPluginApi) {
     if (!icon && unavailable) {
       throw new Error(`Project icon files for ${projectId} could not be read`);
     }
-
     if (projectIconGeneration(projectId) === generation) {
       projectIconCache.set(cacheKey, {
         expiresAt: Date.now() + (icon ? PROJECT_ICON_CACHE_MS : PROJECT_ICON_MISS_CACHE_MS),
@@ -522,7 +505,6 @@ export default async function plugin(bb: BbPluginApi) {
     }
     return icon;
   };
-
   const resolveProjectIcon = (projectId: string, environmentId: string | null): Promise<ResolvedProjectIcon | null> => {
     const cacheKey = `${projectId}\0${environmentId ?? ""}`;
     const cached = projectIconCache.get(cacheKey);
@@ -540,8 +522,7 @@ export default async function plugin(bb: BbPluginApi) {
     pendingProjectIconResolutions.set(cacheKey, resolution);
     return resolution;
   };
-
-  bb.http.route("GET", "/project-icon", async (context) => {
+  ctx.bb.http.route("GET", "/project-icon", async (context) => {
     const projectId = context.req.query("projectId")?.trim();
     const environmentId = context.req.query("environmentId")?.trim() || null;
     if (!projectId) return context.text("Missing projectId", 400);
@@ -563,10 +544,9 @@ export default async function plugin(bb: BbPluginApi) {
       },
     });
   });
-
   const readAll = (): StoredLifecycleRow[] =>
     (
-      db
+      ctx.db
         .prepare(
           `SELECT thread_id, settled_at, settled_override,
                   snoozed_until, snoozed_at, parked_at
@@ -581,9 +561,8 @@ export default async function plugin(bb: BbPluginApi) {
       snoozedUntil: row.snoozed_until,
       snoozedAt: row.snoozed_at,
     }));
-
   const readOne = (threadId: string): StoredLifecycleRow | null => {
-    const row = db
+    const row = ctx.db
       .prepare(
         `SELECT thread_id, settled_at, settled_override,
                 snoozed_until, snoozed_at, parked_at
@@ -602,10 +581,10 @@ export default async function plugin(bb: BbPluginApi) {
         }
       : null;
   };
-
   const write = (row: StoredLifecycleRow, publish = true): void => {
-    db.prepare(
-      `INSERT INTO thread_lifecycle
+    ctx.db
+      .prepare(
+        `INSERT INTO thread_lifecycle
          (thread_id, settled_at, settled_override, snoozed_until, snoozed_at, parked_at)
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(thread_id) DO UPDATE SET
@@ -614,33 +593,30 @@ export default async function plugin(bb: BbPluginApi) {
          snoozed_until = excluded.snoozed_until,
          snoozed_at = excluded.snoozed_at,
          parked_at = excluded.parked_at`,
-    ).run(row.threadId, row.settledAt, row.settledOverride, row.snoozedUntil, row.snoozedAt, row.parkedAt ?? null);
+      )
+      .run(row.threadId, row.settledAt, row.settledOverride, row.snoozedUntil, row.snoozedAt, row.parkedAt ?? null);
     if (publish) {
-      bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId: row.threadId });
+      ctx.bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId: row.threadId });
     }
   };
-
-  const writeMany = db.transaction((rows: readonly StoredLifecycleRow[]) => {
+  const writeMany = ctx.db.transaction((rows: readonly StoredLifecycleRow[]) => {
     for (const row of rows) write(row, false);
   });
-
   const publishLifecycleChanges = (threadIds: readonly string[]): void => {
     if (threadIds.length === 0) return;
-    bb.realtime.publish(LIFECYCLE_CHANNEL, { threadIds });
+    ctx.bb.realtime.publish(LIFECYCLE_CHANNEL, { threadIds });
   };
-
   const clear = (threadId: string): void => {
-    db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
-    bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId });
+    ctx.db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
+    ctx.bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId });
   };
-
   const clearSettlingState = (threadId: string): boolean => {
     const row = readOne(threadId);
     if (row === null || (row.settledAt === null && row.settledOverride === null && row.parkedAt == null)) {
       return false;
     }
     if (row.snoozedUntil === null) {
-      db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
+      ctx.db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
     } else {
       write(
         {
@@ -651,18 +627,15 @@ export default async function plugin(bb: BbPluginApi) {
         false,
       );
     }
-    bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId });
+    ctx.bb.realtime.publish(LIFECYCLE_CHANNEL, { threadId });
     return true;
   };
-
   const sameLifecycle = (left: StoredLifecycleRow | null, right: StoredLifecycleRow | null) =>
     JSON.stringify(left) === JSON.stringify(right);
-
   type AncestorThread = Pick<
     Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["get"]>>,
     "id" | "parentThreadId" | "archivedAt" | "deletedAt"
   >;
-
   const wakeAncestors = async (
     thread: { id: string; parentThreadId: string | null },
     {
@@ -686,9 +659,11 @@ export default async function plugin(bb: BbPluginApi) {
       try {
         // RPCs and policy passes already loaded the complete tree. Do not
         // introduce another network failure after their shelf writes succeed.
-        parent = threadsById ? threadsById.get(parentId) : await bb.sdk.threads.get({ threadId: parentId });
+        parent = threadsById ? threadsById.get(parentId) : await ctx.bb.sdk.threads.get({ threadId: parentId });
       } catch (error) {
-        bb.log.warn(`Could not load ancestor ${parentId}: ${error instanceof Error ? error.message : String(error)}`);
+        ctx.bb.log.warn(
+          `Could not load ancestor ${parentId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
         break;
       }
       if (!parent || parent.archivedAt !== null || parent.deletedAt !== null) break;
@@ -698,7 +673,7 @@ export default async function plugin(bb: BbPluginApi) {
     // A Settle completed while the ancestors were loading. Keep that newer
     // decision rather than reopening a tree that is already quiet again.
     if (readOne(thread.id)?.settledAt != null) return [];
-    const changed = db.transaction(() => {
+    const changed = ctx.db.transaction(() => {
       const ids: string[] = [];
       for (const id of ancestors) {
         const row = readOne(id);
@@ -709,7 +684,7 @@ export default async function plugin(bb: BbPluginApi) {
         // Reversing an automatic rule is not new child activity. Keep the
         // user's manual shelf choice, including older parent-only settles.
         if (automaticOnly && (row.settledOverride != null || row.parkedAt != null || row.snoozedUntil != null)) break;
-        db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(id);
+        ctx.db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(id);
         ids.push(id);
       }
       return ids;
@@ -717,7 +692,6 @@ export default async function plugin(bb: BbPluginApi) {
     publishLifecycleChanges(changed);
     return changed;
   };
-
   // Pin, reparent and tree Settle must not validate the same old state.
   const pinParentChanges = new Set<string>();
   const withThreadChanges = async <T>(threadIds: string[], change: () => Promise<T>): Promise<T> => {
@@ -732,10 +706,9 @@ export default async function plugin(bb: BbPluginApi) {
     }
   };
   const withPinParentChange = <T>(threadId: string, change: () => Promise<T>) => withThreadChanges([threadId], change);
-
   const readInboxOrder = (): string[] =>
     (
-      db
+      ctx.db
         .prepare(
           `SELECT thread_id
              FROM inbox_order
@@ -743,20 +716,18 @@ export default async function plugin(bb: BbPluginApi) {
         )
         .all() as Array<{ thread_id: string }>
     ).map((row) => row.thread_id);
-
-  const replaceInboxOrder = db.transaction((inboxThreadIds: string[]) => {
-    db.prepare(`DELETE FROM inbox_order`).run();
-    const insert = db.prepare(`INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)`);
+  const replaceInboxOrder = ctx.db.transaction((inboxThreadIds: string[]) => {
+    ctx.db.prepare(`DELETE FROM inbox_order`).run();
+    const insert = ctx.db.prepare(`INSERT INTO inbox_order (thread_id, sort_index) VALUES (?, ?)`);
     inboxThreadIds.forEach((threadId, index) => insert.run(threadId, index));
   });
-
   // Both endpoints supply complete activity summaries. Project groups provide
   // visible rows in one call; only the paged thread endpoint includes helpers.
   // Use one source per read so an older project row cannot resurrect an archived
   // or deleted thread omitted from the newer thread list.
   const loadPolicyThreads = async (includeHidden = false) => {
     if (!includeHidden) {
-      const projects = await bb.sdk.projects.list({ include: "threads", includePersonal: true });
+      const projects = await ctx.bb.sdk.projects.list({ include: "threads", includePersonal: true });
       return projects.flatMap((project) =>
         "threads" in project
           ? project.threads.filter(
@@ -765,10 +736,10 @@ export default async function plugin(bb: BbPluginApi) {
           : [],
       );
     }
-    const byId = new Map<string, Awaited<ReturnType<typeof bb.sdk.threads.list>>[number]>();
+    const byId = new Map<string, Awaited<ReturnType<typeof ctx.bb.sdk.threads.list>>[number]>();
     const limit = 100;
     for (let offset = 0; ; offset += limit) {
-      const page = await bb.sdk.threads.list({ archived: false, includeHidden: true, limit, offset });
+      const page = await ctx.bb.sdk.threads.list({ archived: false, includeHidden: true, limit, offset });
       for (const thread of page) {
         if (thread.archivedAt === null && thread.deletedAt === null) byId.set(thread.id, { ...thread });
         else byId.delete(thread.id);
@@ -777,7 +748,6 @@ export default async function plugin(bb: BbPluginApi) {
     }
     return [...byId.values()];
   };
-
   type CleanupThread = Awaited<ReturnType<typeof loadPolicyThreads>>[number];
   const threadSignals = (thread: CleanupThread) => ({
     hasPendingInteraction: thread.hasPendingInteraction,
@@ -815,7 +785,7 @@ export default async function plugin(bb: BbPluginApi) {
       previous: Array<{ threadId: string; parentThreadId: string | null; row: StoredLifecycleRow | null }>;
     }
   >();
-  bb.onDispose(() => settleUndos.clear());
+  ctx.bb.onDispose(() => settleUndos.clear());
   let lastManualSettleAt = 0;
   const matchesSettle = (row: StoredLifecycleRow | null, settledAt: number) =>
     row?.settledAt === settledAt &&
@@ -823,7 +793,6 @@ export default async function plugin(bb: BbPluginApi) {
     row.parkedAt == null &&
     row.snoozedUntil === null &&
     row.snoozedAt === null;
-
   type CleanupIssue = z.infer<typeof cleanupIssueSchema>;
   type CleanupPlanThread = {
     threadId: string;
@@ -846,8 +815,7 @@ export default async function plugin(bb: BbPluginApi) {
       ? session.environmentId === null
       : session.environmentId === workspace.environmentId && session.hostId === workspace.hostId;
   const cleanupPlans = new Map<string, { expiresAt: number; threads: CleanupPlanThread[]; skipped: CleanupIssue[] }>();
-  bb.onDispose(() => cleanupPlans.clear());
-
+  ctx.bb.onDispose(() => cleanupPlans.clear());
   const canCleanSettledThread = (thread: CleanupThread, row: StoredLifecycleRow | null) => {
     if (
       !row ||
@@ -942,7 +910,6 @@ export default async function plugin(bb: BbPluginApi) {
   };
   const cleanupError = (error: unknown): string =>
     error instanceof Error && error.message.trim() ? error.message : String(error);
-
   const loadPullRequests = async (environmentIds: readonly string[]) => {
     const results = new Map<string, AutoSettlePullRequest>();
     let nextIndex = 0;
@@ -950,7 +917,7 @@ export default async function plugin(bb: BbPluginApi) {
       while (nextIndex < environmentIds.length) {
         const environmentId = environmentIds[nextIndex++]!;
         try {
-          const result = await bb.sdk.environments.pullRequest({
+          const result = await ctx.bb.sdk.environments.pullRequest({
             environmentId,
           });
           if (result.outcome === "available") {
@@ -972,7 +939,6 @@ export default async function plugin(bb: BbPluginApi) {
     await Promise.all(workers);
     return results;
   };
-
   // Queued cleanup belongs to the shelf action that scheduled it. Revalidate
   // after network waits; activity, a new shelf choice, a pin or reparent cancels
   // the remaining work. The SDK has no atomic "stop only if idle" operation.
@@ -1003,16 +969,15 @@ export default async function plugin(bb: BbPluginApi) {
     let stoppedRuntime = false;
     try {
       if (!(await canReclaim())) return { ...EMPTY_RECLAIM };
-      await bb.sdk.threads.stop({ threadId });
+      await ctx.bb.sdk.threads.stop({ threadId });
       stoppedRuntime = true;
     } catch {
       // A thread with no loaded runtime is the common case, not an error.
     }
-
     let closedTerminals = 0;
     let keptTerminals = 0;
     try {
-      const { sessions } = await bb.sdk.terminals.list({
+      const { sessions } = await ctx.bb.sdk.terminals.list({
         scope: { kind: "thread", threadId },
       });
       const plan = planTerminalReclaim(sessions);
@@ -1020,7 +985,7 @@ export default async function plugin(bb: BbPluginApi) {
       for (const terminalId of plan.close) {
         try {
           if (!(await canReclaim())) break;
-          await bb.sdk.terminals.close({ terminalId, mode: "if-clean" });
+          await ctx.bb.sdk.terminals.close({ terminalId, mode: "if-clean" });
           closedTerminals += 1;
         } catch {
           // Someone typed into it between the list and the close.
@@ -1029,11 +994,9 @@ export default async function plugin(bb: BbPluginApi) {
     } catch {
       // Leave the counts at zero rather than reporting a number we did not see.
     }
-
     return { closedTerminals, keptTerminals, stoppedRuntime };
   };
-
-  const applyPolicyChanges = db.transaction(
+  const applyPolicyChanges = ctx.db.transaction(
     (
       changes: ReadonlyArray<{
         decision: "settle" | "unsettle";
@@ -1064,12 +1027,11 @@ export default async function plugin(bb: BbPluginApi) {
             false,
           );
         } else {
-          db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
+          ctx.db.prepare(`DELETE FROM thread_lifecycle WHERE thread_id = ?`).run(threadId);
         }
       }
     },
   );
-
   let policyEvaluation: Promise<string[]> | null = null;
   let policyEvaluationQueued = false;
   let policySettingsRevision = 0;
@@ -1209,7 +1171,7 @@ export default async function plugin(bb: BbPluginApi) {
       if (!policyEvaluationQueued) return;
       policyEvaluationQueued = false;
       void evaluatePolicies().catch((error) => {
-        bb.log.error(
+        ctx.bb.log.error(
           `Queued automatic settle evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
         );
       });
@@ -1217,12 +1179,10 @@ export default async function plugin(bb: BbPluginApi) {
     policyEvaluation = settledEvaluation;
     return settledEvaluation;
   };
-
-  bb.background.schedule("auto-settle", "*/5 * * * *", async () => {
+  ctx.bb.background.schedule("auto-settle", "*/5 * * * *", async () => {
     await evaluatePolicies();
   });
-
-  bb.rpc.register(bbSidebarRpcContract, {
+  ctx.bb.rpc.register(bbSidebarRpcContract, {
     getOpenPorts,
     getThreadPorts: threadPortActions.getThreadPorts,
     getThreadPullRequests: threadPullRequests.getThreadPullRequests,
@@ -1257,7 +1217,7 @@ export default async function plugin(bb: BbPluginApi) {
           }
           const terminalIds: string[] = [];
           try {
-            const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
+            const { sessions } = await ctx.bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
             terminalIds.push(
               ...sessions
                 .filter(
@@ -1340,7 +1300,7 @@ export default async function plugin(bb: BbPluginApi) {
           const plannedThread = plannedById.get(threadId)!;
           if (plannedThread.terminalIds.length > 0) {
             try {
-              const { sessions } = await bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
+              const { sessions } = await ctx.bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
               const current = new Map(sessions.map((session) => [session.id, session]));
               for (const terminalId of plannedThread.terminalIds) {
                 const latestWorkspace = await threadPortActions.getThreadWorkspace({ threadId });
@@ -1374,7 +1334,7 @@ export default async function plugin(bb: BbPluginApi) {
                   continue;
                 }
                 try {
-                  await bb.sdk.terminals.close({ terminalId, mode: "force" });
+                  await ctx.bb.sdk.terminals.close({ terminalId, mode: "force" });
                   result.closedTerminals += 1;
                 } catch (error) {
                   result.failed.push({
@@ -1488,20 +1448,20 @@ export default async function plugin(bb: BbPluginApi) {
       }
     },
     async getThreadExecutionDetails({ threadId }) {
-      const options = await bb.sdk.threads.defaultExecutionOptions({ threadId });
+      const options = await ctx.bb.sdk.threads.defaultExecutionOptions({ threadId });
       return options ? { model: options.model, reasoningLevel: options.reasoningLevel } : null;
     },
     async setThreadParent({ threadId, parentThreadId }) {
       return withPinParentChange(threadId, async () => {
-        const thread = await bb.sdk.threads.get({ threadId });
+        const thread = await ctx.bb.sdk.threads.get({ threadId });
         if (parentThreadId === thread.parentThreadId) return { ok: true };
         // Validate the parent before unpinning: a rejected update must keep the pin.
-        await bb.sdk.threads.update({ threadId, parentThreadId });
+        await ctx.bb.sdk.threads.update({ threadId, parentThreadId });
         if (parentThreadId != null && thread.pinnedAt != null) {
           try {
-            await bb.sdk.threads.unpin({ threadId });
+            await ctx.bb.sdk.threads.unpin({ threadId });
           } catch (error) {
-            bb.log.error(
+            ctx.bb.log.error(
               `Parent updated but unpinning failed for thread ${threadId}, parent ${parentThreadId}: ${error instanceof Error ? error.message : String(error)}`,
             );
             return { ok: true, unpinFailed: true as const };
@@ -1514,27 +1474,29 @@ export default async function plugin(bb: BbPluginApi) {
       // The sidebar shows its own confirmation naming the thread and project,
       // so bb's generic one is skipped. Deletion is recursive; bb refuses it
       // unless the caller confirmed the children too.
-      await bb.sdk.threads.delete({ threadId, childThreadsConfirmed });
+      await ctx.bb.sdk.threads.delete({ threadId, childThreadsConfirmed });
       return { ok: true };
     },
     regenerateTitle: ({ threadId }) => regenerateTitle(threadId),
     async getProjectColors() {
-      const rows = db.prepare("SELECT project_id, color FROM project_colors").all() as Array<{
+      const rows = ctx.db.prepare("SELECT project_id, color FROM project_colors").all() as Array<{
         project_id: string;
         color: string;
       }>;
       return { colors: Object.fromEntries(rows.map((row) => [row.project_id, row.color])) };
     },
     async setProjectColor({ projectId, color }) {
-      await bb.sdk.projects.get({ projectId });
+      await ctx.bb.sdk.projects.get({ projectId });
       if (color === null) {
-        db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
+        ctx.db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
       } else {
-        db.prepare(
-          "INSERT INTO project_colors (project_id, color) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET color = excluded.color",
-        ).run(projectId, color);
+        ctx.db
+          .prepare(
+            "INSERT INTO project_colors (project_id, color) VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET color = excluded.color",
+          )
+          .run(projectId, color);
       }
-      bb.realtime.publish(PROJECT_COLORS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_COLORS_CHANNEL, { projectId });
       return { ok: true };
     },
     async getSidebarSettings() {
@@ -1544,7 +1506,7 @@ export default async function plugin(bb: BbPluginApi) {
       const stored = readSidebarSettings();
       const next = { ...stored, ...values };
       writeSidebarSettings(next);
-      bb.realtime.publish(SIDEBAR_SETTINGS_CHANNEL, {});
+      ctx.bb.realtime.publish(SIDEBAR_SETTINGS_CHANNEL, {});
       if (
         next.autoSettleInactive !== stored.autoSettleInactive ||
         next.autoSettleAfterDays !== stored.autoSettleAfterDays ||
@@ -1552,7 +1514,7 @@ export default async function plugin(bb: BbPluginApi) {
       ) {
         policySettingsRevision += 1;
         void evaluatePolicies().catch((error) => {
-          bb.log.error(
+          ctx.bb.log.error(
             `Automatic settle evaluation failed after a settings change: ${error instanceof Error ? error.message : String(error)}`,
           );
         });
@@ -1564,12 +1526,12 @@ export default async function plugin(bb: BbPluginApi) {
     },
     async pin({ threadId }) {
       return withPinParentChange(threadId, async () => {
-        const thread = await bb.sdk.threads.get({ threadId });
+        const thread = await ctx.bb.sdk.threads.get({ threadId });
         if (thread.parentThreadId != null) {
           throw new Error("Child threads cannot be pinned");
         }
         // Preserve the previous shelf if the native pin fails.
-        await bb.sdk.threads.pin({ threadId });
+        await ctx.bb.sdk.threads.pin({ threadId });
         write({
           threadId,
           parkedAt: null,
@@ -1582,7 +1544,7 @@ export default async function plugin(bb: BbPluginApi) {
       });
     },
     async park({ threadId }) {
-      await bb.sdk.threads.unpin({ threadId });
+      await ctx.bb.sdk.threads.unpin({ threadId });
       write({
         threadId,
         parkedAt: Date.now(),
@@ -1619,7 +1581,7 @@ export default async function plugin(bb: BbPluginApi) {
         try {
           for (const thread of tree) {
             if (thread.pinnedAt === null) continue;
-            await bb.sdk.threads.unpin({ threadId: thread.id });
+            await ctx.bb.sdk.threads.unpin({ threadId: thread.id });
             unpinned.push(thread);
           }
           const currentTree = await loadSettleTree(threadId);
@@ -1665,7 +1627,7 @@ export default async function plugin(bb: BbPluginApi) {
           const failed: string[] = [];
           for (const original of unpinned.reverse()) {
             try {
-              const current = await bb.sdk.threads.get({ threadId: original.id });
+              const current = await ctx.bb.sdk.threads.get({ threadId: original.id });
               // Preserve subsequent native pins, parent changes and shelf choices.
               if (
                 current.pinnedAt !== null ||
@@ -1673,9 +1635,9 @@ export default async function plugin(bb: BbPluginApi) {
                 !sameLifecycle(readOne(original.id), beforeRows.get(original.id)!)
               )
                 continue;
-              await bb.sdk.threads.pin({ threadId: original.id });
+              await ctx.bb.sdk.threads.pin({ threadId: original.id });
               const index = pins.findIndex((thread) => thread.id === original.id);
-              await bb.sdk.threads.reorderPinned({
+              await ctx.bb.sdk.threads.reorderPinned({
                 threadId: original.id,
                 previousThreadId: pins[index - 1]?.id ?? null,
                 nextThreadId: pins[index + 1]?.id ?? null,
@@ -1721,7 +1683,7 @@ export default async function plugin(bb: BbPluginApi) {
           throw new Error("This Settle can no longer be undone. Use Return to Active instead.");
         }
         const tree = new Map((await loadSettleTree(threadId)).map((thread) => [thread.id, thread]));
-        const restored = db.transaction(() => {
+        const restored = ctx.db.transaction(() => {
           const ids: string[] = [];
           for (const previous of undo.previous) {
             const thread = tree.get(previous.threadId);
@@ -1735,7 +1697,7 @@ export default async function plugin(bb: BbPluginApi) {
             )
               continue;
             if (previous.row) write(previous.row, false);
-            else db.prepare("DELETE FROM thread_lifecycle WHERE thread_id = ?").run(thread.id);
+            else ctx.db.prepare("DELETE FROM thread_lifecycle WHERE thread_id = ?").run(thread.id);
             ids.push(thread.id);
           }
           return ids;
@@ -1747,14 +1709,14 @@ export default async function plugin(bb: BbPluginApi) {
       const threads = await loadPolicyThreads(true);
       const tree = settleTree(threads, threadId);
       const restoring = tree.filter((thread) => thread.id === threadId || readOne(thread.id)?.settledAt != null);
-      db.transaction(() => {
+      ctx.db.transaction(() => {
         for (const thread of restoring) {
           if (thread.id === threadId) {
             write({ threadId, settledAt: null, settledOverride: "active", snoozedUntil: null, snoozedAt: null }, false);
           } else {
             // Returning the parent is not an independent permanent Active choice
             // for every descendant. They resume their ordinary automatic rules.
-            db.prepare("DELETE FROM thread_lifecycle WHERE thread_id = ?").run(thread.id);
+            ctx.db.prepare("DELETE FROM thread_lifecycle WHERE thread_id = ?").run(thread.id);
           }
         }
       })();
@@ -1765,7 +1727,7 @@ export default async function plugin(bb: BbPluginApi) {
       return { ok: true };
     },
     async snooze({ threadId, snoozedUntil }) {
-      await bb.sdk.threads.unpin({ threadId });
+      await ctx.bb.sdk.threads.unpin({ threadId });
       const now = Date.now();
       write({
         threadId,
@@ -1788,7 +1750,7 @@ export default async function plugin(bb: BbPluginApi) {
       await runThreadTasks(
         threadIds,
         async (threadId) => {
-          await bb.sdk.threads.stop({ threadId });
+          await ctx.bb.sdk.threads.stop({ threadId });
         },
         4,
       );
@@ -1805,7 +1767,7 @@ export default async function plugin(bb: BbPluginApi) {
       return { ok: true };
     },
     async reorderPinned({ threadId, previousThreadId, nextThreadId }) {
-      const reordered = await bb.sdk.threads.reorderPinned({
+      const reordered = await ctx.bb.sdk.threads.reorderPinned({
         threadId,
         previousThreadId,
         nextThreadId,
@@ -1819,14 +1781,14 @@ export default async function plugin(bb: BbPluginApi) {
     },
     async reorderInbox({ inboxThreadIds }) {
       replaceInboxOrder(inboxThreadIds);
-      bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
+      ctx.bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
       return { inboxThreadIds: readInboxOrder() };
     },
     async evaluateAutoSettle() {
       return { changedThreadIds: await evaluatePolicies() };
     },
     async listProjectIconSettings() {
-      const projects = await bb.sdk.projects.list();
+      const projects = await ctx.bb.sdk.projects.list();
       return {
         projects: projects
           .filter((project) => project.kind === "standard")
@@ -1839,7 +1801,7 @@ export default async function plugin(bb: BbPluginApi) {
       };
     },
     async listProjects() {
-      const projects = await bb.sdk.projects.list();
+      const projects = await ctx.bb.sdk.projects.list();
       return {
         projects: projects
           .filter((project) => project.kind === "standard")
@@ -1847,16 +1809,16 @@ export default async function plugin(bb: BbPluginApi) {
       };
     },
     async renameProject({ projectId, name }) {
-      const project = await bb.sdk.projects.get({ projectId });
+      const project = await ctx.bb.sdk.projects.get({ projectId });
       if (project.kind !== "standard") throw new Error("Personal projects cannot be renamed");
-      await bb.sdk.projects.update({ projectId, name });
-      bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      await ctx.bb.sdk.projects.update({ projectId, name });
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return { ok: true as const };
     },
     async projectPathHosts({ projectId }) {
-      const project = await bb.sdk.projects.get({ projectId });
+      const project = await ctx.bb.sdk.projects.get({ projectId });
       if (project.kind !== "standard") return { hosts: [] };
-      const hosts = await bb.sdk.hosts.list();
+      const hosts = await ctx.bb.sdk.hosts.list();
       return {
         hosts: hosts
           .filter((host) => host.status === "connected" && !project.sources.some((source) => source.hostId === host.id))
@@ -1864,35 +1826,34 @@ export default async function plugin(bb: BbPluginApi) {
       };
     },
     async addProjectPath({ projectId, hostId, path }) {
-      const project = await bb.sdk.projects.get({ projectId });
+      const project = await ctx.bb.sdk.projects.get({ projectId });
       if (project.kind !== "standard") throw new Error("Personal projects cannot have local paths added");
       if (project.sources.some((source) => source.hostId === hostId)) {
         throw new Error("This project already has a path on that machine");
       }
-      await bb.sdk.projects.sources.add({ projectId, hostId, path, type: "local_path" });
+      await ctx.bb.sdk.projects.sources.add({ projectId, hostId, path, type: "local_path" });
       defaultProjectHostIds.delete(projectId);
-      bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return { ok: true as const };
     },
     async removeProject({ projectId, confirmation }) {
-      const project = await bb.sdk.projects.get({ projectId });
+      const project = await ctx.bb.sdk.projects.get({ projectId });
       if (project.kind !== "standard") {
         throw new Error("Personal projects cannot be removed");
       }
       if (confirmation !== project.name) {
         throw new Error("Enter the project name exactly as shown");
       }
-
-      await bb.sdk.projects.delete({ projectId });
-      db.transaction(() => {
-        db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
-        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
-        db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+      await ctx.bb.sdk.projects.delete({ projectId });
+      ctx.db.transaction(() => {
+        ctx.db.prepare("DELETE FROM project_colors WHERE project_id = ?").run(projectId);
+        ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+        ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
       })();
       defaultProjectHostIds.delete(projectId);
       clearProjectIconCache(projectId);
-      bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
-      bb.realtime.publish(PROJECT_COLORS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_COLORS_CHANNEL, { projectId });
       return { ok: true as const };
     },
     async searchProjectIconFiles({ projectId, query }) {
@@ -1905,8 +1866,8 @@ export default async function plugin(bb: BbPluginApi) {
         query,
       };
       const result = hostId
-        ? await bb.sdk.projects.paths({ ...request, hostId })
-        : await bb.sdk.projects.paths(request);
+        ? await ctx.bb.sdk.projects.paths({ ...request, hostId })
+        : await ctx.bb.sdk.projects.paths(request);
       return {
         paths: [
           ...new Set(
@@ -1920,34 +1881,36 @@ export default async function plugin(bb: BbPluginApi) {
       };
     },
     async setProjectIcon({ projectId, path }) {
-      await bb.sdk.projects.get({ projectId });
+      await ctx.bb.sdk.projects.get({ projectId });
       const normalized = path === null ? null : normalizeProjectIconPath(path);
       if (path !== null && normalized === null) {
         throw new Error("Choose a relative image path inside the project");
       }
       if (normalized === null) {
-        db.transaction(() => {
-          db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
-          db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+        ctx.db.transaction(() => {
+          ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+          ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
         })();
       } else {
-        db.transaction(() => {
-          db.prepare(
-            `INSERT INTO project_icons (project_id, path, updated_at)
+        ctx.db.transaction(() => {
+          ctx.db
+            .prepare(
+              `INSERT INTO project_icons (project_id, path, updated_at)
              VALUES (?, ?, ?)
              ON CONFLICT(project_id) DO UPDATE SET
                path = excluded.path,
                updated_at = excluded.updated_at`,
-          ).run(projectId, normalized, Date.now());
-          db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+            )
+            .run(projectId, normalized, Date.now());
+          ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
         })();
       }
       clearProjectIconCache(projectId);
-      bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return { customPath: normalized, customUploadName: null };
     },
     async uploadProjectIcon({ projectId, filename, mimeType, contentBase64 }) {
-      await bb.sdk.projects.get({ projectId });
+      await ctx.bb.sdk.projects.get({ projectId });
       const bytes = Buffer.from(contentBase64, "base64");
       if (bytes.byteLength === 0 || bytes.byteLength > PROJECT_ICON_MAX_BYTES) {
         throw new Error("Choose an image smaller than 1 MB");
@@ -1958,9 +1921,10 @@ export default async function plugin(bb: BbPluginApi) {
         throw new Error("The selected image data is invalid");
       }
       const resolvedMimeType = iconMimeType(normalizedFilename, mimeType);
-      db.transaction(() => {
-        db.prepare(
-          `INSERT INTO project_icon_uploads (
+      ctx.db.transaction(() => {
+        ctx.db
+          .prepare(
+            `INSERT INTO project_icon_uploads (
              project_id, filename, mime_type, content_base64,
              size_bytes, updated_at
            ) VALUES (?, ?, ?, ?, ?, ?)
@@ -1970,35 +1934,34 @@ export default async function plugin(bb: BbPluginApi) {
              content_base64 = excluded.content_base64,
              size_bytes = excluded.size_bytes,
              updated_at = excluded.updated_at`,
-        ).run(projectId, normalizedFilename, resolvedMimeType, canonicalBase64, bytes.byteLength, Date.now());
-        db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+          )
+          .run(projectId, normalizedFilename, resolvedMimeType, canonicalBase64, bytes.byteLength, Date.now());
+        ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
       })();
       clearProjectIconCache(projectId);
-      bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return {
         customPath: null,
         customUploadName: normalizedFilename,
       };
     },
   });
-
   // New or resumed child work reopens the ancestor path, keeping its existing
   // sidebar nesting reachable. Siblings retain their own settled state.
-  bb.events.on("thread.created", async ({ thread }) => {
+  ctx.bb.events.on("thread.created", async ({ thread }) => {
     await wakeAncestors(thread);
   });
-  bb.events.on("thread.active", async ({ thread }) => {
+  ctx.bb.events.on("thread.active", async ({ thread }) => {
     clearSettlingState(thread.id);
     await wakeAncestors(thread);
   });
-
   // A deleted thread must not leave a row behind that would park a future
   // thread reusing the id, and stale rows accumulate otherwise.
-  bb.events.on("thread.deleted", ({ thread }) => {
+  ctx.bb.events.on("thread.deleted", ({ thread }) => {
     clear(thread.id);
-    const removed = db.prepare(`DELETE FROM inbox_order WHERE thread_id = ?`).run(thread.id);
+    const removed = ctx.db.prepare(`DELETE FROM inbox_order WHERE thread_id = ?`).run(thread.id);
     if (removed.changes > 0) {
-      bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
+      ctx.bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
     }
   });
 }
