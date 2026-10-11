@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -41,6 +42,15 @@ describe("ThreadInbox", () => {
   });
 
   it("moves stale unpinned threads to a collapsed Inactive shelf", () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...{
+        inactiveThreadsEnabled: true,
+        inactiveAfterHours: 6,
+      },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     const now = Date.now();
     renderSlot(inbox, listProps, {
       sidebarThreads: {
@@ -65,11 +75,7 @@ describe("ThreadInbox", () => {
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: {
-        inactiveThreadsEnabled: true,
-        inactiveAfterHours: "6",
-      },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
+      rpc: { getSidebarSettings: () => storedSettings, listLifecycle: () => ({ rows: [] }) },
     });
 
     const active = screen.getByRole("region", { name: "Active" });
@@ -86,6 +92,15 @@ describe("ThreadInbox", () => {
   });
 
   it("keeps stale threads Active when the feature is disabled", () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...{
+        inactiveThreadsEnabled: false,
+        inactiveAfterHours: 6,
+      },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     renderSlot(inbox, listProps, {
       sidebarThreads: {
         status: "ready",
@@ -98,11 +113,7 @@ describe("ThreadInbox", () => {
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: {
-        inactiveThreadsEnabled: false,
-        inactiveAfterHours: "6",
-      },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
+      rpc: { getSidebarSettings: () => storedSettings, listLifecycle: () => ({ rows: [] }) },
     });
 
     expect(within(screen.getByRole("region", { name: "Active" })).getByText("Still active")).toBeDefined();
@@ -110,6 +121,15 @@ describe("ThreadInbox", () => {
   });
 
   it("uses the configured inactivity threshold", () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...{
+        inactiveThreadsEnabled: true,
+        inactiveAfterHours: 8,
+      },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     const now = Date.now();
     renderSlot(inbox, listProps, {
       sidebarThreads: {
@@ -128,11 +148,7 @@ describe("ThreadInbox", () => {
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: {
-        inactiveThreadsEnabled: true,
-        inactiveAfterHours: "8",
-      },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
+      rpc: { getSidebarSettings: () => storedSettings, listLifecycle: () => ({ rows: [] }) },
     });
 
     expect(within(screen.getByRole("region", { name: "Active" })).getByText("Seven hours old")).toBeDefined();

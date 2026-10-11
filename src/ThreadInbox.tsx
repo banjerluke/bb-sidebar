@@ -5,7 +5,6 @@ import {
   experimental_useProviders as useProviders,
   type PluginSidebarThread,
   type PluginThreadListProps,
-  useSettings,
 } from "@get-bb/plugin-sdk/app";
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
 import { createDragReorderHandler } from "./drag-reorder";
@@ -55,8 +54,8 @@ import {
   rebaseMovedId,
   rebaseMovedUnit,
 } from "./pinned-order";
-import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets } from "./lifecycle";
-import { DEFAULT_INACTIVE_AFTER_HOURS, parseInactiveAfterHours } from "./inactive";
+import { parseConfiguredSnoozePresets } from "./lifecycle";
+import { parseInactiveAfterHours } from "./inactive";
 import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
@@ -150,7 +149,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
   const actions = useSidebarThreadActions();
-  const { values: legacySettings } = useSettings();
   const sidebarSettings = useSidebarSettings();
   const lifecycle = useLifecycle(threads);
   const projectIconRevision = useProjectIconRevision();
@@ -162,17 +160,12 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   activeThreadIdRef.current = activeThreadId;
   const jumpHintsRootRef = useRef<HTMLDivElement>(null);
   const jumpHints = useJumpHints(jumpHintsRootRef);
-  const configuredSnoozePresets =
-    sidebarSettings?.snoozePresets ??
-    (typeof legacySettings?.snoozePresets === "string" ? legacySettings.snoozePresets : DEFAULT_SNOOZE_PRESET_CONFIG);
+  const configuredSnoozePresets = sidebarSettings?.snoozePresets ?? DEFAULT_SIDEBAR_SETTINGS.snoozePresets;
   const snoozePresets = useMemo(() => parseConfiguredSnoozePresets(configuredSnoozePresets), [configuredSnoozePresets]);
   const inactiveAfterHours = parseInactiveAfterHours(
-    sidebarSettings?.inactiveThreadsEnabled ?? legacySettings?.inactiveThreadsEnabled === true,
-    sidebarSettings
-      ? String(sidebarSettings.inactiveAfterHours)
-      : typeof legacySettings?.inactiveAfterHours === "string"
-        ? legacySettings.inactiveAfterHours
-        : String(DEFAULT_INACTIVE_AFTER_HOURS),
+    // Keep the loading view active until saved or cached settings are available.
+    sidebarSettings?.inactiveThreadsEnabled ?? false,
+    String(sidebarSettings?.inactiveAfterHours ?? DEFAULT_SIDEBAR_SETTINGS.inactiveAfterHours),
   );
   const dockShelvesEnabled = sidebarSettings?.dockShelves ?? DEFAULT_SIDEBAR_SETTINGS.dockShelves;
   const workingShelfEnabled = sidebarSettings?.workingShelf ?? DEFAULT_SIDEBAR_SETTINGS.workingShelf;

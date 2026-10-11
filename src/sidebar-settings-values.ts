@@ -1,3 +1,4 @@
+import { DEFAULT_INACTIVE_AFTER_HOURS } from "./inactive";
 import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
 
 export const CHILD_THREAD_SORT_FIELDS = ["created", "activity"] as const;
@@ -41,7 +42,7 @@ export interface SidebarSettingsValues {
 export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   snoozePresets: DEFAULT_SNOOZE_PRESET_CONFIG,
   inactiveThreadsEnabled: true,
-  inactiveAfterHours: 6,
+  inactiveAfterHours: DEFAULT_INACTIVE_AFTER_HOURS,
   showRunningChildrenWhenCollapsed: true,
   autoSettleInactive: true,
   autoSettleAfterDays: 3,

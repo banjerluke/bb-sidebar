@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, defaultSidebarSettings, thread, listProps, deferred, toastMocks, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -10,6 +11,15 @@ await loadInboxApp();
 
 describe("ThreadInbox", () => {
   it("drops against the inbox order the host pushed mid-drag", async () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...{
+        inactiveThreadsEnabled: true,
+        inactiveAfterHours: 6,
+      },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     const now = Date.now();
     let storedIds = ["a", "b", "z"];
     let reorderInput: { inboxThreadIds: string[] } | null = null;
@@ -40,11 +50,8 @@ describe("ThreadInbox", () => {
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: {
-        inactiveThreadsEnabled: true,
-        inactiveAfterHours: "6",
-      },
       rpc: {
+        getSidebarSettings: () => storedSettings,
         listLifecycle: () => ({ rows: [] }),
         listInboxOrder: () => ({ inboxThreadIds: storedIds }),
         reorderInbox: (input) => {

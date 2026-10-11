@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -41,6 +42,15 @@ describe("parking threads", () => {
   });
 
   it("persists each shelf's expanded state across remounts", async () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...{
+        inactiveThreadsEnabled: true,
+        inactiveAfterHours: 6,
+      },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     const now = Date.now();
     const rows = [
       {
@@ -71,11 +81,7 @@ describe("parking threads", () => {
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: {
-        inactiveThreadsEnabled: true,
-        inactiveAfterHours: "6",
-      },
-      rpc: { listLifecycle: () => ({ rows }) },
+      rpc: { getSidebarSettings: () => storedSettings, listLifecycle: () => ({ rows }) },
     };
 
     renderSlot(inbox, listProps, options);

@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
 import {
   inbox,
@@ -228,7 +229,14 @@ describe("row context menu", () => {
     expect(rendered.rpcCalls.filter((call) => call.method === "deleteThread")).toEqual([]);
   });
 
-  it("uses custom snooze times from plugin settings", async () => {
+  it("uses custom snooze times from server settings", async () => {
+    const storedSettings = {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      inactiveThreadsEnabled: false,
+      ...{ snoozePresets: "15m, Lunch break=3h" },
+    };
+    localStorage.setItem("bb-sidebar:settings-cache:v1", JSON.stringify(storedSettings));
+
     let snoozed: { threadId: string; snoozedUntil: number } | null = null;
     renderSlot(inbox, listProps, {
       sidebarThreads: {
@@ -236,8 +244,8 @@ describe("row context menu", () => {
         threads: [thread({ id: "thr_snooze", title: "Snooze me" })],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      settings: { snoozePresets: "15m, Lunch break=3h" },
       rpc: {
+        getSidebarSettings: () => storedSettings,
         listLifecycle: () => ({ rows: [] }),
         snooze: (input) => {
           snoozed = input as { threadId: string; snoozedUntil: number };

@@ -6,7 +6,7 @@ const debtLimits = {
   "src/ChildThreadList.tsx": 538,
   "src/SidebarSettings.tsx": 535,
   "src/ThreadCard.tsx": 658,
-  "src/ThreadInbox.tsx": 696,
+  "src/ThreadInbox.tsx": 689,
 };
 const files = [
   "app.tsx",
