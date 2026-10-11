@@ -32,6 +32,11 @@ const typeImportsOverride = findOverride("src/**/*.ts");
 const appOverride = findOverride("src/components/**");
 const sharedOverride = findOverride("src/*.ts");
 const nodeOverride = findOverride("src/ports-host.ts");
+const sharedBrowserPatterns = [
+  "Shared modules must not import TSX app modules.",
+  "Shared modules must not import browser hooks, lib, or components.",
+  "Shared modules must not import browser modules.",
+].flatMap((message) => findPattern(sharedOverride, message));
 const expectedOrder = [typeImportsOverride, appOverride, sharedOverride, nodeOverride];
 const actualOrder = config.overrides.filter((override) => expectedOrder.includes(override));
 if (actualOrder.some((override, index) => override !== expectedOrder.at(index))) {
@@ -64,10 +69,17 @@ const tsxPatterns = [
       }),
   ),
 ].sort();
-for (const override of [nodeOverride]) {
-  const patterns = findPattern(override, "Node runtime modules must not import TSX app modules.");
-  if (JSON.stringify([...patterns].sort()) !== JSON.stringify(tsxPatterns)) {
-    console.error("biome.json: sync the Node TSX pattern list with app.tsx and every src/**/*.tsx basename.");
+for (const [override, message, expected] of [
+  [nodeOverride, "Node runtime modules must not import TSX app modules.", tsxPatterns],
+  [
+    sharedOverride,
+    "Shared modules must not import TSX app modules.",
+    tsxPatterns.flatMap((glob) => ["./**/", "../**/"].map((prefix) => prefix + glob.slice(3))).sort(),
+  ],
+]) {
+  const patterns = findPattern(override, message);
+  if (JSON.stringify([...patterns].sort()) !== JSON.stringify(expected)) {
+    console.error("biome.json: sync Node/shared TSX pattern lists with app.tsx and every src/**/*.tsx basename.");
     failures++;
   }
 }
@@ -100,7 +112,9 @@ for (const input of files) {
     if (!browserOrShared || !specifier || !ts.isStringLiteralLike(specifier)) return;
     const name = specifier.text;
     const normalized = nodeBuiltins.has(name) && !name.startsWith("node:") ? `node:${name}` : name;
-    if (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized)) {
+    if (shared && sharedBrowserPatterns.some((glob) => matchesGlob(name, glob))) {
+      report(file, source, specifier, `Shared modules must not import browser module ${name}, even for types.`);
+    } else if (/(^|\/)(server|ports-host)(\.[cm]?[jt]sx?)?$/.test(normalized)) {
       report(file, source, specifier, `Browser/shared code must not import ${name}, even for types.`);
     } else if (shared && normalized.startsWith("node:")) {
       report(file, source, specifier, `Shared modules must not import Node built-in ${name}, even for types.`);

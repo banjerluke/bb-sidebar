@@ -25,7 +25,8 @@ meaning intact.
   intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding `use*.ts`,
   `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must not import React, React DOM,
-  Node built-ins, or Node entries, even for types, or value-import SQLite.
+  Node built-ins, Node entries, TSX, browser `.ts` modules, `use*` hooks,
+  `lib/**`, or `components/**`, even for types, or value-import SQLite.
   This is a dependency boundary; these modules are not necessarily free of
   side effects or DOM access. Tests retain their runtime's boundaries;
   top-level `.ts` tests and test helpers may use Node test tooling. Keep the
@@ -61,7 +62,8 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 - Biome lacks `allowTypeImports`. `scripts/check-import-boundaries.mjs` enforces
   browser Node entry bans, value-only restrictions for other Node modules,
   and shared Node built-in bans, including dynamic imports. It permits browser
-  type imports of other Node modules and checks the Node TSX names for drift.
+  type imports of other Node modules, bans shared imports of local browser
+  modules, and checks the Node/shared TSX names for drift.
   It bans `import()` type annotations except in `ports-host.test.ts`, where
   Vitest's `importOriginal` needs them. Regular imports there still require
   type-only syntax when used only as types.
@@ -69,7 +71,8 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 ## Checks
 
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
-lint, format check, Knip, typecheck, Vitest suite, and BB plugin build, plus
+lint, format check, Knip, typecheck, Vitest suite, BB plugin build, and the
+browser bundle guard against `ZodError`, plus
 `npx --no-install bb plugin types --check`. Typecheck includes both Knip
 configs.
 
