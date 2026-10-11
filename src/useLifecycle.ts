@@ -18,7 +18,8 @@ import {
   type ThreadLifecycleRow,
   type ThreadShelf,
 } from "./lifecycle";
-import { MAX_CACHED_LIFECYCLE_ROWS, pruneLifecycleRows, safeSetItem } from "./lib/safe-storage";
+import { createCachedRpcState } from "./lib/cached-rpc-state";
+import { lifecycleRowsCodec } from "./lib/lifecycle-cache-codec";
 
 /** Any live work at all, which blocks parking and wakes a parked thread. */
 export function isWorking(thread: PluginSidebarThread): boolean {
@@ -50,53 +51,7 @@ type LifecycleMutationRequest =
       threadId: string;
     };
 
-const lifecycleRowsByRpcClient = new WeakMap<object, ReadonlyMap<string, ThreadLifecycleRow>>();
-const LIFECYCLE_ROWS_CACHE_KEY = STORAGE_KEYS.lifecycle.key;
-
-function isNullableNumber(value: unknown): value is number | null {
-  return value === null || (typeof value === "number" && Number.isFinite(value));
-}
-
-function readStoredLifecycleRows(): ReadonlyMap<string, ThreadLifecycleRow> | null {
-  try {
-    const stored = window.localStorage.getItem(LIFECYCLE_ROWS_CACHE_KEY);
-    if (!stored) return null;
-    const values = JSON.parse(stored) as unknown;
-    if (!Array.isArray(values)) return null;
-    const rows = new Map<string, ThreadLifecycleRow>();
-    for (const value of values) {
-      if (typeof value !== "object" || value === null) return null;
-      const row = value as Partial<ThreadLifecycleRow>;
-      if (
-        typeof row.threadId !== "string" ||
-        (row.parkedAt !== undefined && !isNullableNumber(row.parkedAt)) ||
-        !isNullableNumber(row.settledAt) ||
-        !isNullableNumber(row.snoozedUntil) ||
-        !isNullableNumber(row.snoozedAt) ||
-        (row.settledOverride !== undefined &&
-          row.settledOverride !== null &&
-          row.settledOverride !== "active" &&
-          row.settledOverride !== "settled")
-      ) {
-        return null;
-      }
-      rows.set(row.threadId, row as ThreadLifecycleRow);
-    }
-    if (rows.size > MAX_CACHED_LIFECYCLE_ROWS) {
-      const pruned = pruneLifecycleRows([...rows.values()]);
-      return new Map(pruned.map((row) => [row.threadId, row] as const));
-    }
-    return rows;
-  } catch {
-    return null;
-  }
-}
-
-function cacheLifecycleRows(rpcClient: object, rows: ReadonlyMap<string, ThreadLifecycleRow>): void {
-  lifecycleRowsByRpcClient.set(rpcClient, rows);
-  const pruned = pruneLifecycleRows([...rows.values()]);
-  safeSetItem(LIFECYCLE_ROWS_CACHE_KEY, JSON.stringify(pruned));
-}
+const lifecycleCache = createCachedRpcState(STORAGE_KEYS.lifecycle.key, lifecycleRowsCodec);
 
 const SUCCESS_MESSAGE: Record<Exclude<LifecycleMutation, "snooze" | "acknowledgeWake">, string> = {
   park: "Thread parked",
@@ -143,7 +98,7 @@ function errorDescription(error: unknown): string | undefined {
 export function useLifecycle(threads: readonly PluginSidebarThread[]): LifecycleApi {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const [rows, setRows] = useState<ReadonlyMap<string, ThreadLifecycleRow>>(
-    () => lifecycleRowsByRpcClient.get(rpc) ?? readStoredLifecycleRows() ?? new Map(),
+    () => lifecycleCache.read(rpc) ?? new Map(),
   );
   const [now, setNow] = useState(() => Date.now());
 
@@ -159,7 +114,7 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       const result = await rpc.call("listLifecycle", {});
       if (seq !== requestSeq.current) return;
       const nextRows = new Map(result.rows.map((row) => [row.threadId, row] as const));
-      cacheLifecycleRows(rpc, nextRows);
+      lifecycleCache.write(rpc, nextRows);
       setRows(nextRows);
     } catch {
       void 0; // Keep the last known rows during a backend reload or transient RPC

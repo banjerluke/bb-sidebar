@@ -1,7 +1,8 @@
 import { STORAGE_KEYS } from "./lib/storage-keys";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { isThreadWorking } from "./lifecycle";
-import { safeSetItem } from "./lib/safe-storage";
+import { readStoredValue, writeStoredValue } from "./lib/storage-codec";
+import type { StorageCodec } from "./lib/storage-codec";
 import { relativeTimeLabel } from "./relative-time";
 
 /**
@@ -62,26 +63,24 @@ export function statusWithDuration(label: string, startedAt: number | undefined,
   return elapsed === "now" ? label : `${label} · ${elapsed}`;
 }
 
-export function readWorkingSince(): WorkingSince {
-  try {
-    const stored = window.localStorage.getItem(WORKING_SINCE_STORAGE_KEY);
-    if (stored === null) return EMPTY_WORKING_SINCE;
+const workingSinceCodec: StorageCodec<WorkingSince> = {
+  decode: (stored) => {
+    if (stored === null) return null;
     const parsed: unknown = JSON.parse(stored);
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return EMPTY_WORKING_SINCE;
-    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     const map = new Map<string, number>();
     for (const [id, startedAt] of Object.entries(parsed)) {
-      if (typeof startedAt === "number" && Number.isFinite(startedAt)) {
-        map.set(id, startedAt);
-      }
+      if (typeof startedAt === "number" && Number.isFinite(startedAt)) map.set(id, startedAt);
     }
     return map;
-  } catch {
-    return EMPTY_WORKING_SINCE;
-  }
+  },
+  encode: (value) => JSON.stringify(Object.fromEntries(value)),
+};
+
+export function readWorkingSince(): WorkingSince {
+  return readStoredValue(WORKING_SINCE_STORAGE_KEY, workingSinceCodec) ?? EMPTY_WORKING_SINCE;
 }
 
 export function writeWorkingSince(workingSince: WorkingSince): void {
-  safeSetItem(WORKING_SINCE_STORAGE_KEY, JSON.stringify(Object.fromEntries(workingSince)));
+  writeStoredValue(WORKING_SINCE_STORAGE_KEY, workingSinceCodec, workingSince);
 }

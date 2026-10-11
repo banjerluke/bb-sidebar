@@ -1,7 +1,7 @@
 import { PLUGIN_STORAGE_KEYS } from "./storage-keys";
 import type { ThreadLifecycleRow } from "../lifecycle";
 
-export const MAX_CACHED_LIFECYCLE_ROWS = 500;
+const MAX_CACHED_LIFECYCLE_ROWS = 500;
 export const MAX_CHILD_EXPANSION = 100;
 
 function isQuotaExceededError(error: unknown): boolean {
