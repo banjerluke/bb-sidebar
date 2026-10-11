@@ -234,7 +234,8 @@
                       "**/app",
                       "**/settings-ui",
                       "**/test-inbox",
-                      "**/useScrollFade.test"
+                      "**/useScrollFade.test",
+                      "**/wired.flows.test"
                     ],
                     "message": "Node runtime modules must not import TSX app modules."
                   },
@@ -437,7 +438,8 @@
                       "**/app",
                       "**/settings-ui",
                       "**/test-inbox",
-                      "**/useScrollFade.test"
+                      "**/useScrollFade.test",
+                      "**/wired.flows.test"
                     ],
                     "message": "Node runtime modules must not import TSX app modules."
                   },
