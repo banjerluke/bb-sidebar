@@ -6,7 +6,7 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
-import type { ThreadPullRequest } from "./pull-requests";
+import type { ThreadPullRequest } from "./contract";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { mergeThreadPullRequests, pullRequestStatusLabel, pullRequestToneClass } from "./pull-request-display";

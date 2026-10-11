@@ -36,7 +36,7 @@ import { canPark, hasLiveWork, isTurnInFlight, resolveShelf } from "./lifecycle"
 import { createPortDiscovery } from "./port-discovery";
 import { createThreadPortActions } from "./thread-ports";
 import { createThreadPullRequests } from "./thread-pull-requests";
-import type { ownedPortTargetSchema } from "./close-owned-ports";
+import type { ownedPortTargetSchema } from "./contract";
 
 import {
   bbSidebarRpcContract,

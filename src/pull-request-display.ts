@@ -1,5 +1,5 @@
 import type { PluginSidebarPullRequest } from "@get-bb/plugin-sdk/app";
-import type { ThreadPullRequest } from "./pull-requests";
+import type { ThreadPullRequest } from "./contract";
 
 /**
  * A PR as the sidebar draws it. Only the live branch PR from bb carries

@@ -3,6 +3,7 @@ import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
+import { LIFECYCLE_CHANNEL } from "./realtime-channels";
 import { describeReclaim } from "./reclaim";
 import { promptToCloseSettledPorts } from "./settled-port-prompt";
 import {
@@ -184,7 +185,7 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       });
   }, [refresh, rpc]);
 
-  useRealtime("lifecycle", () => {
+  useRealtime(LIFECYCLE_CHANNEL, () => {
     void refresh();
   });
 

@@ -1,16 +1,5 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
-import { z } from "zod";
-
-const cloudOverviewSchema = z.object({
-  enabled: z.boolean(),
-  status: z.discriminatedUnion("ready", [
-    z.object({ ready: z.literal(true) }),
-    z.object({ ready: z.literal(false), message: z.string() }),
-  ]),
-});
-const accountFetchSchema = z.object({ status: z.number().int(), body: z.json().nullable() });
-const completionSchema = z.object({ text: z.string() });
-const failureSchema = z.object({ error: z.object({ message: z.string() }) });
+import { cloudOverviewSchema, accountFetchSchema, completionSchema, failureSchema } from "./cloud-title-schemas";
 
 /** Use the same authenticated gateway as bb-ai, without reading credentials. */
 export async function completeCloudTitle(bb: BbPluginApi, prompt: string, signal: AbortSignal) {

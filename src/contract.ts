@@ -8,11 +8,6 @@ import {
   PROJECT_COLOR_DISPLAYS,
 } from "./sidebar-settings-values";
 import { configuredSnoozePresetError } from "./lifecycle";
-import { portSnapshotSchema } from "./open-ports";
-import { threadPullRequestSchema } from "./pull-requests";
-import { ownedPortTargetSchema, closePortsResultSchema } from "./close-owned-ports";
-export type { OpenPort } from "./open-ports";
-export type { ThreadPullRequest } from "./pull-requests";
 export {
   LIFECYCLE_CHANNEL,
   INBOX_ORDER_CHANNEL,
@@ -20,6 +15,56 @@ export {
   PROJECT_COLORS_CHANNEL,
   PROJECT_ICONS_CHANNEL,
 } from "./realtime-channels";
+
+export const openPortSchema = z.object({
+  port: z.number().int().min(1).max(65535),
+  processName: z.string().optional(),
+  pid: z.number().int().optional(),
+  address: z.string().optional(),
+  source: z.enum(["process", "docker"]).optional(),
+  container: z.string().optional(),
+  service: z.string().optional(),
+  ownerThreadId: z.string().optional(),
+  processStartedAt: z.string().min(1).optional(),
+});
+export type OpenPort = z.infer<typeof openPortSchema>;
+
+export const portSnapshotSchema = z.object({
+  groups: z.array(
+    z.object({
+      environmentId: z.string(),
+      ports: z.array(openPortSchema),
+    }),
+  ),
+});
+
+export type PortSnapshot = z.infer<typeof portSnapshotSchema>;
+
+export const threadPullRequestSchema = z
+  .object({
+    url: z.string(),
+    number: z.number().int(),
+    title: z.string().nullable(),
+    state: z.enum(["open", "draft", "merged", "closed"]).nullable(),
+  })
+  .strict();
+export type ThreadPullRequest = z.infer<typeof threadPullRequestSchema>;
+
+export const ownedPortTargetSchema = z.object({
+  port: z.number().int().min(1).max(65535),
+  pid: z.number().int().min(2),
+  processStartedAt: z.string().min(1).optional(),
+});
+export const closePortsResultSchema = z.object({
+  signalled: z.array(z.number()),
+  skipped: z.array(z.number()),
+  failed: z.array(z.number()),
+});
+export const portCloseScopeSchema = z.enum(["thread", "workspace"]);
+export type OwnedPortTarget = z.infer<typeof ownedPortTargetSchema>;
+export type PortCloseScope = z.infer<typeof portCloseScopeSchema>;
+
+export type ClosePortsResult = z.infer<typeof closePortsResultSchema>;
 
 const threadIdSchema = z.object({ threadId: z.string().trim().min(1) });
 

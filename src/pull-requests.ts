@@ -1,15 +1,5 @@
-// Pull request records shared by the server, host entry, and hover card.
-import { z } from "zod";
-
-export const threadPullRequestSchema = z
-  .object({
-    url: z.string(),
-    number: z.number().int(),
-    title: z.string().nullable(),
-    state: z.enum(["open", "draft", "merged", "closed"]).nullable(),
-  })
-  .strict();
-export type ThreadPullRequest = z.infer<typeof threadPullRequestSchema>;
+// Pull request helpers shared by the server, host entry, and hover card.
+import type { ThreadPullRequest } from "./contract";
 
 const PULL_REQUEST_URL = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/g;
 // `gh pr create` run as a command: at the start, after a shell separator, or

@@ -1,8 +1,12 @@
 import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
-import { openPortSchema } from "./open-ports";
-import { ownedPortTargetSchema, closePortsResultSchema, portCloseScopeSchema } from "./close-owned-ports";
-import { threadPullRequestSchema } from "./pull-requests";
+import {
+  openPortSchema,
+  ownedPortTargetSchema,
+  closePortsResultSchema,
+  portCloseScopeSchema,
+  threadPullRequestSchema,
+} from "./contract";
 
 const rootSchema = z.object({ environmentId: z.string(), path: z.string().min(1) });
 export type PortRoot = z.infer<typeof rootSchema>;

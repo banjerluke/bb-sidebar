@@ -1,6 +1,6 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { portScanContract, type PortRoot } from "./port-scan-contract";
-import type { PortSnapshot } from "./open-ports";
+import type { PortSnapshot } from "./contract";
 
 async function forEachConcurrent<T>(items: T[], limit: number, visit: (item: T) => Promise<void>) {
   let next = 0;

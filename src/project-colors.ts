@@ -1,7 +1,5 @@
 import type { CSSProperties } from "react";
 
-export { PROJECT_COLORS_CHANNEL } from "./realtime-channels";
-
 function hashId(id: string): number {
   let hash = 2166136261;
   for (const char of id) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);

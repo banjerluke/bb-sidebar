@@ -1,3 +1,4 @@
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useEffect, useId, useState, type ReactElement } from "react";
 import {
   experimental_useProviders as useProviders,
@@ -16,7 +17,7 @@ import { ProviderGlyph } from "./ProviderGlyph";
 import { StatusGlyph } from "./StatusGlyph";
 import { useThreadWithDraft } from "./StatusSlot";
 import { ProjectFavicon } from "./ProjectFavicon";
-import { PROJECT_ICONS_CHANNEL, projectIconUrl } from "./project-icons";
+import { projectIconUrl } from "./project-icons";
 import { OpenPortDetails } from "./OpenPorts";
 import { ThreadPullRequestDetails } from "./ThreadPullRequests";
 import { compareChildThreads, useChildThreadDisplay } from "./ChildThreadDisplay";

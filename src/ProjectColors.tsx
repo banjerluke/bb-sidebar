@@ -1,7 +1,8 @@
+import { PROJECT_COLORS_CHANNEL } from "./realtime-channels";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRealtime, useRealtimeConnectionState, useRpc } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
-import { automaticProjectColor, projectColorsById, projectColorStyle, PROJECT_COLORS_CHANNEL } from "./project-colors";
+import { automaticProjectColor, projectColorsById, projectColorStyle } from "./project-colors";
 import type { ProjectColorDisplay } from "./sidebar-settings";
 
 export type ProjectStripeView = "full" | "collapsed" | "group-full" | "group-collapsed";

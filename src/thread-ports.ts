@@ -1,6 +1,6 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { portScanContract } from "./port-scan-contract";
-import type { OwnedPortTarget, PortCloseScope } from "./close-owned-ports";
+import type { OwnedPortTarget, PortCloseScope } from "./contract";
 
 export function createThreadPortActions(bb: BbPluginApi) {
   const host = bb.hosts.experimental_client({ contract: portScanContract });

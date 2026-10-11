@@ -6,7 +6,8 @@
 // module finds those URLs and asks the thread's host for their status via `gh`.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { portScanContract } from "./port-scan-contract";
-import { createdPullRequestUrls, pullRequestNumber, type ThreadPullRequest } from "./pull-requests";
+import { createdPullRequestUrls, pullRequestNumber } from "./pull-requests";
+import type { ThreadPullRequest } from "./contract";
 
 // bb rejects event pages larger than 100.
 const EVENT_PAGE_SIZE = 100;

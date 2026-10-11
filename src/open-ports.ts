@@ -1,28 +1,4 @@
-import { z } from "zod";
-
-export const openPortSchema = z.object({
-  port: z.number().int().min(1).max(65535),
-  processName: z.string().optional(),
-  pid: z.number().int().optional(),
-  address: z.string().optional(),
-  source: z.enum(["process", "docker"]).optional(),
-  container: z.string().optional(),
-  service: z.string().optional(),
-  ownerThreadId: z.string().optional(),
-  processStartedAt: z.string().min(1).optional(),
-});
-export type OpenPort = z.infer<typeof openPortSchema>;
-
-export const portSnapshotSchema = z.object({
-  groups: z.array(
-    z.object({
-      environmentId: z.string(),
-      ports: z.array(openPortSchema),
-    }),
-  ),
-});
-
-export type PortSnapshot = z.infer<typeof portSnapshotSchema>;
+import type { OpenPort, PortSnapshot } from "./contract";
 
 export function portsByEnvironment(snapshot: PortSnapshot): Map<string, OpenPort[]> {
   const result = new Map<string, OpenPort[]>();

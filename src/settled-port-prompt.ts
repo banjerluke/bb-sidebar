@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import type { OwnedPortTarget } from "./close-owned-ports";
+import type { OwnedPortTarget } from "./contract";
 
 export async function promptToCloseSettledPorts(
   threadId: string,

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { UrlLink, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
-import type { bbSidebarRpcContract } from "./contract";
-import { portsByEnvironment, type OpenPort } from "./open-ports";
+import type { bbSidebarRpcContract, OpenPort } from "./contract";
+import { portsByEnvironment } from "./open-ports";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { portBrowserUrl } from "./port-links";

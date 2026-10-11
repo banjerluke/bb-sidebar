@@ -6,7 +6,6 @@ import {
   type SidebarSettingsValues,
 } from "./sidebar-settings-values";
 export * from "./sidebar-settings-values";
-export { SIDEBAR_SETTINGS_CHANNEL } from "./realtime-channels";
 
 const SIDEBAR_SETTINGS_CACHE_KEY = "bb-sidebar:settings-cache:v1";
 const settingsByRpcClient = new WeakMap<object, SidebarSettingsValues>();

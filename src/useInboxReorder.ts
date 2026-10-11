@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type PluginSidebarThread, useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
+import { INBOX_ORDER_CHANNEL } from "./realtime-channels";
 import { orderInboxThreads } from "./pinned-order";
 import { safeSetItem } from "./lib/safe-storage";
 
@@ -68,7 +69,7 @@ export function useInboxReorder(inboxThreads: readonly PluginSidebarThread[]): I
     };
   }, [refresh]);
 
-  useRealtime("inbox-order", () => {
+  useRealtime(INBOX_ORDER_CHANNEL, () => {
     void refresh();
   });
 

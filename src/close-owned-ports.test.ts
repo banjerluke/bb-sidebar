@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { closeOwnedPortProcesses } from "./close-owned-ports";
-import type { OpenPort } from "./open-ports";
+import type { OpenPort } from "./contract";
 
 describe("closing thread-owned ports", () => {
   it("stops each matching process once and never stops other threads or workspace-only listeners", async () => {

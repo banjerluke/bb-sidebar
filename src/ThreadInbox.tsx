@@ -1,3 +1,4 @@
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   experimental_useSidebarThreadActions as useSidebarThreadActions,
@@ -53,14 +54,13 @@ import {
 } from "./pinned-order";
 import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets, type ConfiguredSnoozePreset } from "./lifecycle";
 import { DEFAULT_INACTIVE_AFTER_HOURS, isInactiveThread, parseInactiveAfterHours } from "./inactive";
-import { PROJECT_ICONS_CHANNEL, projectIconUrl } from "./project-icons";
+import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { isWorkingTree } from "./working-tree";
 import { pickWorkingEmptyLine } from "./working-empty-lines";
 import "./working-empty-state.css";
 import { SCROLL_FADE_CLASS, useScrollFade } from "./useScrollFade";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion, safeSetItem } from "./lib/safe-storage";
-
 const ACTIVE_GROUPING_STORAGE_KEY = "bb-sidebar:active-grouping:v1";
 const ACTIVE_SORT_STORAGE_KEY = "bb-sidebar:active-sort:v1";
 const SHELF_EXPANSION_STORAGE_KEY = "bb-sidebar:shelf-expansion:v1";

@@ -1,3 +1,4 @@
+import { SIDEBAR_SETTINGS_CHANNEL } from "./realtime-channels";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
@@ -10,7 +11,6 @@ import {
   CHILD_THREAD_SORT_FIELDS,
   DEFAULT_SIDEBAR_SETTINGS,
   PROJECT_COLOR_DISPLAYS,
-  SIDEBAR_SETTINGS_CHANNEL,
   type ChildThreadIconStyle,
   type ChildThreadSortDirection,
   type ChildThreadSortField,

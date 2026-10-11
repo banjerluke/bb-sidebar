@@ -1,4 +1,4 @@
-import type { OpenPort } from "./open-ports";
+import type { OpenPort } from "./contract";
 
 const NON_WEB_PORTS = new Set([
   22, 25, 53, 110, 143, 389, 465, 587, 636, 993, 995, 1433, 1521, 3306, 5432, 5672, 6379, 9042, 11211, 27017,
