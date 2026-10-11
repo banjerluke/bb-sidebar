@@ -72,13 +72,18 @@ Old columns remain unused after migration and can be dropped with a table
 rebuild in a later major. A compatibility row satisfies their original
 NOT NULL constraints; NULL JSON still permits the legacy SDK settings import.
 The app reads server settings or the existing cache. Do not load zod or
-contract schemas in browser code; cache validation remains SB-7 work.
+contract schemas in browser code; cache validation uses codecs in `src/lib/`.
 
 ## Browser persistence
 
-Put persisted browser state through `src/lib/safe-storage.ts` and its
-`PLUGIN_STORAGE_KEYS` registry. Register new keys there so quota recovery can
-evict them. Existing direct storage accesses are migration debt for SB-7.
+Declare persisted browser keys once in `src/lib/storage-keys.ts`, with an
+eviction priority. `src/lib/safe-storage.ts` derives quota recovery from it.
+Use `src/lib/use-persisted-preference.ts` for UI preferences and
+`src/lib/cached-rpc-state.ts` for caches keyed by RPC client. Both use codecs
+and the read/write functions in `src/lib/storage-codec.ts`; other browser
+state uses those functions directly. Keep DOM event names in
+`src/lib/browser-events.ts`. Production key literals and direct localStorage
+access are checked by `src/storage-keys.test.ts`.
 
 ## Size and style budgets
 
