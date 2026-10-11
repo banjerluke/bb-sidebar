@@ -4,8 +4,41 @@ import ts from "typescript";
 
 // Biome 2.5 has no allowTypeImports. Read its classifications rather than duplicate them.
 const config = JSON.parse(readFileSync("biome.json", "utf8"));
-const appIncludes = config.overrides[1].includes;
-const sharedIncludes = config.overrides[2].includes;
+function configError(message) {
+  console.error(`biome.json: import-boundaries configuration: ${message}`);
+  process.exit(1);
+}
+
+function findOverride(marker) {
+  const found = config.overrides.filter((override) => override.includes?.includes(marker));
+  if (found.length !== 1) {
+    configError(`Expected exactly one override containing ${marker}; found ${found.length}.`);
+  }
+  return found.at(0);
+}
+
+function findPattern(override, message) {
+  const found = override.linter?.rules?.style?.noRestrictedImports?.options?.patterns?.filter(
+    (pattern) => pattern.message === message,
+  );
+  if (found?.length !== 1 || !Array.isArray(found.at(0).group)) {
+    configError(`Expected exactly one restriction with a group and message: ${message}`);
+  }
+  return found.at(0).group;
+}
+
+const typeImportsOverride = findOverride("src/**/*.ts");
+const appOverride = findOverride("src/components/**");
+const sharedOverride = findOverride("src/*.ts");
+const nodeOverride = findOverride("src/ports-host.ts");
+const serverOverride = findOverride("src/server.ts");
+const expectedOrder = [typeImportsOverride, appOverride, sharedOverride, nodeOverride, serverOverride];
+const actualOrder = config.overrides.filter((override) => expectedOrder.includes(override));
+if (actualOrder.some((override, index) => override !== expectedOrder.at(index))) {
+  configError("Overrides must remain ordered: type imports, app, shared, Node, server.");
+}
+const appIncludes = appOverride.includes;
+const sharedIncludes = sharedOverride.includes;
 const sourceFiles = [
   "app.tsx",
   ...readdirSync("src", { recursive: true })
@@ -30,8 +63,8 @@ const tsxPatterns = [
       }),
   ),
 ].sort();
-for (const override of config.overrides.slice(3)) {
-  const patterns = override.linter.rules.style.noRestrictedImports.options.patterns[1].group;
+for (const override of [nodeOverride, serverOverride]) {
+  const patterns = findPattern(override, "Node runtime modules must not import TSX app modules.");
   if (JSON.stringify([...patterns].sort()) !== JSON.stringify(tsxPatterns)) {
     console.error("biome.json: sync both Node TSX pattern lists with app.tsx and every src/**/*.tsx basename.");
     failures++;
