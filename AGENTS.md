@@ -80,7 +80,7 @@ it currently exits 1. `knip.ts` preserves SDK peers and lists dependency debt
 for SB-8. Export/type ignores cover only today's 25 debt files and issue types;
 new dead exports in clean files fail. Do not add new unused dependencies to the list.
 
-Wired integration tests in `src/wired.*.test.{ts,tsx}` mount the real app and server via
-`src/test-wired.ts`; RPC uses SDK validation and `flush()` delivers server realtime.
-Release SQLite/localStorage fixtures live in `src/fixtures/`; regenerate with `npm run fixture:db`.
-Future schema changes add a new fixture version; never edit an old fixture.
+`src/test-wired.ts` wires real app/server SDK RPC; `flush()` sends realtime.
+Fixtures in `src/fixtures/` have hashes; release data comes from pinned tags.
+Generate with `npm run fixture:db -- <new-path>` in a temporary tag checkout.
+Future schema changes add versions; never edit or overwrite old fixtures.

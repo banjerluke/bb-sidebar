@@ -113,15 +113,19 @@ export async function createWired(
       for (const slot of slots) await slot.behavior.emitRealtime(signal.channel, signal.payload);
     }
   }
-  const rpc = Object.fromEntries(
-    Object.keys(bbSidebarRpcContract).map((method) => [
-      method,
-      async (input: unknown) => {
-        await options.rpcGate;
-        return harness.behavior.callRpc(method, input);
-      },
-    ]),
-  );
+  function rpcHandlers(replies: Array<{ method: string; result: unknown }>) {
+    return Object.fromEntries(
+      Object.keys(bbSidebarRpcContract).map((method) => [
+        method,
+        async (input: unknown) => {
+          await options.rpcGate;
+          const result = await harness.behavior.callRpc(method, input);
+          replies.push({ method, result });
+          return result;
+        },
+      ]),
+    );
+  }
   const sidebarState = () => ({
     status: "ready" as const,
     threads,
@@ -134,6 +138,8 @@ export async function createWired(
     await harness.lifecycle.dispose();
   });
   function mount(kind: "inbox" | "settings" = "inbox") {
+    const rpcReplies: Array<{ method: string; result: unknown }> = [];
+    const rpc = rpcHandlers(rpcReplies);
     const slot =
       kind === "inbox"
         ? renderSlot(inbox, listProps, {
@@ -143,7 +149,7 @@ export async function createWired(
           })
         : renderSlot(sidebarSettings, {}, { rpc });
     slots.add(slot);
-    return slot;
+    return Object.assign(slot, { rpcReplies });
   }
   return {
     bb,
