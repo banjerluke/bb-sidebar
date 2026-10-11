@@ -3,6 +3,9 @@
 Behavior-preserving refactors only unless the task says otherwise. Keep test
 meaning intact.
 
+Inbox layout: `src/inbox-layout.ts`; shelves: `ThreadInboxShelves.tsx`.
+Inbox hooks live in flat `src/use*.ts` files.
+
 ## Runtimes and imports
 
 - Browser entry: `app.tsx`. App code includes `src/*.tsx`, `src/components/**`,
