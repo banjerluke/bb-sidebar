@@ -1,4 +1,3 @@
-import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useEffect, useId, useState, type ReactElement } from "react";
 import {
   experimental_useProviders as useProviders,
@@ -10,6 +9,7 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { ThreadHoverCard } from "./components/ThreadHoverCard";
 import { threadDisplayTitle } from "./inbox";
 import { Icon, type IconName } from "./components/Icon";

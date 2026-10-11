@@ -1,8 +1,8 @@
-import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { PROJECT_ICON_EXTENSIONS, projectIconUrl } from "./project-icons";
 import { ProjectMonogram } from "./ProjectFavicon";
 import { ProjectColorSetting } from "./ProjectColorSetting";

@@ -1,4 +1,3 @@
-import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   experimental_useSidebarThreadActions as useSidebarThreadActions,
@@ -55,6 +54,7 @@ import {
 import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets, type ConfiguredSnoozePreset } from "./lifecycle";
 import { DEFAULT_INACTIVE_AFTER_HOURS, isInactiveThread, parseInactiveAfterHours } from "./inactive";
 import { projectIconUrl } from "./project-icons";
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { isWorkingTree } from "./working-tree";
 import { pickWorkingEmptyLine } from "./working-empty-lines";

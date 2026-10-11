@@ -1,4 +1,3 @@
-import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { useId, useState, type ReactNode } from "react";
 import {
   experimental_useSidebarThreadSplit,
@@ -32,6 +31,7 @@ import { ChildThreadIcon, compareChildThreads, useChildThreadDisplay } from "./C
 import { ProviderGlyph } from "./ProviderGlyph";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { projectIconUrl } from "./project-icons";
+import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 const MAX_CHILD_DOTS = 3;
 
 export function childrenOf(

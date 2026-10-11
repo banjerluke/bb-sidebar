@@ -1,8 +1,8 @@
-import { SIDEBAR_SETTINGS_CHANNEL } from "./realtime-channels";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
+import { SIDEBAR_SETTINGS_CHANNEL } from "./realtime-channels";
 import {
   cachedSidebarSettings,
   cacheSidebarSettings,
