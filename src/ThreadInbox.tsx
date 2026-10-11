@@ -1,3 +1,7 @@
+import { useQuantizedNow } from "./useQuantizedNow";
+import { useProjectIconRevision } from "./useProjectIconRevision";
+import { useRenamingShelfLocks, threadNeedsAttention } from "./useRenamingShelfLocks";
+import { useDragAutoScroll, createDragAutoScroll, findScrollContainer } from "./useDragAutoScroll";
 import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
 import { CompactShelf, DockableShelves, CollapsibleShelf, ProjectGroups, Shelf } from "./ThreadInboxShelves";
 import { useListAutoAnimate, createListAnimationController, ListAnimationContext } from "./useListAutoAnimate";
@@ -24,7 +28,6 @@ import {
   experimental_useProviders as useProviders,
   type PluginSidebarThread,
   type PluginThreadListProps,
-  useRealtime,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
@@ -67,7 +70,6 @@ import {
 import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets } from "./lifecycle";
 import { DEFAULT_INACTIVE_AFTER_HOURS, isInactiveThread, parseInactiveAfterHours } from "./inactive";
 import { projectIconUrl } from "./project-icons";
-import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { isWorkingTree } from "./working-tree";
 import { SCROLL_FADE_CLASS, useScrollFade } from "./useScrollFade";
@@ -79,15 +81,6 @@ const CHILD_EXPANSION_STORAGE_KEY = "bb-sidebar:child-expansion:v1";
 const PROJECT_COLLAPSE_STORAGE_KEY = "bb-sidebar:project-collapse:v1";
 const SETTLED_INITIAL_LIMIT = 10;
 const SETTLED_PAGE_SIZE = 25;
-
-function threadNeedsAttention(thread: PluginSidebarThread): boolean {
-  return (
-    thread.hasPendingInteraction ||
-    thread.indicator === "waiting-for-input" ||
-    thread.indicator === "unread-error" ||
-    thread.queuedWork === "failed"
-  );
-}
 
 function readCollapsedProjects(): Set<string> {
   try {
@@ -114,57 +107,6 @@ function readChildExpansion(): Set<string> {
     return new Set();
   }
 }
-
-/**
- * Swallow the click a finished drag would otherwise fire on the row it started
- * from. Armed the moment a drag engages rather than when it drops, so drop,
- * Escape and a blurred window are all covered by the same listener.
- *
- * It disarms after one swallowed click, and on the next pointer press either
- * way. Staying armed would eat the click that Enter raises on the same row —
- * that click has no pointer press in front of it to clear the trap.
- *
- * Returns its own disarm so the caller can drop it on unmount.
- */
-function armClickSuppression(key: string): () => void {
-  const disarm = () => {
-    window.removeEventListener("click", suppress, true);
-    window.removeEventListener("pointerdown", disarm, true);
-  };
-  function suppress(event: MouseEvent) {
-    const clicked =
-      event.target instanceof Element
-        ? (event.target.closest("[data-reorder-key]")?.getAttribute("data-reorder-key") ??
-          event.target.closest("[data-sidebar-thread-id]")?.getAttribute("data-sidebar-thread-id"))
-        : null;
-    if (clicked !== key) return;
-    event.preventDefault();
-    event.stopPropagation();
-    disarm();
-  }
-  window.addEventListener("click", suppress, true);
-  window.addEventListener("pointerdown", disarm, true);
-  return disarm;
-}
-
-/** Nearest ancestor that actually scrolls, so a drag can reach past the fold. */
-function findScrollContainer(from: Element | null): HTMLElement | null {
-  for (let node = from?.parentElement ?? null; node; node = node.parentElement) {
-    const overflowY = window.getComputedStyle(node).overflowY;
-    if (
-      (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      return node;
-    }
-  }
-  return null;
-}
-
-/** How close to an edge a drag must come before the shelf starts scrolling. */
-const DRAG_SCROLL_EDGE = 48;
-/** Pixels per frame at the very edge, ramping down to nothing at the hot zone. */
-const DRAG_SCROLL_SPEED = 14;
 
 interface ShelfExpansionState {
   active: boolean;
@@ -242,10 +184,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   const { values: legacySettings } = useSettings();
   const sidebarSettings = useSidebarSettings();
   const lifecycle = useLifecycle(threads);
-  const [projectIconRevision, setProjectIconRevision] = useState(0);
-  useRealtime(PROJECT_ICONS_CHANNEL, () => {
-    setProjectIconRevision((revision) => revision + 1);
-  });
+  const projectIconRevision = useProjectIconRevision();
   const [listAnimationController] = useState(createListAnimationController);
   const attachShelvesAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
   const attachDockAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
@@ -272,35 +211,13 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   useEffect(() => {
     setScope((current) => reconcileProjectScope(current, projects));
   }, [projects]);
-  // One clock for every card in a render, quantized to the minute so the
-  // labels do not disagree and do not churn on unrelated re-renders.
-  const [nowMinute, setNowMinute] = useState(() => Math.floor(Date.now() / 60_000));
-  useEffect(() => {
-    const timer = setInterval(() => setNowMinute(Math.floor(Date.now() / 60_000)), 60_000);
-    return () => clearInterval(timer);
-  }, []);
-  const now = nowMinute * 60_000;
+  const now = useQuantizedNow();
   const [expandedShelves, setExpandedShelves] = useState<ShelfExpansionState>(readShelfExpansion);
   const [expandedChildParentIds, setExpandedChildParentIds] = useState<Set<string>>(readChildExpansion);
   const [activeSortMode, setActiveSortMode] = useState<ActiveSortMode>(readActiveSort);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(readCollapsedProjects);
   const [settledLimit, setSettledLimit] = useState(SETTLED_INITIAL_LIMIT);
-  const [renamingShelfLocks, setRenamingShelfLocks] = useState<Map<string, "active" | "working" | "inactive">>(
-    () => new Map(),
-  );
-  useEffect(() => {
-    const activeIds = new Set(
-      threads
-        .filter(
-          (thread) => !thread.isArchived && lifecycle.shelfFor(thread) === "active" && !threadNeedsAttention(thread),
-        )
-        .map((thread) => thread.id),
-    );
-    setRenamingShelfLocks((current) => {
-      const next = new Map([...current].filter(([threadId]) => activeIds.has(threadId)));
-      return next.size === current.size ? current : next;
-    });
-  }, [lifecycle, threads]);
+  const [renamingShelfLocks, setRenamingShelfLocks] = useRenamingShelfLocks(threads, lifecycle);
   useEffect(() => {
     const pruned = pruneChildExpansion([...expandedChildParentIds]);
     safeSetItem(CHILD_EXPANSION_STORAGE_KEY, JSON.stringify(pruned));
@@ -449,15 +366,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     dragPreviewRef.current?.play();
   });
   const activeReorderCancelRef = useRef<(() => void) | null>(null);
-  const clickSuppressionRef = useRef<(() => void) | null>(null);
-  useEffect(
-    () => () => {
-      activeReorderCancelRef.current?.();
-      // Suppression outlives the gesture on purpose, but not the component.
-      clickSuppressionRef.current?.();
-    },
-    [],
-  );
+  const suppressDragClick = useDragAutoScroll(activeReorderCancelRef);
   // A thread can be deleted from anywhere while it is being dragged. Unmounting
   // the whole sidebar already cancels; losing just this row has to as well, or
   // the drag keeps steering an order around an id that is gone. This catches
@@ -715,11 +624,14 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
         let previousCursor = "";
         let listElement: HTMLElement | null = null;
         let scrollContainer: HTMLElement | null = null;
-        let scrollFrame = 0;
         let pointerX = startX;
         let pointerY = startY;
         let resolvedY = startY;
         let reorderDirection = 0;
+        const autoScroll = createDragAutoScroll(
+          () => ({ finished, engaged, scrollContainer, pointerX, pointerY }),
+          reorderAt,
+        );
 
         function cleanup() {
           window.removeEventListener("pointermove", onPointerMove);
@@ -730,10 +642,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
           window.removeEventListener("resize", cancel);
           window.removeEventListener("pagehide", cancel);
           document.removeEventListener("visibilitychange", onVisibilityChange);
-          if (scrollFrame !== 0) {
-            window.cancelAnimationFrame(scrollFrame);
-            scrollFrame = 0;
-          }
+          autoScroll.stop();
           if (engaged) {
             document.body.style.userSelect = previousUserSelect;
             document.body.style.cursor = previousCursor;
@@ -763,8 +672,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
           document.body.style.userSelect = "none";
           document.body.style.cursor = "grabbing";
           listAnimationController.suspend();
-          clickSuppressionRef.current?.();
-          clickSuppressionRef.current = armClickSuppression(movingId);
+          suppressDragClick(movingId);
           listElement = rowAnchor.closest("ul");
           scrollContainer = findScrollContainer(listElement);
           resolvedY = startY + (scrollContainer?.scrollTop ?? 0);
@@ -776,7 +684,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
           };
           dragOrderRef.current = next;
           setDragOrder(next);
-          scrollFrame = window.requestAnimationFrame(onScrollFrame);
+          autoScroll.start();
         }
 
         function reorderAt(clientX: number, clientY: number) {
@@ -841,38 +749,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
           const next = { ...current, ids: nextIds };
           dragOrderRef.current = next;
           setDragOrder(next);
-        }
-
-        function onScrollFrame() {
-          scrollFrame = 0;
-          if (finished || !engaged) return;
-          if (scrollContainer) {
-            const rect = scrollContainer.getBoundingClientRect();
-            const fromTop = pointerY - rect.top;
-            const fromBottom = rect.bottom - pointerY;
-            // A pointer dragged off to the side has left the shelf; it should
-            // not keep driving it.
-            const within = pointerX >= rect.left && pointerX <= rect.right;
-            const delta = !within
-              ? 0
-              : fromTop < DRAG_SCROLL_EDGE
-                ? -DRAG_SCROLL_SPEED * (1 - Math.max(fromTop, 0) / DRAG_SCROLL_EDGE)
-                : fromBottom < DRAG_SCROLL_EDGE
-                  ? DRAG_SCROLL_SPEED * (1 - Math.max(fromBottom, 0) / DRAG_SCROLL_EDGE)
-                  : 0;
-            if (delta !== 0) {
-              const scrollTop = scrollContainer.scrollTop;
-              scrollContainer.scrollTop = scrollTop + delta;
-              // Only re-resolve when the view actually moved, so a drag parked
-              // against an end does not churn state every frame. A host update
-              // can still shift rows without the scroll position changing;
-              // the next pointermove or the drop picks that up.
-              if (scrollContainer.scrollTop !== scrollTop) {
-                reorderAt(pointerX, pointerY);
-              }
-            }
-          }
-          scrollFrame = window.requestAnimationFrame(onScrollFrame);
         }
 
         function onPointerMove(moveEvent: PointerEvent) {
