@@ -28,7 +28,8 @@ export function createdPullRequestUrls(events: readonly { type: string; data: un
   for (const event of events) {
     if (event.type !== "item/completed") continue;
     const item = (event.data as { item?: unknown } | null)?.item as
-      { type?: unknown; command?: unknown; aggregatedOutput?: unknown } | undefined;
+      | { type?: unknown; command?: unknown; aggregatedOutput?: unknown }
+      | undefined;
     if (item?.type !== "commandExecution") continue;
     if (typeof item.command !== "string" || !CREATE_COMMAND.test(item.command)) continue;
     if (typeof item.aggregatedOutput !== "string") continue;

@@ -81,9 +81,11 @@ export function projectColorDisplayOf(value: unknown): ProjectColorDisplay {
  * or a cache written by an older version. Missing or unknown values fall back
  * to the defaults.
  */
-export function childThreadSettingsOf(value: {
-  [Key in keyof ChildThreadSettings]?: unknown;
-}): ChildThreadSettings {
+export function childThreadSettingsOf(
+  value: {
+    [Key in keyof ChildThreadSettings]?: unknown;
+  },
+): ChildThreadSettings {
   return {
     childSortField: oneOf(CHILD_THREAD_SORT_FIELDS, value.childSortField, DEFAULT_SIDEBAR_SETTINGS.childSortField),
     childSortDirection: oneOf(

@@ -1,0 +1,344 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!!**/node_modules", "!!**/dist", "!!**/coverage", "!!tmp", "!**/package-lock.json"],
+    "ignoreUnknown": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always",
+      "quoteProperties": "asNeeded"
+    },
+    "jsxRuntime": "reactClassic"
+  },
+  "json": {
+    "formatter": {
+      "expand": "auto"
+    }
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["app.tsx", "src/**/*.ts", "src/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "app.tsx",
+        "src/*.tsx",
+        "src/components/**",
+        "src/lib/**",
+        "src/use*.ts",
+        "src/project-colors.ts",
+        "src/title-generation-state.ts",
+        "src/sidebar-settings.ts",
+        "src/working-since.ts",
+        "src/working-tree.ts",
+        "src/drag-preview.ts",
+        "src/settled-port-prompt.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": []
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/*.ts",
+        "!src/*.test.ts",
+        "!src/*.d.ts",
+        "!src/test-*.ts",
+        "!src/use*.ts",
+        "!src/server.ts",
+        "!src/ports-host.ts",
+        "!src/port-scan.ts",
+        "!src/auto-title.ts",
+        "!src/cloud-title.ts",
+        "!src/regenerate-title.ts",
+        "!src/port-discovery.ts",
+        "!src/thread-ports.ts",
+        "!src/thread-pull-requests.ts",
+        "!src/thread-tasks.ts",
+        "!src/project-colors.ts",
+        "!src/title-generation-state.ts",
+        "!src/sidebar-settings.ts",
+        "!src/working-since.ts",
+        "!src/working-tree.ts",
+        "!src/drag-preview.ts",
+        "!src/settled-port-prompt.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["react", "react/**", "node:*"],
+                    "message": "Shared modules must stay independent of React and Node."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/ports-host.ts",
+        "src/port-scan.ts",
+        "src/auto-title.ts",
+        "src/cloud-title.ts",
+        "src/regenerate-title.ts",
+        "src/port-discovery.ts",
+        "src/thread-ports.ts",
+        "src/thread-pull-requests.ts",
+        "src/thread-tasks.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["react", "react/**"],
+                    "message": "Node runtime modules must not import React."
+                  },
+                  {
+                    "group": [
+                      "**/*.tsx",
+                      "**/Calendar{,.tsx}",
+                      "**/ChildThreadDisplay{,.tsx}",
+                      "**/ChildThreadList{,.tsx}",
+                      "**/CleanSettledDialog{,.tsx}",
+                      "**/DeleteThreadDialog{,.tsx}",
+                      "**/Disc{,.tsx}",
+                      "**/Icon{,.tsx}",
+                      "**/InlineThreadTitle{,.tsx}",
+                      "**/JumpHints{,.tsx}",
+                      "**/OpenPorts{,.tsx}",
+                      "**/OpenPorts.test{,.tsx}",
+                      "**/ParentChip{,.tsx}",
+                      "**/ParentChip.test{,.tsx}",
+                      "**/ParentThreadMenu{,.tsx}",
+                      "**/Popover{,.tsx}",
+                      "**/PortLinkSettings{,.tsx}",
+                      "**/ProjectColorSetting{,.tsx}",
+                      "**/ProjectColors{,.tsx}",
+                      "**/ProjectColors.test{,.tsx}",
+                      "**/ProjectContextMenu{,.tsx}",
+                      "**/ProjectFavicon{,.tsx}",
+                      "**/ProjectFavicon.test{,.tsx}",
+                      "**/ProjectManagement{,.tsx}",
+                      "**/ProjectScopeSelect{,.tsx}",
+                      "**/ProjectSettings{,.tsx}",
+                      "**/ProviderGlyph{,.tsx}",
+                      "**/RowContextMenu{,.tsx}",
+                      "**/SearchResults{,.tsx}",
+                      "**/Select{,.tsx}",
+                      "**/SidebarSettings{,.tsx}",
+                      "**/SidebarSettings.test{,.tsx}",
+                      "**/SlimRow{,.tsx}",
+                      "**/SnoozePickerDialog{,.tsx}",
+                      "**/SnoozeSelect{,.tsx}",
+                      "**/StatusGlyph{,.tsx}",
+                      "**/StatusSlot{,.tsx}",
+                      "**/SubagentsChip{,.tsx}",
+                      "**/SubagentsChip.test{,.tsx}",
+                      "**/ThreadCard{,.tsx}",
+                      "**/ThreadDetailsTooltip{,.tsx}",
+                      "**/ThreadHoverCard{,.tsx}",
+                      "**/ThreadHoverCard.test{,.tsx}",
+                      "**/ThreadInbox{,.tsx}",
+                      "**/ThreadInbox.test{,.tsx}",
+                      "**/ThreadPullRequests{,.tsx}",
+                      "**/ThreadTitle{,.tsx}",
+                      "**/Tooltip{,.tsx}",
+                      "**/Tooltip.test{,.tsx}",
+                      "**/app{,.tsx}",
+                      "**/settings-ui{,.tsx}",
+                      "**/useScrollFade.test{,.tsx}"
+                    ],
+                    "message": "Node runtime modules must not import TSX app modules."
+                  },
+                  {
+                    "group": ["**/use*", "**/lib", "**/lib/**", "**/components", "**/components/**"],
+                    "message": "Node runtime modules must not import browser hooks, lib, or components."
+                  },
+                  {
+                    "group": [
+                      "**/project-colors",
+                      "**/project-colors.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/title-generation-state",
+                      "**/title-generation-state.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/sidebar-settings",
+                      "**/sidebar-settings.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/working-since",
+                      "**/working-since.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/working-tree",
+                      "**/working-tree.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/drag-preview",
+                      "**/drag-preview.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/settled-port-prompt",
+                      "**/settled-port-prompt.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
+                    ],
+                    "message": "Node runtime modules must not import browser modules."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/server.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["react", "react/**"],
+                    "message": "Node runtime modules must not import React."
+                  },
+                  {
+                    "group": [
+                      "**/*.tsx",
+                      "**/Calendar{,.tsx}",
+                      "**/ChildThreadDisplay{,.tsx}",
+                      "**/ChildThreadList{,.tsx}",
+                      "**/CleanSettledDialog{,.tsx}",
+                      "**/DeleteThreadDialog{,.tsx}",
+                      "**/Disc{,.tsx}",
+                      "**/Icon{,.tsx}",
+                      "**/InlineThreadTitle{,.tsx}",
+                      "**/JumpHints{,.tsx}",
+                      "**/OpenPorts{,.tsx}",
+                      "**/OpenPorts.test{,.tsx}",
+                      "**/ParentChip{,.tsx}",
+                      "**/ParentChip.test{,.tsx}",
+                      "**/ParentThreadMenu{,.tsx}",
+                      "**/Popover{,.tsx}",
+                      "**/PortLinkSettings{,.tsx}",
+                      "**/ProjectColorSetting{,.tsx}",
+                      "**/ProjectColors{,.tsx}",
+                      "**/ProjectColors.test{,.tsx}",
+                      "**/ProjectContextMenu{,.tsx}",
+                      "**/ProjectFavicon{,.tsx}",
+                      "**/ProjectFavicon.test{,.tsx}",
+                      "**/ProjectManagement{,.tsx}",
+                      "**/ProjectScopeSelect{,.tsx}",
+                      "**/ProjectSettings{,.tsx}",
+                      "**/ProviderGlyph{,.tsx}",
+                      "**/RowContextMenu{,.tsx}",
+                      "**/SearchResults{,.tsx}",
+                      "**/Select{,.tsx}",
+                      "**/SidebarSettings{,.tsx}",
+                      "**/SidebarSettings.test{,.tsx}",
+                      "**/SlimRow{,.tsx}",
+                      "**/SnoozePickerDialog{,.tsx}",
+                      "**/SnoozeSelect{,.tsx}",
+                      "**/StatusGlyph{,.tsx}",
+                      "**/StatusSlot{,.tsx}",
+                      "**/SubagentsChip{,.tsx}",
+                      "**/SubagentsChip.test{,.tsx}",
+                      "**/ThreadCard{,.tsx}",
+                      "**/ThreadDetailsTooltip{,.tsx}",
+                      "**/ThreadHoverCard{,.tsx}",
+                      "**/ThreadHoverCard.test{,.tsx}",
+                      "**/ThreadInbox{,.tsx}",
+                      "**/ThreadInbox.test{,.tsx}",
+                      "**/ThreadPullRequests{,.tsx}",
+                      "**/ThreadTitle{,.tsx}",
+                      "**/Tooltip{,.tsx}",
+                      "**/Tooltip.test{,.tsx}",
+                      "**/app{,.tsx}",
+                      "**/settings-ui{,.tsx}",
+                      "**/useScrollFade.test{,.tsx}"
+                    ],
+                    "message": "Node runtime modules must not import TSX app modules."
+                  },
+                  {
+                    "group": ["**/use*", "**/lib", "**/lib/**", "**/components", "**/components/**"],
+                    "message": "Node runtime modules must not import browser hooks, lib, or components."
+                  },
+                  {
+                    "group": [
+                      "**/title-generation-state",
+                      "**/title-generation-state.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/working-since",
+                      "**/working-since.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/working-tree",
+                      "**/working-tree.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/drag-preview",
+                      "**/drag-preview.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
+                      "**/settled-port-prompt",
+                      "**/settled-port-prompt.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
+                    ],
+                    "message": "Node runtime modules must not import browser modules."
+                  },
+                  {
+                    "group": ["**/sidebar-settings", "**/sidebar-settings.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
+                    "importNamePattern": "(CHILD_THREAD_ICON_STYLES|CHILD_THREAD_SORT_DIRECTIONS|CHILD_THREAD_SORT_FIELDS|childThreadSettingsOf|DEFAULT_SIDEBAR_SETTINGS|PROJECT_COLOR_DISPLAYS|projectColorDisplayOf|SIDEBAR_SETTINGS_CHANNEL|SidebarSettingsValues)",
+                    "invertImportNamePattern": true,
+                    "message": "SB-4 debt permits only the server's existing settings imports."
+                  },
+                  {
+                    "group": ["**/project-colors", "**/project-colors.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
+                    "importNamePattern": "PROJECT_COLORS_CHANNEL",
+                    "invertImportNamePattern": true,
+                    "message": "SB-4 debt permits only PROJECT_COLORS_CHANNEL in the server."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

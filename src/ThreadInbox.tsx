@@ -653,9 +653,9 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   // Keep the root of an attention path reachable when its shelf is folded.
   const attentionParentIds = useMemo(() => {
     const ids = new Set<string>();
-    if (!(
-      sidebarSettings?.showRunningChildrenWhenCollapsed ?? DEFAULT_SIDEBAR_SETTINGS.showRunningChildrenWhenCollapsed
-    )) {
+    if (
+      !(sidebarSettings?.showRunningChildrenWhenCollapsed ?? DEFAULT_SIDEBAR_SETTINGS.showRunningChildrenWhenCollapsed)
+    ) {
       return ids;
     }
     for (const thread of [...pinnedBase, ...inboxBase, ...inactiveBase]) {

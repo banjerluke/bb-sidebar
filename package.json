@@ -27,30 +27,16 @@
     "server": "./src/server.ts",
     "host": "./src/ports-host.ts"
   },
-  "keywords": [
-    "bb-plugin",
-    "sidebar",
-    "threads",
-    "inbox",
-    "productivity"
-  ],
-  "files": [
-    "dist",
-    "src",
-    "app.tsx",
-    "tsconfig.json",
-    "README.md",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
-  ],
+  "keywords": ["bb-plugin", "sidebar", "threads", "inbox", "productivity"],
+  "files": ["dist", "src", "app.tsx", "tsconfig.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "scripts": {
     "build": "bb plugin build",
     "check": "npm run lint && npm run format:check && npm run knip && npm run typecheck && npm test && npm run build",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app.tsx \"src/**/*.{ts,tsx}\" && node scripts/check-file-sizes.mjs",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "biome lint . && node scripts/check-import-boundaries.mjs && node scripts/check-file-sizes.mjs",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "knip": "knip --no-config-hints",
     "knip:report": "knip --config knip.report.ts --no-config-hints"
   },
@@ -62,6 +48,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
     "@get-bb/plugin-sdk": "0.6.15",
     "@pierre/diffs": "^1.2.9",
     "@radix-ui/react-alert-dialog": "^1.1.19",
@@ -83,17 +70,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.10.0",
-    "eslint": "^10.12.0",
     "hono": "^4.13.3",
     "jsdom": "^29.0.1",
     "knip": "^5.88.1",
-    "prettier": "^3.9.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.4.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.71.1",
     "vaul": "^1.1.2",
     "vitest": "^4.1.1"
   }

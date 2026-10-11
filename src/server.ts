@@ -2103,12 +2103,9 @@ export default async function plugin(bb: BbPluginApi) {
         }
       })();
       publishLifecycleChanges(restoring.map((thread) => thread.id));
-      await wakeAncestors(
-        tree.find((thread) => thread.id === threadId)!,
-        {
-          threadsById: new Map(threads.map((thread) => [thread.id, thread])),
-        },
-      );
+      await wakeAncestors(tree.find((thread) => thread.id === threadId)!, {
+        threadsById: new Map(threads.map((thread) => [thread.id, thread])),
+      });
       return { ok: true };
     },
     async snooze({ threadId, snoozedUntil }) {
