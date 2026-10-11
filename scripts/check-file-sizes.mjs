@@ -8,7 +8,6 @@ const debtLimits = {
   "src/ThreadCard.tsx": 658,
   "src/ThreadInbox.tsx": 2006,
   "src/server.ts": 2348,
-  "src/server.test.ts": 3166,
 };
 const files = [
   "app.tsx",
