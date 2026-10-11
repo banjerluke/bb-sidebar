@@ -1,31 +1,17 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
-import { DEFAULT_SNOOZE_PRESET_CONFIG, formatSnoozeWakeTime } from "./lifecycle";
-import { isWorkingTree } from "./working-tree";
-import { projectColorsById } from "./project-colors";
-import { WORKING_EMPTY_LINES } from "./working-empty-lines";
+import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
 import {
-  app,
   inbox,
-  sidebarSettings,
-  PolicyMenu,
-  SETTLED_NOTHING,
   defaultSidebarSettings,
   thread,
-  provider,
   defaultProviders,
   listProps,
   render,
-  statusSlotParts,
-  nestedInteractiveControls,
   deferred,
   toastMocks,
-  parkingActions,
-  parkFromCard,
-  parkFromMenu,
   loadInboxApp,
 } from "./test-inbox";
 

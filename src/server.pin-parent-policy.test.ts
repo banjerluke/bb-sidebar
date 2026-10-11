@@ -1,21 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
-import type { BbPluginApi } from "@get-bb/plugin-sdk";
-import plugin, { type StoredLifecycleRow } from "./server";
-import {
-  createFakePluginHost,
-  disposers,
-  standardProject,
-  projectThread,
-  projectsWith,
-  terminalSession,
-  availablePullRequest,
-  loadPlugin,
-  deferred,
-  type LifecycleListResult,
-  type Environment,
-  type ProjectThread,
-} from "./test-server";
+import { loadPlugin, deferred } from "./test-server";
 
 describe("pin/parent policy", () => {
   it.each([null, 0, 1])("rejects child Pin with pinnedAt=%s without changing lifecycle", async (pinnedAt) => {

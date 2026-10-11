@@ -1,21 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
-import type { BbPluginApi } from "@get-bb/plugin-sdk";
-import plugin, { type StoredLifecycleRow } from "./server";
-import {
-  createFakePluginHost,
-  disposers,
-  standardProject,
-  projectThread,
-  projectsWith,
-  terminalSession,
-  availablePullRequest,
-  loadPlugin,
-  deferred,
-  type LifecycleListResult,
-  type Environment,
-  type ProjectThread,
-} from "./test-server";
+import plugin from "./server";
+import { disposers, projectThread, projectsWith, loadPlugin, deferred, type LifecycleListResult } from "./test-server";
 
 describe("settling thread trees", () => {
   const tree = () => [

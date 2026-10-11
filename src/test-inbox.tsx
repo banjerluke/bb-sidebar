@@ -116,7 +116,7 @@ export function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSide
   };
 }
 
-export function provider(id: string, displayName: string, logoUrl: string | null): SidebarProvider {
+function provider(id: string, displayName: string, logoUrl: string | null): SidebarProvider {
   return {
     id,
     pluginId: `provider-${id}`,
