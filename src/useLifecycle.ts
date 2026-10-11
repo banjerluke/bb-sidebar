@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
@@ -50,7 +51,7 @@ type LifecycleMutationRequest =
     };
 
 const lifecycleRowsByRpcClient = new WeakMap<object, ReadonlyMap<string, ThreadLifecycleRow>>();
-const LIFECYCLE_ROWS_CACHE_KEY = "bb-sidebar:lifecycle-cache:v1";
+const LIFECYCLE_ROWS_CACHE_KEY = STORAGE_KEYS.lifecycle.key;
 
 function isNullableNumber(value: unknown): value is number | null {
   return value === null || (typeof value === "number" && Number.isFinite(value));

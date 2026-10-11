@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import { safeSetItem } from "./lib/safe-storage";
 import {
   childThreadSettingsOf,
@@ -7,7 +8,7 @@ import {
 } from "./sidebar-settings-values";
 export * from "./sidebar-settings-values";
 
-const SIDEBAR_SETTINGS_CACHE_KEY = "bb-sidebar:settings-cache:v1";
+const SIDEBAR_SETTINGS_CACHE_KEY = STORAGE_KEYS.settings.key;
 const settingsByRpcClient = new WeakMap<object, SidebarSettingsValues>();
 
 // Old previews may have cached removed settings. Never forward unknown keys

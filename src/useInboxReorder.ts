@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type PluginSidebarThread, useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
@@ -6,7 +7,7 @@ import { INBOX_ORDER_CHANNEL } from "./realtime-channels";
 import { orderInboxThreads } from "./pinned-order";
 import { safeSetItem } from "./lib/safe-storage";
 
-const ORDER_CACHE_KEY = "bb-sidebar:inbox-order-cache:v1";
+const ORDER_CACHE_KEY = STORAGE_KEYS.inboxOrder.key;
 const ordersByRpcClient = new WeakMap<object, readonly string[]>();
 
 function cachedOrder(rpc: object): readonly string[] | null {

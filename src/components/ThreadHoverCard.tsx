@@ -1,8 +1,9 @@
+import { BROWSER_EVENTS } from "../lib/browser-events";
 import { useCallback, useEffect, useId, useRef, type ReactElement, type ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { usePortalScopeProps } from "../lib/portal-scope";
 
-const HOVER_CARD_OPENED = "bb-sidebar:thread-hover-card-opened";
+const HOVER_CARD_OPENED = BROWSER_EVENTS.threadHoverCardOpened;
 
 /** Hover preview with a keyboard path into its links. Blank areas pass clicks through. */
 export function ThreadHoverCard({

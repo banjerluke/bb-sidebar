@@ -1,10 +1,12 @@
+import { BROWSER_EVENTS } from "./lib/browser-events";
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import { useSyncExternalStore } from "react";
 import { experimental_useSidebarThreads as useSidebarThreads } from "@get-bb/plugin-sdk/app";
 import { safeSetItem } from "./lib/safe-storage";
 import { SettingRow, SettingsSelect } from "./settings-ui";
 
-export const PORT_LINK_HOST_KEY = "bb-sidebar:port-link-host:v1";
-const CHANGE = "bb-sidebar:port-link-host-changed";
+export const PORT_LINK_HOST_KEY = STORAGE_KEYS.portLinkHost.key;
+const CHANGE = BROWSER_EVENTS.portLinkHostChanged;
 function subscribe(listener: () => void) {
   window.addEventListener("storage", listener);
   window.addEventListener(CHANGE, listener);

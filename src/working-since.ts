@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { isThreadWorking } from "./lifecycle";
 import { safeSetItem } from "./lib/safe-storage";
@@ -18,7 +19,7 @@ import { relativeTimeLabel } from "./relative-time";
  */
 export type WorkingSince = ReadonlyMap<string, number>;
 
-export const WORKING_SINCE_STORAGE_KEY = "bb-sidebar:working-since:v1";
+export const WORKING_SINCE_STORAGE_KEY = STORAGE_KEYS.workingSince.key;
 
 export const EMPTY_WORKING_SINCE: WorkingSince = new Map();
 

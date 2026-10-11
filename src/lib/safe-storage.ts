@@ -1,19 +1,8 @@
+import { PLUGIN_STORAGE_KEYS } from "./storage-keys";
 import type { ThreadLifecycleRow } from "../lifecycle";
 
 export const MAX_CACHED_LIFECYCLE_ROWS = 500;
 export const MAX_CHILD_EXPANSION = 100;
-
-// Keys managed by this plugin — ordered least-critical first for eviction.
-const PLUGIN_STORAGE_KEYS = [
-  "bb-sidebar:working-since:v1",
-  "bb-sidebar:inbox-order-cache:v1",
-  "bb-sidebar:lifecycle-cache:v1",
-  "bb-sidebar:child-expansion:v1",
-  "bb-sidebar:project-collapse:v1",
-  "bb-sidebar:shelf-expansion:v1",
-  "bb-sidebar:active-sort:v1",
-  "bb-sidebar:settings-cache:v1",
-] as const;
 
 function isQuotaExceededError(error: unknown): boolean {
   if (error instanceof DOMException) {

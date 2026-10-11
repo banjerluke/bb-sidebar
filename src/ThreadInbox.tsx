@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "./lib/storage-keys";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   experimental_useSidebarThreadActions as useSidebarThreadActions,
@@ -60,13 +61,12 @@ import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion, safeSetItem } from "./lib/safe-storage";
-const ACTIVE_GROUPING_STORAGE_KEY = "bb-sidebar:active-grouping:v1";
-const ACTIVE_SORT_STORAGE_KEY = "bb-sidebar:active-sort:v1";
-const SHELF_EXPANSION_STORAGE_KEY = "bb-sidebar:shelf-expansion:v1";
-const CHILD_EXPANSION_STORAGE_KEY = "bb-sidebar:child-expansion:v1";
-const PROJECT_COLLAPSE_STORAGE_KEY = "bb-sidebar:project-collapse:v1";
+const ACTIVE_GROUPING_STORAGE_KEY = STORAGE_KEYS.activeGrouping.key;
+const ACTIVE_SORT_STORAGE_KEY = STORAGE_KEYS.activeSort.key;
+const SHELF_EXPANSION_STORAGE_KEY = STORAGE_KEYS.shelfExpansion.key;
+const CHILD_EXPANSION_STORAGE_KEY = STORAGE_KEYS.childExpansion.key;
+const PROJECT_COLLAPSE_STORAGE_KEY = STORAGE_KEYS.projectCollapse.key;
 const SETTLED_INITIAL_LIMIT = 10;
-
 function readCollapsedProjects(): Set<string> {
   try {
     const stored = window.localStorage.getItem(PROJECT_COLLAPSE_STORAGE_KEY);
