@@ -4,7 +4,8 @@ Behavior-preserving refactors only unless the task says otherwise. Keep test
 meaning intact.
 
 Inbox layout: `src/inbox-layout.ts`; shelves: `ThreadInboxShelves.tsx`.
-Inbox hooks live in flat `src/use*.ts` files.
+Inbox hooks use `src/use*.ts`; gesture helpers use `src/drag-*.ts`.
+Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
 
 ## Runtimes and imports
 
@@ -23,7 +24,8 @@ Inbox hooks live in flat `src/use*.ts` files.
   definitions and helpers live in shared `sidebar-settings-values.ts`.
 - Browser `.ts` modules are `project-colors`, `title-generation-state`,
   `sidebar-settings`, `working-since`, `working-tree`, `drag-preview`,
-  and `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
+  `drag-reorder`, `drag-reorder-geometry`, `drag-auto-scroll`, and
+  `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
   type and `title-generation-state.ts` uses `useSyncExternalStore`
   intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding `use*.ts`,

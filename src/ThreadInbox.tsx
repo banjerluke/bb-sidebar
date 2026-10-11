@@ -1,11 +1,11 @@
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
-import { createDragReorderHandler } from "./useDragReorder";
-import type { InboxDragOrder } from "./useDragReorderGeometry";
+import { createDragReorderHandler } from "./drag-reorder";
+import type { InboxDragOrder } from "./drag-reorder-geometry";
 import { ThreadInboxView, type ShelfExpansionState } from "./ThreadInboxView";
 import { useQuantizedNow } from "./useQuantizedNow";
 import { useProjectIconRevision } from "./useProjectIconRevision";
 import { useRenamingShelfLocks } from "./useRenamingShelfLocks";
-import { useDragAutoScroll } from "./useDragAutoScroll";
+import { useDragClickSuppression } from "./useDragClickSuppression";
 import { useListAutoAnimate, createListAnimationController } from "./useListAutoAnimate";
 import {
   isActiveSortMode,
@@ -260,7 +260,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     dragPreviewRef.current?.play();
   });
   const activeReorderCancelRef = useRef<(() => void) | null>(null);
-  const suppressDragClick = useDragAutoScroll(activeReorderCancelRef);
+  const suppressDragClick = useDragClickSuppression(activeReorderCancelRef);
   // A thread can be deleted from anywhere while it is being dragged. Unmounting
   // the whole sidebar already cancels; losing just this row has to as well, or
   // the drag keeps steering an order around an id that is gone. This catches

@@ -1,7 +1,7 @@
 import type { ThreadReorderControls } from "./ThreadCard";
 import { createDragPreview } from "./drag-preview";
-import { createDragAutoScroll, findScrollContainer, listenForDrag } from "./useDragAutoScroll";
-import { createDragReorderGeometry, type DragReorderOptions } from "./useDragReorderGeometry";
+import { createDragAutoScroll, findScrollContainer, listenForDrag } from "./drag-auto-scroll";
+import { createDragReorderGeometry, type DragReorderOptions } from "./drag-reorder-geometry";
 
 export function createDragReorderHandler({
   key,
