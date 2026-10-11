@@ -31,6 +31,7 @@
   "files": ["dist", "src", "app.tsx", "tsconfig.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "scripts": {
     "build": "bb plugin build",
+    "fixture:db": "node scripts/make-fixture-db.mjs",
     "check": "npm run lint && npm run format:check && npm run knip && npm run typecheck && npm test && npm run build",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
