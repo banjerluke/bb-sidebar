@@ -82,6 +82,33 @@ const migrations = [
      color TEXT NOT NULL
    )`,
   `ALTER TABLE sidebar_settings ADD COLUMN project_color_display TEXT NOT NULL DEFAULT 'all'`,
+  // Old columns stay for compatibility; drop them with a table rebuild in a
+  // later major. All settings reads and writes now use settings_json only.
+  `ALTER TABLE sidebar_settings ADD COLUMN settings_json TEXT`,
+  `UPDATE sidebar_settings SET settings_json = json_object(
+     'snoozePresets', snooze_presets,
+     'inactiveThreadsEnabled', json(CASE WHEN inactive_threads_enabled = 1 THEN 'true' ELSE 'false' END),
+     'inactiveAfterHours', inactive_after_hours,
+     'showRunningChildrenWhenCollapsed', json(CASE WHEN show_running_children_when_collapsed = 1 THEN 'true' ELSE 'false' END),
+     'autoSettleInactive', json(CASE WHEN auto_settle_inactive = 1 THEN 'true' ELSE 'false' END),
+     'autoSettleAfterDays', auto_settle_after_days,
+     'autoSettleOnMerge', json(CASE WHEN auto_settle_on_merge = 1 THEN 'true' ELSE 'false' END),
+     'childSortField', child_sort_field,
+     'childSortDirection', child_sort_direction,
+     'childIconStyle', child_icon_style,
+     'compactWorkingThreads', json(CASE WHEN compact_working_threads = 1 THEN 'true' ELSE 'false' END),
+     'workingShelf', json(CASE WHEN working_shelf = 1 THEN 'true' ELSE 'false' END),
+     'dockShelves', json(CASE WHEN dock_shelves = 1 THEN 'true' ELSE 'false' END),
+     'projectColorsEnabled', json(CASE WHEN project_colors_enabled = 1 THEN 'true' ELSE 'false' END),
+     'projectColorDisplay', project_color_display
+   ) WHERE id = 1`,
+  // The original NOT NULL columns have no defaults. Seed their required
+  // placeholders once so later saves can UPDATE JSON only. NULL JSON still
+  // means no stored settings, preserving the legacy import on new installs.
+  `INSERT OR IGNORE INTO sidebar_settings
+     (id, snooze_presets, inactive_threads_enabled, inactive_after_hours,
+      auto_settle_inactive, auto_settle_after_days, auto_settle_on_merge)
+   VALUES (1, '', 1, 6, 1, 3, 1)`,
 ];
 
 export default async function plugin(bb: BbPluginApi) {

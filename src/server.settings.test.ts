@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import plugin from "./server";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { createFakePluginHost, disposers, loadPlugin } from "./test-server";
 
 describe("lifecycle RPC", () => {
@@ -7,6 +8,7 @@ describe("lifecycle RPC", () => {
     const harness = await loadPlugin();
     expect(harness.inspection.registrations.settingsDescriptors).toEqual({});
     await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual({
+      ...DEFAULT_SIDEBAR_SETTINGS,
       snoozePresets: "1h, Wait refresh (5 hours)=5h, evening@18:00, tomorrow@09:00, next-week@09:00",
       inactiveThreadsEnabled: true,
       inactiveAfterHours: 6,
@@ -42,6 +44,7 @@ describe("lifecycle RPC", () => {
         projectColorDisplay: "grouped",
       }),
     ).resolves.toEqual({
+      ...DEFAULT_SIDEBAR_SETTINGS,
       snoozePresets: "10m, 4h",
       inactiveThreadsEnabled: false,
       inactiveAfterHours: 12,
@@ -164,6 +167,7 @@ describe("lifecycle RPC", () => {
     disposers.push(() => harness.lifecycle.dispose());
 
     await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual({
+      ...DEFAULT_SIDEBAR_SETTINGS,
       snoozePresets: "20m, 6h",
       inactiveThreadsEnabled: false,
       inactiveAfterHours: 18,
@@ -181,4 +185,62 @@ describe("lifecycle RPC", () => {
       projectColorDisplay: "all",
     });
   });
+});
+
+it("writes only JSON and keeps historical columns unchanged across reloads", async () => {
+  const getSettings = vi.fn(async () => ({ values: {}, pluginId: "bb-sidebar" }));
+  const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar", sdk: { plugins: { getSettings } } });
+  await plugin(bb);
+  disposers.push(() => harness.lifecycle.dispose());
+  const db = bb.storage.database();
+  const { settings_json: beforeJson, ...beforeColumns } = db.prepare("SELECT * FROM sidebar_settings").get() as Record<
+    string,
+    unknown
+  >;
+  expect(beforeJson).toBeNull();
+  const next = { ...DEFAULT_SIDEBAR_SETTINGS, snoozePresets: "20m, 6h", inactiveAfterHours: 18, workingShelf: true };
+  await expect(harness.behavior.callRpc("updateSidebarSettings", next)).resolves.toEqual(next);
+  const { settings_json: storedJson, ...afterColumns } = db.prepare("SELECT * FROM sidebar_settings").get() as Record<
+    string,
+    unknown
+  >;
+  expect(JSON.parse(storedJson as string)).toEqual(next);
+  expect(afterColumns).toEqual(beforeColumns);
+  const reloaded = await harness.lifecycle.reload(plugin);
+  disposers.push(() => reloaded.harness.lifecycle.dispose());
+  await expect(reloaded.harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual(next);
+  expect(getSettings).toHaveBeenCalledTimes(1);
+});
+
+it("defaults missing and invalid JSON fields without losing valid settings", async () => {
+  const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
+  await plugin(bb);
+  disposers.push(() => harness.lifecycle.dispose());
+  const db = bb.storage.database();
+  db.prepare("UPDATE sidebar_settings SET settings_json = ? WHERE id = 1").run(
+    JSON.stringify({
+      snoozePresets: "20m, 6h",
+      inactiveAfterHours: 18,
+      autoSettleInactive: false,
+      inactiveThreadsEnabled: "false",
+      autoSettleAfterDays: -1,
+      childSortField: "invalid",
+      projectColorDisplay: "invalid",
+      removedSetting: true,
+    }),
+  );
+  await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual({
+    ...DEFAULT_SIDEBAR_SETTINGS,
+    snoozePresets: "20m, 6h",
+    inactiveAfterHours: 18,
+    autoSettleInactive: false,
+  });
+});
+
+it.each(["{broken", "null", "[]", "42", '"settings"'])("defaults malformed JSON %s", async (stored) => {
+  const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
+  await plugin(bb);
+  disposers.push(() => harness.lifecycle.dispose());
+  bb.storage.database().prepare("UPDATE sidebar_settings SET settings_json = ? WHERE id = 1").run(stored);
+  await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual(DEFAULT_SIDEBAR_SETTINGS);
 });

@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { createWired } from "./test-wired";
 import { deferred, loadInboxApp, thread } from "./test-inbox";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import hashes from "./fixtures/sha256.json";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -32,10 +34,23 @@ const releaseSettings = {
   dockShelves: true,
 };
 const snapshots = [
-  { version: "v0.2.34", settings: { ...releaseSettings, projectColorsEnabled: false, projectColorDisplay: "all" } },
+  {
+    version: "v0.2.34",
+    settings: {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...releaseSettings,
+      projectColorsEnabled: false,
+      projectColorDisplay: "all",
+    },
+  },
   {
     version: "main-3578240",
-    settings: { ...releaseSettings, projectColorsEnabled: true, projectColorDisplay: "full" },
+    settings: {
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...releaseSettings,
+      projectColorsEnabled: true,
+      projectColorDisplay: "full",
+    },
   },
 ];
 const expectedRows = [
@@ -127,13 +142,26 @@ it.each(snapshots)(
       autoSettleOnMerge: false,
     };
     expect(await wired.call("getSidebarSettings")).toMatchObject(disabled);
-    // createWired copies the fixture into temporary fake-host storage before migrations.
-    wired.db
-      .prepare(`UPDATE sidebar_settings SET inactive_threads_enabled = 1,
-    show_running_children_when_collapsed = 1, auto_settle_inactive = 1, auto_settle_on_merge = 1
-    WHERE id = 1`)
-      .run();
-    expect(await wired.call("getSidebarSettings")).toMatchObject({
+    // Update a temporary copy before startup to exercise migration of true
+    // booleans as well as the false booleans in the immutable originals.
+    const directory = mkdtempSync(join(tmpdir(), "sidebar-booleans-"));
+    let enabled;
+    try {
+      const copy = join(directory, "sidebar.sqlite");
+      copyFileSync(fixturePath(`sidebar-${version}.sqlite`), copy);
+      const db = new Database(copy);
+      try {
+        db.prepare(`UPDATE sidebar_settings SET inactive_threads_enabled = 1,
+          show_running_children_when_collapsed = 1, auto_settle_inactive = 1, auto_settle_on_merge = 1
+          WHERE id = 1`).run();
+      } finally {
+        db.close();
+      }
+      enabled = await createWired([], { fixture: copy });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+    expect(await enabled.call("getSidebarSettings")).toMatchObject({
       inactiveThreadsEnabled: true,
       showRunningChildrenWhenCollapsed: true,
       autoSettleInactive: true,

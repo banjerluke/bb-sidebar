@@ -150,7 +150,9 @@ it("saves settings in the real settings slot and publishes the Working shelf to 
   vi.useFakeTimers();
   fireEvent.click(toggle);
   await wired.advance(500);
-  expect(wired.db.prepare("SELECT working_shelf FROM sidebar_settings").get()).toEqual({ working_shelf: 1 });
+  expect(
+    wired.db.prepare("SELECT json_extract(settings_json, '$.workingShelf') AS enabled FROM sidebar_settings").get(),
+  ).toEqual({ enabled: 1 });
   expect(within(screen.getByRole("region", { name: "Working" })).getByText("Work busy")).toBeDefined();
   expect(await wired.call("getSidebarSettings")).toMatchObject({ workingShelf: true });
 });
