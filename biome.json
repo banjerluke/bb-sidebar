@@ -112,7 +112,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["react", "react/**", "node:*"],
+                    "group": ["react", "react/**", "node:*", "node:*/**"],
                     "message": "Shared modules must stay independent of React and Node."
                   }
                 ]
