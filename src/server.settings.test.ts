@@ -237,10 +237,16 @@ it("defaults missing and invalid JSON fields without losing valid settings", asy
   });
 });
 
-it.each(["{broken", "null", "[]", "42", '"settings"'])("defaults malformed JSON %s", async (stored) => {
+it.each(["", "{broken", "null", "[]", "42", '"settings"'])("defaults malformed JSON %s", async (stored) => {
   const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
   await plugin(bb);
   disposers.push(() => harness.lifecycle.dispose());
   bb.storage.database().prepare("UPDATE sidebar_settings SET settings_json = ? WHERE id = 1").run(stored);
   await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toEqual(DEFAULT_SIDEBAR_SETTINGS);
+  expect(harness.inspection.logEntries).toContainEqual(
+    expect.objectContaining({
+      level: "warn",
+      message: expect.stringMatching(/^Could not parse sidebar_settings\.settings_json; using defaults: .+/),
+    }),
+  );
 });

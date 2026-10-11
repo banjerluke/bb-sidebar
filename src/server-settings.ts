@@ -19,15 +19,18 @@ export async function createServerSettings(ctx: ServerContext) {
     const row = ctx.db.prepare("SELECT settings_json FROM sidebar_settings WHERE id = 1").get() as
       | { settings_json: string | null }
       | undefined;
-    if (!row?.settings_json) return { ...DEFAULT_SIDEBAR_SETTINGS };
+    if (row?.settings_json == null) return { ...DEFAULT_SIDEBAR_SETTINGS };
     try {
       const stored: unknown = JSON.parse(row.settings_json);
       if (stored === null || typeof stored !== "object" || Array.isArray(stored)) {
-        return { ...DEFAULT_SIDEBAR_SETTINGS };
+        throw new Error("Expected a JSON object");
       }
       // Merge defaults before parsing so older JSON also covers new fields.
       return sidebarSettingsSchema.parse(storedSettingsSchema.parse({ ...DEFAULT_SIDEBAR_SETTINGS, ...stored }));
-    } catch {
+    } catch (error) {
+      ctx.bb.log.warn(
+        `Could not parse sidebar_settings.settings_json; using defaults: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return { ...DEFAULT_SIDEBAR_SETTINGS };
     }
   };
