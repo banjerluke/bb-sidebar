@@ -69,6 +69,9 @@ export let sidebarSettings: (typeof app.settingsSections)[number];
 let RowContextMenu: typeof RowContextMenuType;
 
 export async function loadInboxApp() {
+  // This helper module is cached in shared workers, but hooks belong to each file.
+  afterEach(cleanupInboxTest);
+  if (app) return;
   app = await loadPluginApp(() => import("../app"));
   ({ RowContextMenu } = await import("./RowContextMenu"));
   inbox = app.threadLists[0]!;
@@ -236,14 +239,14 @@ export function nestedInteractiveControls(root: HTMLElement): string[] {
 
 export { deferred };
 
-afterEach(() => {
+function cleanupInboxTest() {
   cleanup();
   window.localStorage.clear();
   nextPinnedKey = 0;
   toastMocks.success.mockReset();
   toastMocks.error.mockReset();
   vi.mocked(document.elementFromPoint).mockReset();
-});
+}
 
 type ParkingAction = "settle" | "snooze" | "park";
 export const parkingActions: readonly ParkingAction[] = ["settle", "snooze", "park"];

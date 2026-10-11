@@ -22,6 +22,11 @@ export const WORKING_EMPTY_LINES = [
 
 let lastLine = -1;
 
+/** Test isolation between independently mounted scenes. */
+export function resetWorkingEmptyLineForTests() {
+  lastLine = -1;
+}
+
 /**
  * One line per appearance of the scene, never the one it showed last time.
  * The caller draws once on mount, so the line holds while the scene is up.

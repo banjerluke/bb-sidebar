@@ -11,6 +11,12 @@ const failedSources = new Map<string, { count: number; retryAt: number }>();
 const RETRY_BASE_MS = 15_000;
 const RETRY_MAX_MS = 10 * 60_000;
 
+/** Test isolation after all mounted consumers have been cleaned up. */
+export function resetProjectFaviconsForTests() {
+  loadedSources.clear();
+  failedSources.clear();
+}
+
 function attemptUrl(src: string, attempt: number): string {
   if (attempt === 0) return src;
   return `${src}${src.includes("?") ? "&" : "?"}attempt=${attempt}`;

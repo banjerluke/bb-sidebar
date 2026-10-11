@@ -5,6 +5,12 @@ import { useSyncExternalStore } from "react";
 const pending = new Set<string>();
 const listeners = new Set<() => void>();
 
+/** Test isolation after all mounted consumers have been cleaned up. */
+export function resetTitleGenerationForTests() {
+  if (listeners.size > 0) throw new Error("Title generation still has mounted subscribers");
+  pending.clear();
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => {
