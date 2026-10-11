@@ -119,6 +119,10 @@ browser bundle guard against `ZodError`, plus
 `npx --no-install bb plugin types --check`. Typecheck includes both Knip
 configs.
 
+Test timeouts are centralized: Testing Library gets 5s in `test-setup.ts`, Vitest 30s in `vitest.config.ts`.
+The app project loads once per worker; `test-app-setup.ts` resets shared state and cleanup hooks register per file.
+Run `npm run test:stress` before test commits: five loaded runs, also available as a separate manual CI job.
+
 A fresh checkout or worktree must run `npm ci` before its first commit
 because the pre-commit hook runs the local Biome binary.
 
