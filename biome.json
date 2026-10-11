@@ -198,6 +198,7 @@
                       "**/Tooltip.test",
                       "**/app",
                       "**/settings-ui",
+                      "**/test-inbox",
                       "**/useScrollFade.test"
                     ],
                     "message": "Node runtime modules must not import TSX app modules."
@@ -368,6 +369,7 @@
                       "**/Tooltip.test",
                       "**/app",
                       "**/settings-ui",
+                      "**/test-inbox",
                       "**/useScrollFade.test"
                     ],
                     "message": "Node runtime modules must not import TSX app modules."
