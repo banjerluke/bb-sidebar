@@ -83,6 +83,8 @@ evict them. Existing direct storage accesses are migration debt for SB-7.
 
 ## Size and style budgets
 
+SidebarSettings.tsx is at its 535-line ceiling; SB-14/SB-7 should split it.
+
 - Production files and `scripts/**/*.mjs`: at most 500 physical lines. Tests get
   1,000. `scripts/check-file-sizes.mjs` records ceilings for four production
   files. Growth fails; shrinkage also fails until the ceiling is lowered.
