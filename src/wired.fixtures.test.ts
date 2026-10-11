@@ -372,7 +372,24 @@ it("JSON snapshot records the new schema and stores real JSON boolean values", (
     const row = db.prepare("SELECT settings_json FROM sidebar_settings WHERE id = 1").get() as {
       settings_json: string;
     };
-    expect(JSON.parse(row.settings_json)).toEqual(databaseSnapshots[2]!.settings);
+    // Raw fixture contents are frozen; current defaults belong only in RPC expectations.
+    expect(JSON.parse(row.settings_json)).toEqual({
+      snoozePresets: "1h, 4h, 2d",
+      inactiveThreadsEnabled: false,
+      inactiveAfterHours: 12,
+      showRunningChildrenWhenCollapsed: false,
+      autoSettleInactive: false,
+      autoSettleAfterDays: 7,
+      autoSettleOnMerge: false,
+      childSortField: "activity",
+      childSortDirection: "descending",
+      childIconStyle: "provider",
+      compactWorkingThreads: true,
+      workingShelf: true,
+      dockShelves: true,
+      projectColorsEnabled: true,
+      projectColorDisplay: "full",
+    });
   } finally {
     db.close();
   }
