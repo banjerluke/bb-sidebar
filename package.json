@@ -52,7 +52,8 @@
     "knip": "knip --no-config-hints",
     "knip:report": "knip --config knip.report.ts --no-config-hints",
     "prepare": "lefthook install",
-    "test:measure": "node scripts/measure-tests.mjs"
+    "test:measure": "node scripts/measure-tests.mjs",
+    "test:stress": "node scripts/measure-tests.mjs --runs 5 --load"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
