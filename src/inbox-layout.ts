@@ -122,3 +122,12 @@ export function activeRepresentativeThreadId(
   }
   return null;
 }
+export function sameOrder(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+export function isActiveSortMode(value: string): value is ActiveSortMode {
+  return ACTIVE_SORT_MODES.some((mode) => mode === value);
+}
+
+export type ReorderMode = "thread" | "unit";

@@ -1,5 +1,4 @@
-import { useCallback } from "react";
-import { autoAnimate, type AnimationController } from "@formkit/auto-animate";
+import { useListAutoAnimate } from "./useListAutoAnimate";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon, type IconName } from "./components/Icon";
 import { cn } from "./lib/utils";
@@ -15,48 +14,6 @@ import { projectIconUrl } from "./project-icons";
 import type { ProjectViewUnit } from "./inbox-layout";
 
 const SETTLED_PAGE_SIZE = 25;
-
-// A drag reads insertion from row geometry, so no row may be mid-flight while
-// it reads: an animating rect reports where a row was, not the slot the order
-// has already given it. Every list registers here so a drag can hold them all
-// still for its duration.
-const listAnimations = new Set<AnimationController>();
-// Counted rather than a flag: two sidebars can be mounted at once, and the
-// first drag to finish must not re-enable animation under a drag still running
-// in the other one.
-let listAnimationHolds = 0;
-
-export function suspendListAnimations(): void {
-  listAnimationHolds += 1;
-  if (listAnimationHolds > 1) return;
-  for (const animation of listAnimations) animation.disable();
-}
-
-export function resumeListAnimations(): void {
-  if (listAnimationHolds === 0) return;
-  listAnimationHolds -= 1;
-  if (listAnimationHolds > 0) return;
-  for (const animation of listAnimations) animation.enable();
-}
-
-export function useListAutoAnimate<T extends HTMLElement>() {
-  return useCallback((node: T | null) => {
-    if (!node || typeof window.matchMedia !== "function") return;
-    const animation = autoAnimate(node, {
-      duration: 150,
-      easing: "ease-out",
-    });
-    if (listAnimationHolds > 0) animation.disable();
-    listAnimations.add(animation);
-    return () => {
-      listAnimations.delete(animation);
-      // Dropping our reference is not enough: auto-animate holds the parent in
-      // its own registry and keeps observers and a polling interval alive until
-      // it is told to let go.
-      animation.destroy?.();
-    };
-  }, []);
-}
 
 /**
  * A collapsed shelf of parked threads. The header stays while anything is

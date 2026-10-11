@@ -1,8 +1,11 @@
 import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
 import { CompactShelf, DockableShelves, CollapsibleShelf, ProjectGroups, Shelf } from "./ThreadInboxShelves";
-import { useListAutoAnimate, suspendListAnimations, resumeListAnimations } from "./ThreadInboxShelves";
+import { useListAutoAnimate, createListAnimationController, ListAnimationContext } from "./useListAutoAnimate";
 import {
   ACTIVE_SORT_MODES,
+  isActiveSortMode,
+  sameOrder,
+  type ReorderMode,
   PROJECT_UNIT_KEY_PREFIX,
   projectUnitKey,
   layoutActiveThreadsByProject,
@@ -158,10 +161,6 @@ function findScrollContainer(from: Element | null): HTMLElement | null {
   return null;
 }
 
-function sameOrder(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((id, index) => id === right[index]);
-}
-
 /** How close to an edge a drag must come before the shelf starts scrolling. */
 const DRAG_SCROLL_EDGE = 48;
 /** Pixels per frame at the very edge, ramping down to nothing at the hot zone. */
@@ -215,10 +214,6 @@ const ACTIVE_SORT_LABELS: Record<ActiveSortMode, string> = {
   project: "Project",
 };
 
-function isActiveSortMode(value: string): value is ActiveSortMode {
-  return ACTIVE_SORT_MODES.some((mode) => mode === value);
-}
-
 function readActiveSort(): ActiveSortMode {
   try {
     const stored = window.localStorage.getItem(ACTIVE_SORT_STORAGE_KEY);
@@ -230,8 +225,6 @@ function readActiveSort(): ActiveSortMode {
 }
 
 type ActiveShelfKind = "pinned" | "inbox";
-
-type ReorderMode = "thread" | "unit";
 
 /**
  * The sidebar's scrolling list. Manual order is durable, while optional views
@@ -253,8 +246,9 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   useRealtime(PROJECT_ICONS_CHANNEL, () => {
     setProjectIconRevision((revision) => revision + 1);
   });
-  const attachShelvesAutoAnimateRef = useListAutoAnimate<HTMLDivElement>();
-  const attachDockAutoAnimateRef = useListAutoAnimate<HTMLDivElement>();
+  const [listAnimationController] = useState(createListAnimationController);
+  const attachShelvesAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
+  const attachDockAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
   const attachScrollFadeRef = useScrollFade<HTMLDivElement>();
   const activeThreadIdRef = useRef(activeThreadId);
   activeThreadIdRef.current = activeThreadId;
@@ -745,7 +739,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
             document.body.style.cursor = previousCursor;
             dragPreviewRef.current?.destroy();
             dragPreviewRef.current = null;
-            resumeListAnimations();
+            listAnimationController.resume();
           }
           if (activeReorderCancelRef.current === cancel) {
             activeReorderCancelRef.current = null;
@@ -768,7 +762,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
           previousCursor = document.body.style.cursor;
           document.body.style.userSelect = "none";
           document.body.style.cursor = "grabbing";
-          suspendListAnimations();
+          listAnimationController.suspend();
           clickSuppressionRef.current?.();
           clickSuppressionRef.current = armClickSuppression(movingId);
           listElement = rowAnchor.closest("ul");
@@ -1075,276 +1069,281 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   );
 
   return (
-    <ProjectColorsProvider
-      enabled={sidebarSettings?.projectColorsEnabled === true}
-      display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
-      projectIds={projects.map((project) => project.id)}
-    >
-      <WorkingSinceContext.Provider value={workingSince}>
-        <ChildThreadDisplayContext.Provider value={childDisplay}>
-          <OpenPortsProvider>
-            <JumpHintsContext.Provider value={jumpHints}>
-              <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
-                {/* The one control the host has no equivalent for. Everything else in
+    <ListAnimationContext.Provider value={listAnimationController}>
+      <ProjectColorsProvider
+        enabled={sidebarSettings?.projectColorsEnabled === true}
+        display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
+        projectIds={projects.map((project) => project.id)}
+      >
+        <WorkingSinceContext.Provider value={workingSince}>
+          <ChildThreadDisplayContext.Provider value={childDisplay}>
+            <OpenPortsProvider>
+              <JumpHintsContext.Provider value={jumpHints}>
+                <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
+                  {/* The one control the host has no equivalent for. Everything else in
             the chrome above — New thread, search — is bb's and stays bb's. */}
-                <div className="flex shrink-0 items-center gap-1 px-2 pb-1">
-                  <ProjectScopeSelect
-                    scope={scope}
-                    projects={projects}
-                    projectIconRevision={projectIconRevision}
-                    onScopeChange={setScope}
-                  />
-                </div>
-
-                <p role="status" aria-live="polite" className="sr-only">
-                  {reorderAnnouncement}
-                </p>
-
-                <div
-                  ref={attachScrollFadeRef}
-                  className={cn("min-h-0 flex-1 overflow-y-auto px-1.5 pb-2", SCROLL_FADE_CLASS)}
-                >
-                  {status === "loading" ? (
-                    <ThreadListLoading />
-                  ) : status === "error" ? (
-                    <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
-                      Could not load threads.
-                    </p>
-                  ) : isSearching && searchResults.length === 0 ? (
-                    <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
-                      No threads found
-                    </p>
-                  ) : isSearching ? (
-                    <SearchResults
-                      threads={searchResults}
-                      projectNameById={projectNameById}
+                  <div className="flex shrink-0 items-center gap-1 px-2 pb-1">
+                    <ProjectScopeSelect
+                      scope={scope}
+                      projects={projects}
                       projectIconRevision={projectIconRevision}
-                      activeThreadId={activeThreadId}
-                      now={now}
-                      wokeThreadIds={wokeThreadIds}
-                      onAcknowledgeWake={(threadId) => void lifecycle.acknowledgeWake(threadId)}
-                      onNavigate={onNavigate}
+                      onScopeChange={setScope}
                     />
-                  ) : (
-                    <DockableShelves
-                      docked={dockShelvesEnabled}
-                      attachUpperRef={attachShelvesAutoAnimateRef}
-                      attachLowerRef={attachDockAutoAnimateRef}
-                      upper={
-                        <>
-                          {pinned.length > 0 ? (
-                            <CollapsibleShelf
-                              label="Pinned"
-                              icon="Pin"
-                              count={pinned.length}
-                              expanded={expandedShelves.pinned}
-                              onToggle={() =>
-                                setExpandedShelves((current) => ({
-                                  ...current,
-                                  pinned: !current.pinned,
-                                }))
-                              }
-                            >
-                              <Shelf label={null}>
-                                {visiblePinned.map((thread) => renderActiveThread(thread, "pinned"))}
-                              </Shelf>
-                            </CollapsibleShelf>
-                          ) : null}
-                          {inbox.length > 0 ? (
-                            <CollapsibleShelf
-                              label="Active"
-                              icon="Pulse"
-                              count={inbox.length}
-                              expanded={expandedShelves.active}
-                              onToggle={() =>
-                                setExpandedShelves((current) => ({
-                                  ...current,
-                                  active: !current.active,
-                                }))
-                              }
-                              action={
-                                <Select
-                                  value={activeSortMode}
-                                  onValueChange={(value) => {
-                                    if (isActiveSortMode(value)) setActiveSortMode(value);
-                                  }}
-                                >
-                                  <SelectTrigger
-                                    aria-label={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                                    title={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                                    className={cn(
-                                      "absolute bottom-1 right-[1.875rem] z-10 size-4 h-4 w-4 border-0 p-0 text-muted-foreground/40 shadow-none hover:bg-sidebar-accent hover:text-muted-foreground focus:ring-0 focus-visible:ring-1 focus-visible:ring-ring [&>svg:last-child]:hidden",
-                                      activeSortMode !== "manual" && "bg-sidebar-accent/60 text-muted-foreground/80",
-                                    )}
-                                  >
-                                    <Icon name="ArrowUpDown" className="size-3" />
-                                  </SelectTrigger>
-                                  <SelectContent align="end" className="min-w-40">
-                                    {ACTIVE_SORT_MODES.map((mode) => (
-                                      <SelectItem key={mode} value={mode} className="text-xs">
-                                        {ACTIVE_SORT_LABELS[mode]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              }
-                            >
-                              {activeSortMode === "project" ? (
-                                <ProjectGroups
-                                  units={inboxProjectView}
-                                  projectNameById={projectNameById}
-                                  projectIconRevision={projectIconRevision}
-                                  onToggle={toggleProjectCollapse}
-                                  reorderControls={(unit, name) =>
-                                    reorderControls(unit.key, "inbox", `${name} project`)
-                                  }
-                                  renderThread={(thread, grouped) =>
-                                    renderActiveThread(thread, "inbox", true, !grouped)
-                                  }
-                                />
-                              ) : visibleInbox.length > 0 ? (
+                  </div>
+
+                  <p role="status" aria-live="polite" className="sr-only">
+                    {reorderAnnouncement}
+                  </p>
+
+                  <div
+                    ref={attachScrollFadeRef}
+                    className={cn("min-h-0 flex-1 overflow-y-auto px-1.5 pb-2", SCROLL_FADE_CLASS)}
+                  >
+                    {status === "loading" ? (
+                      <ThreadListLoading />
+                    ) : status === "error" ? (
+                      <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
+                        Could not load threads.
+                      </p>
+                    ) : isSearching && searchResults.length === 0 ? (
+                      <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
+                        No threads found
+                      </p>
+                    ) : isSearching ? (
+                      <SearchResults
+                        threads={searchResults}
+                        projectNameById={projectNameById}
+                        projectIconRevision={projectIconRevision}
+                        activeThreadId={activeThreadId}
+                        now={now}
+                        wokeThreadIds={wokeThreadIds}
+                        onAcknowledgeWake={(threadId) => void lifecycle.acknowledgeWake(threadId)}
+                        onNavigate={onNavigate}
+                      />
+                    ) : (
+                      <DockableShelves
+                        docked={dockShelvesEnabled}
+                        attachUpperRef={attachShelvesAutoAnimateRef}
+                        attachLowerRef={attachDockAutoAnimateRef}
+                        upper={
+                          <>
+                            {pinned.length > 0 ? (
+                              <CollapsibleShelf
+                                label="Pinned"
+                                icon="Pin"
+                                count={pinned.length}
+                                expanded={expandedShelves.pinned}
+                                onToggle={() =>
+                                  setExpandedShelves((current) => ({
+                                    ...current,
+                                    pinned: !current.pinned,
+                                  }))
+                                }
+                              >
                                 <Shelf label={null}>
-                                  {sortedVisibleInbox.map((thread) => renderActiveThread(thread, "inbox"))}
+                                  {visiblePinned.map((thread) => renderActiveThread(thread, "pinned"))}
                                 </Shelf>
-                              ) : null}
-                            </CollapsibleShelf>
-                          ) : null}
-                          {pinned.length === 0 &&
-                          inbox.length === 0 &&
-                          working.length === 0 &&
-                          inactive.length === 0 ? (
-                            <ActiveEmptyState />
-                          ) : null}
-                          {pinned.length === 0 && inbox.length === 0 && working.length > 0 && inactive.length === 0 ? (
-                            <WorkingEmptyState />
-                          ) : null}
-                        </>
-                      }
-                      lower={
-                        <>
-                          {working.length > 0 ? (
-                            <CollapsibleShelf
-                              label="Working"
-                              icon="Loading"
-                              animateIcon
-                              count={working.length}
-                              expanded={expandedShelves.working}
+                              </CollapsibleShelf>
+                            ) : null}
+                            {inbox.length > 0 ? (
+                              <CollapsibleShelf
+                                label="Active"
+                                icon="Pulse"
+                                count={inbox.length}
+                                expanded={expandedShelves.active}
+                                onToggle={() =>
+                                  setExpandedShelves((current) => ({
+                                    ...current,
+                                    active: !current.active,
+                                  }))
+                                }
+                                action={
+                                  <Select
+                                    value={activeSortMode}
+                                    onValueChange={(value) => {
+                                      if (isActiveSortMode(value)) setActiveSortMode(value);
+                                    }}
+                                  >
+                                    <SelectTrigger
+                                      aria-label={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
+                                      title={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
+                                      className={cn(
+                                        "absolute bottom-1 right-[1.875rem] z-10 size-4 h-4 w-4 border-0 p-0 text-muted-foreground/40 shadow-none hover:bg-sidebar-accent hover:text-muted-foreground focus:ring-0 focus-visible:ring-1 focus-visible:ring-ring [&>svg:last-child]:hidden",
+                                        activeSortMode !== "manual" && "bg-sidebar-accent/60 text-muted-foreground/80",
+                                      )}
+                                    >
+                                      <Icon name="ArrowUpDown" className="size-3" />
+                                    </SelectTrigger>
+                                    <SelectContent align="end" className="min-w-40">
+                                      {ACTIVE_SORT_MODES.map((mode) => (
+                                        <SelectItem key={mode} value={mode} className="text-xs">
+                                          {ACTIVE_SORT_LABELS[mode]}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                }
+                              >
+                                {activeSortMode === "project" ? (
+                                  <ProjectGroups
+                                    units={inboxProjectView}
+                                    projectNameById={projectNameById}
+                                    projectIconRevision={projectIconRevision}
+                                    onToggle={toggleProjectCollapse}
+                                    reorderControls={(unit, name) =>
+                                      reorderControls(unit.key, "inbox", `${name} project`)
+                                    }
+                                    renderThread={(thread, grouped) =>
+                                      renderActiveThread(thread, "inbox", true, !grouped)
+                                    }
+                                  />
+                                ) : visibleInbox.length > 0 ? (
+                                  <Shelf label={null}>
+                                    {sortedVisibleInbox.map((thread) => renderActiveThread(thread, "inbox"))}
+                                  </Shelf>
+                                ) : null}
+                              </CollapsibleShelf>
+                            ) : null}
+                            {pinned.length === 0 &&
+                            inbox.length === 0 &&
+                            working.length === 0 &&
+                            inactive.length === 0 ? (
+                              <ActiveEmptyState />
+                            ) : null}
+                            {pinned.length === 0 &&
+                            inbox.length === 0 &&
+                            working.length > 0 &&
+                            inactive.length === 0 ? (
+                              <WorkingEmptyState />
+                            ) : null}
+                          </>
+                        }
+                        lower={
+                          <>
+                            {working.length > 0 ? (
+                              <CollapsibleShelf
+                                label="Working"
+                                icon="Loading"
+                                animateIcon
+                                count={working.length}
+                                expanded={expandedShelves.working}
+                                onToggle={() =>
+                                  setExpandedShelves((current) => ({
+                                    ...current,
+                                    working: !current.working,
+                                  }))
+                                }
+                              >
+                                <Shelf label={null}>
+                                  {/* One line, like every shelf after Active. */}
+                                  {visibleWorking.map((thread) =>
+                                    renderActiveThread(thread, "inbox", false, true, true, "working"),
+                                  )}
+                                </Shelf>
+                              </CollapsibleShelf>
+                            ) : null}
+                            {inactive.length > 0 ? (
+                              <CollapsibleShelf
+                                label="Inactive"
+                                icon="PauseCircle"
+                                count={inactive.length}
+                                expanded={expandedShelves.inactive}
+                                onToggle={() =>
+                                  setExpandedShelves((current) => ({
+                                    ...current,
+                                    inactive: !current.inactive,
+                                  }))
+                                }
+                              >
+                                <Shelf label={null}>
+                                  {visibleInactive.map((thread) =>
+                                    renderActiveThread(thread, "inbox", false, true, false, "inactive"),
+                                  )}
+                                </Shelf>
+                              </CollapsibleShelf>
+                            ) : null}
+                            <CompactShelf
+                              label="Snoozed"
+                              onPark={parkThread}
+                              onSettle={settleThread}
+                              onSnooze={snoozeThread}
+                              icon="Clock"
+                              threads={snoozed}
+                              projectNameById={projectNameById}
+                              expanded={expandedShelves.snoozed}
                               onToggle={() =>
                                 setExpandedShelves((current) => ({
                                   ...current,
-                                  working: !current.working,
+                                  snoozed: !current.snoozed,
                                 }))
                               }
-                            >
-                              <Shelf label={null}>
-                                {/* One line, like every shelf after Active. */}
-                                {visibleWorking.map((thread) =>
-                                  renderActiveThread(thread, "inbox", false, true, true, "working"),
-                                )}
-                              </Shelf>
-                            </CollapsibleShelf>
-                          ) : null}
-                          {inactive.length > 0 ? (
-                            <CollapsibleShelf
-                              label="Inactive"
-                              icon="PauseCircle"
-                              count={inactive.length}
-                              expanded={expandedShelves.inactive}
+                              shelf="snoozed"
+                              visibleThreads={visibleSnoozed}
+                              activeThreadId={activeThreadId}
+                              lifecycle={lifecycle}
+                              snoozePresets={snoozePresets}
+                              onNavigate={onNavigate}
+                              projectIconRevision={projectIconRevision}
+                            />
+                            <CompactShelf
+                              label="Parked"
+                              onPark={parkThread}
+                              onSettle={settleThread}
+                              onSnooze={snoozeThread}
+                              icon="Car"
+                              threads={parked}
+                              projectNameById={projectNameById}
+                              expanded={expandedShelves.parked}
                               onToggle={() =>
                                 setExpandedShelves((current) => ({
                                   ...current,
-                                  inactive: !current.inactive,
+                                  parked: !current.parked,
                                 }))
                               }
-                            >
-                              <Shelf label={null}>
-                                {visibleInactive.map((thread) =>
-                                  renderActiveThread(thread, "inbox", false, true, false, "inactive"),
-                                )}
-                              </Shelf>
-                            </CollapsibleShelf>
-                          ) : null}
-                          <CompactShelf
-                            label="Snoozed"
-                            onPark={parkThread}
-                            onSettle={settleThread}
-                            onSnooze={snoozeThread}
-                            icon="Clock"
-                            threads={snoozed}
-                            projectNameById={projectNameById}
-                            expanded={expandedShelves.snoozed}
-                            onToggle={() =>
-                              setExpandedShelves((current) => ({
-                                ...current,
-                                snoozed: !current.snoozed,
-                              }))
-                            }
-                            shelf="snoozed"
-                            visibleThreads={visibleSnoozed}
-                            activeThreadId={activeThreadId}
-                            lifecycle={lifecycle}
-                            snoozePresets={snoozePresets}
-                            onNavigate={onNavigate}
-                            projectIconRevision={projectIconRevision}
-                          />
-                          <CompactShelf
-                            label="Parked"
-                            onPark={parkThread}
-                            onSettle={settleThread}
-                            onSnooze={snoozeThread}
-                            icon="Car"
-                            threads={parked}
-                            projectNameById={projectNameById}
-                            expanded={expandedShelves.parked}
-                            onToggle={() =>
-                              setExpandedShelves((current) => ({
-                                ...current,
-                                parked: !current.parked,
-                              }))
-                            }
-                            shelf="parked"
-                            visibleThreads={visibleParked}
-                            activeThreadId={activeThreadId}
-                            lifecycle={lifecycle}
-                            snoozePresets={snoozePresets}
-                            onNavigate={onNavigate}
-                            projectIconRevision={projectIconRevision}
-                          />
-                          <CompactShelf
-                            label="Settled"
-                            onPark={parkThread}
-                            onSettle={settleThread}
-                            onSnooze={snoozeThread}
-                            icon="Meditation"
-                            threads={settled}
-                            projectNameById={projectNameById}
-                            expanded={expandedShelves.settled}
-                            onToggle={() =>
-                              setExpandedShelves((current) => ({
-                                ...current,
-                                settled: !current.settled,
-                              }))
-                            }
-                            shelf="settled"
-                            visibleThreads={visibleSettled}
-                            activeThreadId={activeThreadId}
-                            lifecycle={lifecycle}
-                            snoozePresets={snoozePresets}
-                            onNavigate={onNavigate}
-                            projectIconRevision={projectIconRevision}
-                            settledLimit={settledLimit}
-                            onLoadMore={() => setSettledLimit((limit) => limit + SETTLED_PAGE_SIZE)}
-                          />
-                        </>
-                      }
-                    />
-                  )}
+                              shelf="parked"
+                              visibleThreads={visibleParked}
+                              activeThreadId={activeThreadId}
+                              lifecycle={lifecycle}
+                              snoozePresets={snoozePresets}
+                              onNavigate={onNavigate}
+                              projectIconRevision={projectIconRevision}
+                            />
+                            <CompactShelf
+                              label="Settled"
+                              onPark={parkThread}
+                              onSettle={settleThread}
+                              onSnooze={snoozeThread}
+                              icon="Meditation"
+                              threads={settled}
+                              projectNameById={projectNameById}
+                              expanded={expandedShelves.settled}
+                              onToggle={() =>
+                                setExpandedShelves((current) => ({
+                                  ...current,
+                                  settled: !current.settled,
+                                }))
+                              }
+                              shelf="settled"
+                              visibleThreads={visibleSettled}
+                              activeThreadId={activeThreadId}
+                              lifecycle={lifecycle}
+                              snoozePresets={snoozePresets}
+                              onNavigate={onNavigate}
+                              projectIconRevision={projectIconRevision}
+                              settledLimit={settledLimit}
+                              onLoadMore={() => setSettledLimit((limit) => limit + SETTLED_PAGE_SIZE)}
+                            />
+                          </>
+                        }
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            </JumpHintsContext.Provider>
-          </OpenPortsProvider>
-        </ChildThreadDisplayContext.Provider>
-      </WorkingSinceContext.Provider>
-    </ProjectColorsProvider>
+              </JumpHintsContext.Provider>
+            </OpenPortsProvider>
+          </ChildThreadDisplayContext.Provider>
+        </WorkingSinceContext.Provider>
+      </ProjectColorsProvider>
+    </ListAnimationContext.Provider>
   );
 }
