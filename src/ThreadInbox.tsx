@@ -1,3 +1,16 @@
+import {
+  ACTIVE_SORT_MODES,
+  PROJECT_UNIT_KEY_PREFIX,
+  projectUnitKey,
+  layoutActiveThreadsByProject,
+  projectOrderUnits,
+  expandProjectUnits,
+  sortActiveThreads,
+  visibleShelfThreads,
+  activeRepresentativeThreadId,
+  type ActiveSortMode,
+  type ProjectViewUnit,
+} from "./inbox-layout";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   experimental_useSidebarThreadActions as useSidebarThreadActions,
@@ -49,7 +62,6 @@ import {
   orderSubsetInPlace,
   rebaseMovedId,
   rebaseMovedUnit,
-  type OrderUnit,
 } from "./pinned-order";
 import { DEFAULT_SNOOZE_PRESET_CONFIG, parseConfiguredSnoozePresets, type ConfiguredSnoozePreset } from "./lifecycle";
 import { DEFAULT_INACTIVE_AFTER_HOURS, isInactiveThread, parseInactiveAfterHours } from "./inactive";
@@ -242,9 +254,6 @@ function readShelfExpansion(): ShelfExpansionState {
   }
 }
 
-const ACTIVE_SORT_MODES = ["manual", "activity", "created", "project"] as const;
-type ActiveSortMode = (typeof ACTIVE_SORT_MODES)[number];
-
 const ACTIVE_SORT_LABELS: Record<ActiveSortMode, string> = {
   manual: "Manual order",
   activity: "Recent activity",
@@ -268,122 +277,7 @@ function readActiveSort(): ActiveSortMode {
 
 type ActiveShelfKind = "pinned" | "inbox";
 
-// A project needs this many Active threads before it earns a header; below
-// it, its threads stay ordinary cards, so a list of one-thread projects reads
-// exactly like manual order.
-const MIN_PROJECT_GROUP_SIZE = 2;
-
 type ReorderMode = "thread" | "unit";
-
-type ProjectViewUnit =
-  | Extract<ProjectUnit, { kind: "thread" }>
-  | (Extract<ProjectUnit, { kind: "group" }> & {
-      expanded: boolean;
-      threadCount: number;
-    });
-
-type ProjectUnit =
-  | { kind: "thread"; key: string; thread: PluginSidebarThread }
-  | {
-      kind: "group";
-      key: string;
-      projectId: string;
-      threads: PluginSidebarThread[];
-    };
-
-// Thread ids never take this form, so a project key cannot collide with one.
-const PROJECT_UNIT_KEY_PREFIX = "project:";
-
-function projectUnitKey(projectId: string): string {
-  return `${PROJECT_UNIT_KEY_PREFIX}${projectId}`;
-}
-
-/**
- * The project view in manual order: a lone thread stays where it is, and a
- * project with enough threads is drawn once, where its first thread sits.
- * Moving a unit moves all of its threads, so a dragged group stays together.
- */
-function layoutActiveThreadsByProject(inbox: readonly PluginSidebarThread[]): ProjectUnit[] {
-  const counts = new Map<string, number>();
-  for (const thread of inbox) {
-    counts.set(thread.projectId, (counts.get(thread.projectId) ?? 0) + 1);
-  }
-  const units: ProjectUnit[] = [];
-  const groups = new Map<string, PluginSidebarThread[]>();
-  for (const thread of inbox) {
-    if ((counts.get(thread.projectId) ?? 0) < MIN_PROJECT_GROUP_SIZE) {
-      units.push({ kind: "thread", key: thread.id, thread });
-      continue;
-    }
-    const existing = groups.get(thread.projectId);
-    if (existing) {
-      existing.push(thread);
-      continue;
-    }
-    const threads = [thread];
-    groups.set(thread.projectId, threads);
-    units.push({
-      kind: "group",
-      key: projectUnitKey(thread.projectId),
-      projectId: thread.projectId,
-      threads,
-    });
-  }
-  return units;
-}
-
-function projectOrderUnits(units: readonly ProjectUnit[]): OrderUnit[] {
-  return units.map((unit) => ({
-    key: unit.key,
-    ids: unit.kind === "thread" ? [unit.thread.id] : unit.threads.map((thread) => thread.id),
-  }));
-}
-
-/** Expand a preview of unit keys into the thread order it stands for. */
-function expandProjectUnits(keys: readonly string[], units: readonly ProjectUnit[]): string[] {
-  const idsByKey = new Map(projectOrderUnits(units).map((unit) => [unit.key, unit.ids]));
-  return keys.flatMap((key) => idsByKey.get(key) ?? []);
-}
-
-function sortActiveThreads(threads: readonly PluginSidebarThread[], mode: ActiveSortMode): PluginSidebarThread[] {
-  if (mode !== "activity" && mode !== "created") return [...threads];
-  const primaryKey = mode === "activity" ? "updatedAt" : "createdAt";
-  return [...threads].sort(
-    (left, right) =>
-      right[primaryKey] - left[primaryKey] || right.updatedAt - left.updatedAt || right.createdAt - left.createdAt,
-  );
-}
-
-function visibleShelfThreads(
-  threads: readonly PluginSidebarThread[],
-  expanded: boolean,
-  activeThreadId: string | null,
-  limit = threads.length,
-  attentionParentIds?: ReadonlySet<string>,
-): PluginSidebarThread[] {
-  if (!expanded) {
-    return threads.filter((thread) => thread.id === activeThreadId || attentionParentIds?.has(thread.id));
-  }
-  return threads.filter((thread, index) => index < limit || thread.id === activeThreadId);
-}
-
-/** Closest ancestor represented by an actual flat shelf row in this scope. */
-function activeRepresentativeThreadId(
-  threads: readonly PluginSidebarThread[],
-  threadId: string | null,
-  flatRows: readonly PluginSidebarThread[],
-): string | null {
-  const visibleById = new Map(visibleInboxThreads(threads).map((thread) => [thread.id, thread] as const));
-  const flatIds = new Set(flatRows.map((thread) => thread.id));
-  const visited = new Set<string>();
-  let current = threadId === null ? undefined : visibleById.get(threadId);
-  while (current && !visited.has(current.id)) {
-    if (flatIds.has(current.id)) return current.id;
-    visited.add(current.id);
-    current = current.parentThreadId ? visibleById.get(current.parentThreadId) : undefined;
-  }
-  return null;
-}
 
 /**
  * The sidebar's scrolling list. Manual order is durable, while optional views
