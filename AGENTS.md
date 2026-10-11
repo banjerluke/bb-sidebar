@@ -19,11 +19,11 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   Flat `src/server-*.ts` modules share `ServerContext` explicitly.
   Their other supporting Node modules are `port-scan`, `auto-title`,
   `cloud-title`, `regenerate-title`, `port-discovery`, `thread-ports`,
-  `thread-pull-requests`, and `thread-tasks`, all under `src/`. Node/SDK server
-  or host APIs are
-  allowed. These modules must not import React, TSX, browser `.ts` modules,
-  `use*` hooks, `lib/**`, or `components/**`, even for types. Pure settings
-  definitions and helpers live in shared `sidebar-settings-values.ts`.
+  `thread-pull-requests`, and `thread-tasks`, all under `src/`.
+  Node/SDK server or host APIs are allowed. These modules must not import React,
+  TSX, browser `.ts` modules, `use*` hooks, `lib/**`, or `components/**`, even
+  for types. Pure settings definitions and helpers live in shared
+  `sidebar-settings-values.ts`.
 - Browser `.ts` modules are `project-colors`, `title-generation-state`,
   `sidebar-settings`, `working-since`, `working-tree`, `drag-preview`,
   `drag-reorder`, `drag-reorder-geometry`, `drag-auto-scroll`, and
@@ -31,11 +31,10 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   type and `title-generation-state.ts` uses `useSyncExternalStore`
   intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding
-  `server-*.ts`, `use*.ts`, `*.test.ts`, `*.d.ts`, and `test-*.ts`. They must
-  not
-  import React, React DOM,
-  Node built-ins, Node entries, TSX, browser `.ts` modules, `use*` hooks,
-  `lib/**`, or `components/**`, even for types, or value-import SQLite.
+  `server-*.ts`, `use*.ts`, `*.test.ts`, `*.d.ts`, and `test-*.ts`.
+  They must not import React, React DOM, Node built-ins, Node entries, TSX,
+  browser `.ts` modules, `use*` hooks, `lib/**`, or `components/**`, even for
+  types, or value-import SQLite.
   This is a dependency boundary; these modules are not necessarily free of
   side effects or DOM access. Tests retain their runtime's boundaries;
   top-level `.ts` tests and test helpers may use Node test tooling. Keep the
