@@ -18,15 +18,13 @@ describe("pull request badge", () => {
       await waitFor(() => expect(observers.has(row())).toBe(true), asyncTimeout);
       expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
       // Settings and lifecycle effects can remount the row. Notify the observer
-      // attached to the current element on every retry, including after showing the badge.
+      // attached to the current element on every retry while showing the badge.
       await waitFor(async () => {
         await act(async () => notify(row(), true));
         expect(screen.getByRole("link", { name: "#412" })).toBeTruthy();
       }, asyncTimeout);
-      await waitFor(async () => {
-        await act(async () => notify(row(), false));
-        expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
-      }, asyncTimeout);
+      await act(async () => notify(row(), false));
+      expect(screen.queryByRole("link", { name: "#412" })).toBeNull();
       view.unmount();
       for (const observer of instances) expect(observer.disconnect).toHaveBeenCalledOnce();
       expect(observers.size).toBe(0);
