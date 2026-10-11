@@ -38,7 +38,8 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "knip": "knip --no-config-hints",
-    "knip:report": "knip --config knip.report.ts --no-config-hints"
+    "knip:report": "knip --config knip.report.ts --no-config-hints",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
@@ -73,6 +74,7 @@
     "hono": "^4.13.3",
     "jsdom": "^29.0.1",
     "knip": "^5.88.1",
+    "lefthook": "^2.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^1.7.4",
