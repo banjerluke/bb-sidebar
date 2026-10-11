@@ -33,6 +33,7 @@
     "src",
     "!src/fixtures",
     "!src/**/*.test.*",
+    "!src/test-*",
     "app.tsx",
     "tsconfig.json",
     "README.md",
