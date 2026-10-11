@@ -43,7 +43,7 @@
   "scripts": {
     "build": "bb plugin build",
     "fixture:db": "node scripts/make-fixture-db.mjs",
-    "check": "npm run lint && npm run format:check && npm run knip && npm run typecheck && npm test && npm run build",
+    "check": "npm run lint && npm run format:check && npm run knip && npm run typecheck && npm test && npm run build && node scripts/check-app-bundle.mjs",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint . && node scripts/check-import-boundaries.mjs && node scripts/check-file-sizes.mjs",
