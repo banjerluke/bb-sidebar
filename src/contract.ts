@@ -29,7 +29,7 @@ export const openPortSchema = z.object({
 });
 export type OpenPort = z.infer<typeof openPortSchema>;
 
-export const portSnapshotSchema = z.object({
+const portSnapshotSchema = z.object({
   groups: z.array(
     z.object({
       environmentId: z.string(),
