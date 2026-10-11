@@ -10,14 +10,13 @@ import {
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
 import { createDragReorderHandler } from "./drag-reorder";
 import type { InboxDragOrder } from "./drag-reorder-geometry";
-import { ThreadInboxView, type ShelfExpansionState } from "./ThreadInboxView";
+import { ThreadInboxView } from "./ThreadInboxView";
 import { useQuantizedNow } from "./useQuantizedNow";
 import { useProjectIconRevision } from "./useProjectIconRevision";
 import { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 import { useDragClickSuppression } from "./useDragClickSuppression";
 import { useListAutoAnimate, createListAnimationController } from "./useListAutoAnimate";
 import {
-  isActiveSortMode,
   sameOrder,
   PROJECT_UNIT_KEY_PREFIX,
   projectUnitKey,
@@ -26,7 +25,6 @@ import {
   expandProjectUnits,
   sortActiveThreads,
   visibleShelfThreads,
-  type ActiveSortMode,
   type ReorderMode,
   type ProjectViewUnit,
 } from "./inbox-layout";
@@ -60,79 +58,14 @@ import { parseInactiveAfterHours } from "./inactive";
 import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
-import { MAX_CHILD_EXPANSION, pruneChildExpansion, safeSetItem } from "./lib/safe-storage";
-const ACTIVE_GROUPING_STORAGE_KEY = STORAGE_KEYS.activeGrouping.key;
-const ACTIVE_SORT_STORAGE_KEY = STORAGE_KEYS.activeSort.key;
-const SHELF_EXPANSION_STORAGE_KEY = STORAGE_KEYS.shelfExpansion.key;
-const CHILD_EXPANSION_STORAGE_KEY = STORAGE_KEYS.childExpansion.key;
-const PROJECT_COLLAPSE_STORAGE_KEY = STORAGE_KEYS.projectCollapse.key;
+import { usePersistedPreference } from "./lib/use-persisted-preference";
+import {
+  activeSortCodec,
+  childExpansionCodec,
+  projectCollapseCodec,
+  shelfExpansionCodec,
+} from "./lib/inbox-preference-codecs";
 const SETTLED_INITIAL_LIMIT = 10;
-function readCollapsedProjects(): Set<string> {
-  try {
-    const stored = window.localStorage.getItem(PROJECT_COLLAPSE_STORAGE_KEY);
-    if (!stored) return new Set();
-    const parsed = JSON.parse(stored) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((value): value is string => typeof value === "string"));
-  } catch {
-    return new Set();
-  }
-}
-
-function readChildExpansion(): Set<string> {
-  try {
-    const stored = window.localStorage.getItem(CHILD_EXPANSION_STORAGE_KEY);
-    if (!stored) return new Set();
-    const parsed = JSON.parse(stored) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    const filtered = parsed.filter((value): value is string => typeof value === "string");
-    const trimmed = filtered.length > MAX_CHILD_EXPANSION ? filtered.slice(-MAX_CHILD_EXPANSION) : filtered;
-    return new Set(trimmed);
-  } catch {
-    return new Set();
-  }
-}
-
-const DEFAULT_SHELF_EXPANSION: ShelfExpansionState = {
-  active: true,
-  pinned: true,
-  working: true,
-  inactive: false,
-  parked: false,
-  snoozed: false,
-  settled: false,
-};
-
-function readShelfExpansion(): ShelfExpansionState {
-  try {
-    const stored = window.localStorage.getItem(SHELF_EXPANSION_STORAGE_KEY);
-    if (!stored) return DEFAULT_SHELF_EXPANSION;
-    const parsed = JSON.parse(stored) as Partial<ShelfExpansionState>;
-    return {
-      // Keep Active expanded for people with the older stored shape.
-      active: parsed.active !== false,
-      // Pinned became independently collapsible after the first stored shape.
-      pinned: parsed.pinned !== false,
-      working: parsed.working !== false,
-      inactive: parsed.inactive === true,
-      parked: parsed.parked === true,
-      snoozed: parsed.snoozed === true,
-      settled: parsed.settled === true,
-    };
-  } catch {
-    return DEFAULT_SHELF_EXPANSION;
-  }
-}
-
-function readActiveSort(): ActiveSortMode {
-  try {
-    const stored = window.localStorage.getItem(ACTIVE_SORT_STORAGE_KEY);
-    if (stored && isActiveSortMode(stored)) return stored;
-    return window.localStorage.getItem(ACTIVE_GROUPING_STORAGE_KEY) === "true" ? "project" : "manual";
-  } catch {
-    return "manual";
-  }
-}
 
 type ActiveShelfKind = "pinned" | "inbox";
 
@@ -174,29 +107,31 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     setScope((current) => reconcileProjectScope(current, projects));
   }, [projects]);
   const now = useQuantizedNow();
-  const [expandedShelves, setExpandedShelves] = useState<ShelfExpansionState>(readShelfExpansion);
-  const [expandedChildParentIds, setExpandedChildParentIds] = useState<Set<string>>(readChildExpansion);
-  const [activeSortMode, setActiveSortMode] = useState<ActiveSortMode>(readActiveSort);
-  const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(readCollapsedProjects);
+  const projectNameById = useMemo(() => new Map(projects.map((project) => [project.id, project.name])), [projects]);
+  const collapseCodec = useMemo(
+    () => ({
+      ...projectCollapseCodec,
+      // Forget removed projects only after the project list has loaded.
+      prune: (ids: Set<string>) =>
+        new Set([...ids].filter((id) => projectNameById.size === 0 || projectNameById.has(id))),
+    }),
+    [projectNameById],
+  );
+  const [expandedChildParentIds, setExpandedChildParentIds] = usePersistedPreference(
+    STORAGE_KEYS.childExpansion.key,
+    childExpansionCodec,
+  );
+  const [expandedShelves, setExpandedShelves] = usePersistedPreference(
+    STORAGE_KEYS.shelfExpansion.key,
+    shelfExpansionCodec,
+  );
+  const [activeSortMode, setActiveSortMode] = usePersistedPreference(STORAGE_KEYS.activeSort.key, activeSortCodec);
+  const [collapsedProjectIds, setCollapsedProjectIds] = usePersistedPreference(
+    STORAGE_KEYS.projectCollapse.key,
+    collapseCodec,
+  );
   const [settledLimit, setSettledLimit] = useState(SETTLED_INITIAL_LIMIT);
   const [renamingShelfLocks, setRenamingShelfLocks] = useRenamingShelfLocks(threads, lifecycle);
-  useEffect(() => {
-    const pruned = pruneChildExpansion([...expandedChildParentIds]);
-    safeSetItem(CHILD_EXPANSION_STORAGE_KEY, JSON.stringify(pruned));
-  }, [expandedChildParentIds]);
-  useEffect(() => {
-    safeSetItem(SHELF_EXPANSION_STORAGE_KEY, JSON.stringify(expandedShelves));
-  }, [expandedShelves]);
-  useEffect(() => {
-    safeSetItem(ACTIVE_SORT_STORAGE_KEY, activeSortMode);
-  }, [activeSortMode]);
-
-  const projectNameById = useMemo(() => new Map(projects.map((project) => [project.id, project.name])), [projects]);
-  useEffect(() => {
-    // Forget removed projects, but not before the project list has loaded.
-    const ids = [...collapsedProjectIds].filter((id) => projectNameById.size === 0 || projectNameById.has(id));
-    safeSetItem(PROJECT_COLLAPSE_STORAGE_KEY, JSON.stringify(ids));
-  }, [collapsedProjectIds, projectNameById]);
   const providerById = useMemo(() => new Map(providers.map((provider) => [provider.id, provider])), [providers]);
   const childDisplay = useChildThreadDisplayValue(sidebarSettings, providerById);
   const childrenByParentId = useMemo(

@@ -1,8 +1,8 @@
 import { BROWSER_EVENTS } from "./lib/browser-events";
 import { STORAGE_KEYS } from "./lib/storage-keys";
-import { useSyncExternalStore } from "react";
 import { experimental_useSidebarThreads as useSidebarThreads } from "@get-bb/plugin-sdk/app";
-import { safeSetItem } from "./lib/safe-storage";
+import { usePersistedPreference } from "./lib/use-persisted-preference";
+import type { PreferenceCodec } from "./lib/use-persisted-preference";
 import { SettingRow, SettingsSelect } from "./settings-ui";
 
 export const PORT_LINK_HOST_KEY = STORAGE_KEYS.portLinkHost.key;
@@ -15,18 +15,18 @@ function subscribe(listener: () => void) {
     window.removeEventListener(CHANGE, listener);
   };
 }
-function readHost() {
-  try {
-    return window.localStorage.getItem(PORT_LINK_HOST_KEY) || null;
-  } catch {
-    return null;
-  }
-}
+const hostCodec: PreferenceCodec<string | null> = {
+  decode: (stored) => stored || null,
+  fallback: () => null,
+  encode: (host) => host ?? "",
+  subscribe,
+  notify: () => window.dispatchEvent(new Event(CHANGE)),
+};
 export function usePortLinkHost() {
-  return useSyncExternalStore(subscribe, readHost, () => null);
+  return usePersistedPreference(PORT_LINK_HOST_KEY, hostCodec)[0];
 }
 export function PortLinkSettings({ onSaved }: { onSaved?: () => void }) {
-  const hostId = usePortLinkHost();
+  const [hostId, setHostId] = usePersistedPreference(PORT_LINK_HOST_KEY, hostCodec);
   const { threads } = useSidebarThreads();
   const hosts = new Map(
     threads.flatMap((thread) => (thread.host ? [[thread.host.id, thread.host.name] as const] : [])),
@@ -40,8 +40,7 @@ export function PortLinkSettings({ onSaved }: { onSaved?: () => void }) {
           aria-label="Open port links on"
           value={hostId ?? ""}
           onChange={(event) => {
-            safeSetItem(PORT_LINK_HOST_KEY, event.target.value);
-            window.dispatchEvent(new Event(CHANGE));
+            setHostId(event.target.value);
             onSaved?.();
           }}
           className="w-48"
