@@ -25,7 +25,7 @@ export default defineConfig({
           name: "app",
           environment: "jsdom",
           include: appTests,
-          isolate: false,
+          isolate: true,
           setupFiles: [...common.setupFiles, "./src/test-app-setup.ts"],
         },
       },

@@ -119,9 +119,19 @@ browser bundle guard against `ZodError`, plus
 `npx --no-install bb plugin types --check`. Typecheck includes both Knip
 configs.
 
-Test timeouts are centralized: Testing Library gets 5s in `test-setup.ts`, Vitest 30s in `vitest.config.ts`.
-The app project loads once per worker; `test-app-setup.ts` resets shared state and cleanup hooks register per file.
-Run `npm run test:stress` before test commits: five loaded runs, also available as a separate manual CI job.
+Test timeouts are centralized: Testing Library gets 5s in `test-setup.ts`;
+Vitest gets 30s in `vitest.config.ts`. App tests retain file isolation.
+`test-app-setup.ts` resets state, and cleanup hooks register per file.
+New module-level mutable app state (`Map`/`Set`/`let`) needs a `*ForTests`
+reset wired into `test-app-setup.ts`. Existing resets:
+
+- `resetProjectFaviconsForTests` in `ProjectFavicon.tsx`;
+- `resetTitleGenerationForTests` in `title-generation-state.ts`;
+- `resetWorkingEmptyLineForTests` in `working-empty-lines.ts`.
+
+Run `npm run test:stress` before test commits: five loaded runs, also
+available as a separate manual CI job. Load defaults to one burner per
+available CPU; override with `npm run test:stress -- --load-workers N`.
 
 A fresh checkout or worktree must run `npm ci` before its first commit
 because the pre-commit hook runs the local Biome binary.

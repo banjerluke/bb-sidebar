@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run five consecutive loaded test suites
+      - name: Run five loaded suites with one burner per available CPU
         run: npm run test:stress
 
       - name: Save timings and verbose failure logs

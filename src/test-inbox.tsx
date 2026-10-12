@@ -69,7 +69,7 @@ export let sidebarSettings: (typeof app.settingsSections)[number];
 let RowContextMenu: typeof RowContextMenuType;
 
 export async function loadInboxApp() {
-  // This helper module is cached in shared workers, but hooks belong to each file.
+  // Register cleanup for each calling file, even if this helper is reused.
   afterEach(cleanupInboxTest);
   if (app) return;
   app = await loadPluginApp(() => import("../app"));

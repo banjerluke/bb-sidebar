@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 
@@ -14,7 +14,7 @@ function option(name, fallback) {
   return value;
 }
 const runs = option("--runs", 3);
-const workers = args.includes("--load") ? option("--load-workers", 4) : 0;
+const workers = args.includes("--load") ? option("--load-workers", availableParallelism()) : 0;
 const directory = await mkdtemp(join(tmpdir(), "sb11-tests-"));
 const burners = [];
 let activeTest;
