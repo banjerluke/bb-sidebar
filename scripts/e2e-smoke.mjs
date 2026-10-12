@@ -154,7 +154,7 @@ const errors = [];
 p.on("pageerror", error => errors.push(error.message));
 p.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
 await p.goto(${JSON.stringify(url)});
-await p.waitForSelector("[data-parent-card] [data-sidebar-thread-id]", { timeout: 15000 });
+await p.waitForSelector("[data-parent-card] [data-sidebar-thread-id]", { timeout: 15000 }).catch(() => {});
 const proof = { rendered: await p.evaluate(({title, threadId}) => [...document.querySelectorAll("[data-parent-card] [data-sidebar-thread-id]")].some(e => e.getAttribute("aria-label") === title && e.getAttribute("data-sidebar-thread-id") === threadId), ${JSON.stringify({ title, threadId })}), errors };
 console.log("SB16_BROWSER_PROOF:" + JSON.stringify(proof));
 proof;`;
@@ -277,11 +277,14 @@ try {
   const errors = browser.console
     .split("\n")
     .filter((line) =>
-      /experimental_useSidebarThreadActions|experimental_useThreadActions|is not a function/.test(line),
+      /experimental_useSidebarThreadActions|experimental_useThreadActions|is not a function|\[plugin:bb-sidebar\]|Uncaught|ReferenceError|TypeError/.test(
+        line,
+      ),
     );
   console.log(`SIDEBAR: scratch thread ${browser.rendered ? "rendered" : "MISSING"}`);
-  console.log(`CONSOLE: ${errors.length ? errors.join("\n") : "no missing-action/function errors"}`);
-  if (!browser.rendered || errors.length > 0) throw new Error("Sidebar smoke acceptance failed");
+  console.log(`CONSOLE: ${errors.length ? `FAILED\n${errors.join("\n")}` : "no sidebar/plugin JavaScript errors"}`);
+  if (errors.length > 0) throw new Error("CONSOLE: sidebar smoke acceptance failed");
+  if (!browser.rendered) throw new Error("SIDEBAR: sidebar smoke acceptance failed");
   console.log("PASS: sidebar renders the scratch thread without action API errors");
 } catch (error) {
   console.error(error);
