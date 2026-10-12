@@ -1,7 +1,7 @@
-import { useSidebarThreadActions, useSidebarThreads, useProviders } from "./bb-sdk";
+import { useSidebarThreads, useProviders } from "./bb-sdk";
 import { STORAGE_KEYS } from "./lib/storage-keys";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { PluginSidebarThread, PluginThreadListProps } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginSidebarThread, type PluginThreadListProps } from "@get-bb/plugin-sdk/app";
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
 import { createDragReorderHandler } from "./drag-reorder";
 import type { InboxDragOrder } from "./drag-reorder-geometry";
@@ -76,7 +76,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   const { status, threads, projects } = useSidebarThreads();
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
-  const actions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const sidebarSettings = useSidebarSettings();
   const lifecycle = useLifecycle(threads);
   const projectIconRevision = useProjectIconRevision();
@@ -489,9 +489,9 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     // have moved or reordered the first candidate while it was pending.
     const nextThread = nextThreadCandidatesRef.current.find((candidate) => candidate.id !== thread.id);
     if (nextThread) {
-      actions.open(nextThread.id);
+      navigate.toThread(nextThread.id);
     } else {
-      actions.openNewThread({
+      navigate.toCompose({
         projectId: thread.projectId,
         focusPrompt: true,
       });

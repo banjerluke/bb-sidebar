@@ -1,6 +1,6 @@
-import { useSidebarThreadActions, useSidebarThreadSplit } from "./bb-sdk";
+import { useSidebarThreadSplit } from "./bb-sdk";
 import { useEffect, useRef, useState } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { cn } from "./lib/utils";
 import { STATUS_SLOT_CLASS, StatusOrTime } from "./StatusSlot";
 import { threadDisplayTitle } from "./inbox";
@@ -129,7 +129,7 @@ function SearchResultRow({
   onAcknowledgeWake: () => void;
   onNavigate: () => void;
 }) {
-  const actions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const { splitProps, layout } = useSidebarThreadSplit(thread.id);
   const jumpHint = useJumpHint(thread.id);
   const title = threadDisplayTitle(thread);
@@ -153,7 +153,7 @@ function SearchResultRow({
         onClick={(event) => {
           event.preventDefault();
           if (isWoke) onAcknowledgeWake();
-          actions.open(thread.id, { split: false });
+          navigate.toThread(thread.id, { split: false });
           onNavigate();
         }}
         className={cn(

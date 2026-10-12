@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, defaultSidebarSettings, thread, listProps, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -44,11 +44,11 @@ describe("four-level sidebar hierarchy", () => {
     fireEvent.pointerDown(disclosure, { button: 0 });
     fireEvent.click(disclosure);
     expect(screen.getByText("Idle sibling")).toBeDefined();
-    expect(rendered.sidebarActionCalls).toEqual([]);
+    expect(rendered.splitSourceCalls).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Hide 2 great-grandchild threads for Grandchild" }));
     expect(screen.queryByText("Idle sibling")).toBeNull();
     fireEvent.pointerDown(deep, { button: 0 });
-    expect(rendered.sidebarActionCalls).toEqual([{ method: "open", threadId: "deep" }]);
+    expect(rendered.splitSourceCalls).toEqual([{ threadId: "deep" }]);
     expect(rendered.rpcCalls.filter((call) => /Parent|reorder|Pinned/.test(call.method))).toEqual([]);
     {
       fireEvent.click(screen.getByRole("button", { name: "Active" }));

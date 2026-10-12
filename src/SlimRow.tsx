@@ -1,6 +1,5 @@
-import { useSidebarThreadActions } from "./bb-sdk";
 import { useState } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { cn } from "./lib/utils";
@@ -54,7 +53,7 @@ export function SlimRow({
   onRestore: () => void;
   onSnooze: (snoozedUntil: number) => void;
 }) {
-  const actions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const projectColor = useProjectColor(thread.projectId);
   const jumpHint = useJumpHint(thread.id);
   const title = threadDisplayTitle(thread);
@@ -92,7 +91,7 @@ export function SlimRow({
               onClick={(event) => {
                 event.preventDefault();
                 if (isRenaming || event.detail > 1) return;
-                actions.open(thread.id, { split: false });
+                navigate.toThread(thread.id, { split: false });
                 onNavigate();
               }}
               onDoubleClick={(event) => {

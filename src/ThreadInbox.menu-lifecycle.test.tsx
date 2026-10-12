@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { formatSnoozeWakeTime } from "./lifecycle";
 import {
   inbox,
@@ -250,7 +250,7 @@ describe("row context menu", () => {
     await waitFor(() =>
       expect(toastMocks.error).toHaveBeenCalledWith(`Could not ${action} thread`, { description: "database offline" }),
     );
-    expect(rendered.sidebarActionCalls.some((call) => call.method === "open" || call.method === "openNewThread")).toBe(
+    expect(rendered.navigateCalls.some((call) => call.method === "toThread" || call.method === "toCompose")).toBe(
       false,
     );
   });
@@ -330,8 +330,8 @@ describe("row context menu", () => {
       const archive = within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive");
       expect(archive.getAttribute("data-disabled")).not.toBeNull();
       fireEvent.click(archive);
-      expect(rendered.sidebarActionCalls).not.toContainEqual({
-        method: "archive",
+      expect(rendered.threadActionCalls).not.toContainEqual({
+        key: "bb--core/archive",
         threadId: busyThread.id,
       });
     });

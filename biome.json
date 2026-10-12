@@ -329,7 +329,9 @@
                       "./**/test-app-worker-state",
                       "../**/test-app-worker-state",
                       "./**/test-inbox",
+                      "./**/test-slot",
                       "../**/test-inbox",
+                      "../**/test-slot",
                       "./**/useScrollFade.test",
                       "../**/useScrollFade.test",
                       "./**/wired.flows.test",
@@ -751,6 +753,7 @@
                       "**/settings-ui",
                       "**/test-app-worker-state",
                       "**/test-inbox",
+                      "**/test-slot",
                       "**/useScrollFade.test",
                       "**/wired.flows.test"
                     ],

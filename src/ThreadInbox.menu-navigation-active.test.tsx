@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import {
   inbox,
   SETTLED_NOTHING,
@@ -48,7 +48,7 @@ describe("row context menu", () => {
       await parkFromMenu(await screen.findByText("Settle from menu"), action);
       await waitFor(() => expect(settled).toBe("thr_settle"));
       await waitFor(() => expect(toastMocks.success).toHaveBeenCalled());
-      expect(rendered.sidebarActionCalls).toEqual([]);
+      expect(rendered.navigateCalls).toEqual([]);
     });
 
     it("opens the next Active thread when leaving its first row", async () => {
@@ -78,8 +78,8 @@ describe("row context menu", () => {
 
       await parkFromMenu(await screen.findByText("Current"), action);
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toContainEqual({
-          method: "open",
+        expect(rendered.navigateCalls).toContainEqual({
+          method: "toThread",
           threadId: "next",
         }),
       );
@@ -132,8 +132,8 @@ describe("row context menu", () => {
         const current = within(active).getByText("Current").closest("li")!;
         await parkFromCard(current, action);
         await waitFor(() =>
-          expect(rendered.sidebarActionCalls).toContainEqual({
-            method: "open",
+          expect(rendered.navigateCalls).toContainEqual({
+            method: "toThread",
             threadId: expectedId,
           }),
         );
@@ -177,8 +177,8 @@ describe("row context menu", () => {
       );
       pendingSettle.resolve({ ok: true, reclaim: SETTLED_NOTHING });
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toContainEqual({
-          method: "open",
+        expect(rendered.navigateCalls).toContainEqual({
+          method: "toThread",
           threadId: "second",
         }),
       );

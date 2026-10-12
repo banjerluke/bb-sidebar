@@ -1,6 +1,6 @@
-import { useProviders, useSidebarThreadActions, useSidebarThreads } from "./bb-sdk";
+import { useProviders, useSidebarThreads } from "./bb-sdk";
 import { useEffect, useMemo, useState } from "react";
-import type { PluginThreadHeaderActionProps } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginThreadHeaderActionProps } from "@get-bb/plugin-sdk/app";
 import { useSidebarSettings } from "./useSidebarSettings";
 import {
   ChildThreadDots,
@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
  */
 export function SubagentsChip({ threadId, isCompactViewport }: PluginThreadHeaderActionProps) {
   const { threads } = useSidebarThreads();
-  const actions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const [open, setOpen] = useState(false);
   const sidebarSettings = useSidebarSettings();
 
@@ -94,7 +94,7 @@ export function SubagentsChip({ threadId, isCompactViewport }: PluginThreadHeade
               variant="header"
               onOpenThread={(childId) => {
                 setOpen(false);
-                actions.open(childId);
+                navigate.toThread(childId);
               }}
             />
           </div>

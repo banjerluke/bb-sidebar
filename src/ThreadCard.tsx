@@ -1,4 +1,4 @@
-import { useSidebarThreadPullRequest, useSidebarThreadSplit, useSidebarThreadActions } from "./bb-sdk";
+import { useSidebarThreadPullRequest, useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
 import {
   useId,
   useLayoutEffect,
@@ -8,7 +8,7 @@ import {
   type KeyboardEventHandler,
   type PointerEventHandler,
 } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";
@@ -114,7 +114,8 @@ export function ThreadCard({
   /** Quantized clock, so every card in one render agrees on "now". */
   now: number;
 }) {
-  const actions = useSidebarThreadActions();
+  const [pin] = useThreadActions(thread, { keys: ["bb--core/pin"] });
+  const navigate = useBbNavigate();
   const jumpHint = useJumpHint(thread.id);
   const { splitProps, layout } = useSidebarThreadSplit(thread.id);
   const rowRef = useRef<HTMLLIElement>(null);
@@ -205,7 +206,6 @@ export function ThreadCard({
   // them, whatever "Show children that need attention" says.
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
   const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
-
   const showParkActions = !isWoke && canPark && (snoozePresets.length > 0 || !!onPark);
   const unpinButton = thread.isPinned ? (
     <Tooltip label="Unpin thread">
@@ -215,7 +215,7 @@ export function ThreadCard({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          void actions.setPinned(thread.id, false).catch((error) => {
+          void pin?.action.run().catch((error) => {
             toast.error("Could not unpin thread", {
               description: error instanceof Error ? error.message : undefined,
             });
@@ -311,7 +311,7 @@ export function ThreadCard({
                   event.preventDefault();
                   if (isRenaming || event.detail > 1) return;
                   if (isWoke) onAcknowledgeWake();
-                  actions.open(thread.id, { split: false });
+                  navigate.toThread(thread.id, { split: false });
                   onNavigate();
                 }}
                 onDoubleClick={(event) => {
@@ -547,7 +547,7 @@ export function ThreadCard({
               variant="sidebar"
               now={now}
               onOpenThread={(childId) => {
-                actions.open(childId, { split: false });
+                navigate.toThread(childId, { split: false });
                 onNavigate();
               }}
             />

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { ProjectColorsProvider, useProjectColor } from "./ProjectColors";
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 function deferred<T>() {

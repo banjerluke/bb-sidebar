@@ -1,4 +1,4 @@
-import { useSidebarThreadActions } from "./bb-sdk";
+import { useBbNavigate } from "@get-bb/plugin-sdk/app";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRpc } from "@get-bb/plugin-sdk/app";
@@ -8,7 +8,7 @@ import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult 
 
 export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: string[]; onNavigate: () => void }) {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
-  const threadActions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const portalScope = usePortalScopeProps();
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<SettledCleanupPreview | null>(null);
@@ -128,7 +128,7 @@ export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: strin
                           disabled={busy}
                           onClick={() => {
                             if (busy) return;
-                            threadActions.open(thread.threadId);
+                            navigate.toThread(thread.threadId);
                             onNavigate();
                             setOpen(false);
                           }}

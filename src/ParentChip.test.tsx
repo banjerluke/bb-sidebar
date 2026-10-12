@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { loadPluginApp } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
 
@@ -70,8 +71,8 @@ describe("ParentChip", () => {
       "child",
     );
     fireEvent.click(screen.getByRole("button"));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "parent",
       options: undefined,
     });

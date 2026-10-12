@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -33,8 +33,8 @@ describe("ThreadInbox", () => {
       },
     );
     fireEvent.click(screen.getByRole("link"));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "thr_open",
       options: { split: false },
     });
@@ -72,8 +72,8 @@ describe("ThreadInbox", () => {
     const rendered = render([thread({ id: "thr_modifier" })]);
     fireEvent.click(screen.getByRole("link"), { metaKey: true });
 
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "thr_modifier",
       options: { split: false },
     });

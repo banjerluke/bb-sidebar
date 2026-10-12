@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, SETTLED_NOTHING, thread, listProps, parkingActions, parkFromCard, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -41,8 +41,8 @@ describe("row context menu", () => {
       const current = screen.getByText(currentId === "current" ? "Current" : "First pin").closest("li")!;
       await parkFromCard(current, action);
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toContainEqual({
-          method: "open",
+        expect(rendered.navigateCalls).toContainEqual({
+          method: "toThread",
           threadId: expectedId,
         }),
       );
@@ -72,8 +72,8 @@ describe("row context menu", () => {
       const pinned = await screen.findByRole("region", { name: "Pinned" });
       await parkFromCard(within(pinned).getByText("Last pin").closest("li")!, action);
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toContainEqual({
-          method: "open",
+        expect(rendered.navigateCalls).toContainEqual({
+          method: "toThread",
           threadId: "first",
         }),
       );

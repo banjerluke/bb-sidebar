@@ -1,4 +1,4 @@
-import { useSidebarThreadActions, useSidebarThreads } from "./bb-sdk";
+import { useThreadActions, useSidebarThreads } from "./bb-sdk";
 import { useRef, useState, type ReactNode } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
@@ -19,15 +19,7 @@ import {
 } from "./lifecycle";
 import { beginTitleGeneration, finishTitleGeneration, useTitleGenerating } from "./title-generation-state";
 
-/**
- * This sidebar's own right-click menu.
- *
- * The plugin API ships no menu component on purpose, so a replaced sidebar
- * owns this surface. Native actions use
- * `useSidebarThreadActions`. The destructive one goes through
- * this sidebar's own confirmation, which names the thread and project, and
- * then the plugin's `deleteThread` rpc; nothing deletes a subtree silently.
- */
+/** The sidebar owns its menu and named delete confirmation; bb owns bound actions. */
 export function RowContextMenu({
   thread,
   children,
@@ -55,7 +47,11 @@ export function RowContextMenu({
   onWake?: () => void;
   onRename?: () => void;
 }) {
-  const actions = useSidebarThreadActions();
+  const actions = useThreadActions(thread, {
+    keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename", "bb--core/archive"],
+    requestRename: () => onRename?.(),
+  });
+  const run = (key: string) => actions.find((entry) => entry.key === `bb--core/${key}`)?.action.run();
   const { projects, threads } = useSidebarThreads();
   const project = projects.find((project) => project.id === thread.projectId);
   const portalScope = usePortalScopeProps();
@@ -68,7 +64,7 @@ export function RowContextMenu({
   // session loaded. Release them alongside the archive. Working children are
   // skipped, so this never interrupts a turn archive itself would not.
   const archive = () => {
-    actions.archive(thread.id);
+    void run("archive");
     const threadIds = [
       thread.id,
       ...threads.filter((child) => child.parentThreadId === thread.id && canParkThread(child)).map((child) => child.id),
@@ -103,7 +99,7 @@ export function RowContextMenu({
   const togglePin = async () => {
     try {
       if (thread.isPinned) {
-        await actions.setPinned(thread.id, false);
+        await run("pin");
       } else {
         if (thread.parentThreadId != null) return;
         await rpc.call("pin", { threadId: thread.id });
@@ -133,11 +129,11 @@ export function RowContextMenu({
                   renameAfterClose.current = false;
                   // Hand focus to the editor after the menu releases its focus scope.
                   event.preventDefault();
-                  onRename?.();
+                  void run("rename");
                 }}
                 className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
               >
-                <Item onSelect={() => actions.open(thread.id, { split: true })}>Open in split</Item>
+                <Item onSelect={() => void run("split")}>Open in split</Item>
                 <ParentThreadMenu thread={thread} />
                 {projectItems ? (
                   <ContextMenu.Sub onOpenChange={onOpenChange}>
@@ -207,9 +203,7 @@ export function RowContextMenu({
                 <Item disabled={regenerating} onSelect={() => void regenerate()}>
                   {regenerating ? "Regenerating title…" : "Regenerate title"}
                 </Item>
-                <Item onSelect={() => void actions.setRead(thread.id, thread.isUnread)}>
-                  {thread.isUnread ? "Mark read" : "Mark unread"}
-                </Item>
+                <Item onSelect={() => void run("read")}>{thread.isUnread ? "Mark read" : "Mark unread"}</Item>
                 <Separator />
                 <CopySubmenu thread={thread} />
                 <Separator />

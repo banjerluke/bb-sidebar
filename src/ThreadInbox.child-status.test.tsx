@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, defaultSidebarSettings, thread, listProps, render, deferred, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -250,8 +250,8 @@ describe("ThreadInbox", () => {
         name: "Open child thread: Monitoring child, Monitoring · 5m",
       }),
     );
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "monitoring",
       options: { split: false },
     });
@@ -380,8 +380,8 @@ describe("ThreadInbox", () => {
         name: "Open grandchild thread: Failed grandchild, Failed",
       }),
     );
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "failed-grandchild",
       options: { split: false },
     });

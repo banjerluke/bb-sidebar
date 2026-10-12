@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, SETTLED_NOTHING, thread, listProps, parkingActions, parkFromCard, loadInboxApp } from "./test-inbox";
 
@@ -54,8 +54,8 @@ describe("row context menu", () => {
         const current = screen.getByText("Only thread").closest("li")!;
         await parkFromCard(current, action);
         await waitFor(() =>
-          expect(rendered.sidebarActionCalls).toContainEqual({
-            method: "openNewThread",
+          expect(rendered.navigateCalls).toContainEqual({
+            method: "toCompose",
             options: { projectId: "proj_1", focusPrompt: true },
           }),
         );

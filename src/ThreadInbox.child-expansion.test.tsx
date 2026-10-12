@@ -18,12 +18,12 @@ describe("ThreadInbox", () => {
     fireEvent.contextMenu(screen.getByRole("button", { name: "Open child thread: Child" }));
 
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).toContainEqual({
+      key: "bb--core/archive",
       threadId: "child",
     });
-    expect(rendered.sidebarActionCalls).not.toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).not.toContainEqual({
+      key: "bb--core/archive",
       threadId: "parent",
     });
   });
@@ -44,8 +44,8 @@ describe("ThreadInbox", () => {
     fireEvent.contextMenu(screen.getByText("Parent"));
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
 
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).toContainEqual({
+      key: "bb--core/archive",
       threadId: "parent",
     });
     await waitFor(() =>
@@ -130,8 +130,8 @@ describe("ThreadInbox", () => {
         name: "Open grandchild thread: Grandchild",
       }),
     );
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "grandchild",
       options: { split: false },
     });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { DEFAULT_SNOOZE_PRESET_CONFIG } from "./lifecycle";
 import {
@@ -82,10 +82,9 @@ describe("row context menu", () => {
     fireEvent.change(input, { target: { value: "Updated title" } });
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({
-        method: "rename",
-        threadId: "thr_rename",
-        title: "Updated title",
+      expect(rendered.sdkCalls).toContainEqual({
+        method: "threads.update",
+        args: [{ threadId: "thr_rename", title: "Updated title" }],
       }),
     );
   });
@@ -100,17 +99,16 @@ describe("row context menu", () => {
     });
     fireEvent.change(input, { target: { value: "Canceled title" } });
     fireEvent.keyDown(input, { key: "Escape" });
-    expect(rendered.sidebarActionCalls.some((call) => call.method === "rename")).toBe(false);
+    expect(rendered.sdkCalls.some((call) => call.method === "threads.update")).toBe(false);
 
     fireEvent.doubleClick(row);
     input = await screen.findByRole("textbox", { name: "Rename Inline title" });
     fireEvent.change(input, { target: { value: "Blurred title" } });
     fireEvent.blur(input);
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({
-        method: "rename",
-        threadId: "thr_inline",
-        title: "Blurred title",
+      expect(rendered.sdkCalls).toContainEqual({
+        method: "threads.update",
+        args: [{ threadId: "thr_inline", title: "Blurred title" }],
       }),
     );
   });
@@ -206,7 +204,7 @@ describe("row context menu", () => {
     expect(within(dialog).getByText("bb")).toBeTruthy();
     expect(within(dialog).getByText(/its 2 child threads/)).toBeTruthy();
     expect(rendered.rpcCalls.filter((call) => call.method === "deleteThread")).toEqual([]);
-    expect(rendered.sidebarActionCalls).not.toContainEqual(expect.objectContaining({ method: "requestDelete" }));
+    expect(rendered.threadActionCalls).not.toContainEqual(expect.objectContaining({ key: "bb--core/delete" }));
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete thread" }));
     await waitFor(() =>

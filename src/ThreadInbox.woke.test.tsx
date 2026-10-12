@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import {
   inbox,
   SETTLED_NOTHING,
@@ -86,24 +86,20 @@ describe("parking threads", () => {
       ).toBeNull(),
     );
     expect(within(screen.getByText("Pending wake").closest("li")!).getByText("Needs you")).toBeDefined();
-    expect(rendered.sidebarActionCalls.some((call) => call.method === "open")).toBe(false);
+    expect(rendered.navigateCalls.some((call) => call.method === "toThread")).toBe(false);
 
     const failedRow = screen.getByText("Failed wake").closest("li")!;
     fireEvent.click(within(failedRow).getByRole("button", { name: "Unpin Failed wake" }));
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({
-        method: "setPinned",
-        threadId: "failed",
-        pinned: false,
-      }),
+      expect(rendered.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "failed" }] }),
     );
     expect(acknowledged).toEqual(["pending"]);
     expect(within(failedRow).getByText("Failed")).toBeDefined();
 
     fireEvent.click(within(failedRow).getByRole("link", { name: "Failed wake" }));
     await waitFor(() => expect(acknowledged).toEqual(["pending", "failed"]));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "failed",
       options: { split: false },
     });
@@ -164,7 +160,7 @@ describe("parking threads", () => {
     fireEvent.click(dismiss);
     await waitFor(() => expect(acknowledged).toEqual(["woke"]));
     expect(navigated).toBe(0);
-    expect(rendered.sidebarActionCalls).toEqual([]);
+    expect(rendered.navigateCalls).toEqual([]);
 
     await rendered.emitRealtime("lifecycle", {});
     const settled = () => screen.getByText("Woke work").closest("li")!;
@@ -209,8 +205,8 @@ it("keeps parked threads parked when opened and offers Resume with Undo", async 
   expect(within(shelf).getByText("Waiting 5d")).toBeDefined();
   fireEvent.click(within(shelf).getByRole("link", { name: "bb · Awaiting review" }));
   expect(resume).not.toHaveBeenCalled();
-  expect(rendered.sidebarActionCalls).toContainEqual({
-    method: "open",
+  expect(rendered.navigateCalls).toContainEqual({
+    method: "toThread",
     threadId: "waiting",
     options: { split: false },
   });

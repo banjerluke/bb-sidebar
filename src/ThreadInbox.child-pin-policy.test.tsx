@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { app, inbox, PolicyMenu, thread, listProps, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -63,7 +63,7 @@ describe("structural child pin policy UI", () => {
     expect(within(menu).queryByRole("menuitem", { name: "Pin" })).toBeNull();
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Unpin" }));
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({ method: "setPinned", threadId: "child", pinned: false }),
+      expect(rendered.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "child" }] }),
     );
     expect(rendered.rpcCalls).toHaveLength(0);
   });
@@ -92,7 +92,7 @@ describe("structural child pin policy UI", () => {
     expect(within(menu).queryByRole("menuitem", { name: "Pin" })).toBeNull();
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Unpin" }));
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({ method: "setPinned", threadId: "child", pinned: false }),
+      expect(rendered.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "child" }] }),
     );
   });
 

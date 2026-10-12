@@ -1,6 +1,6 @@
-import { useSidebarThreadActions } from "./bb-sdk";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useSdk, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { toast } from "sonner";
 import { cn } from "./lib/utils";
 import { threadDisplayTitle } from "./inbox";
 import { ThreadTitle } from "./ThreadTitle";
@@ -17,27 +17,22 @@ export function InlineThreadTitle({
   onEditingChange: (editing: boolean) => void;
   className?: string;
 }) {
-  const actions = useSidebarThreadActions();
+  const sdk = useSdk();
   const title = threadDisplayTitle(thread);
   const [draft, setDraft] = useState(title);
   const finished = useRef(false);
-  const latest = useRef({ draft, title, actions, onEditingChange });
-  latest.current = { draft, title, actions, onEditingChange };
+  const latest = useRef({ draft, title, sdk, onEditingChange });
+  latest.current = { draft, title, sdk, onEditingChange };
 
   useLayoutEffect(() => {
     if (!editing) return;
     return () => {
       if (finished.current) return;
       finished.current = true;
-      const {
-        draft: currentDraft,
-        title: currentTitle,
-        actions: currentActions,
-        onEditingChange: notify,
-      } = latest.current;
+      const { draft: currentDraft, title: currentTitle, sdk: currentSdk, onEditingChange: notify } = latest.current;
       notify(false);
       const nextTitle = currentDraft.trim();
-      if (nextTitle && nextTitle !== currentTitle) void currentActions.rename(thread.id, nextTitle);
+      if (nextTitle && nextTitle !== currentTitle) saveTitle(currentSdk, thread.id, nextTitle);
     };
   }, [editing, thread.id]);
 
@@ -55,7 +50,7 @@ export function InlineThreadTitle({
     onEditingChange(false);
     const nextTitle = draft.trim();
     if (save && nextTitle.length > 0 && nextTitle !== title) {
-      void actions.rename(thread.id, nextTitle);
+      saveTitle(sdk, thread.id, nextTitle);
     }
   };
 
@@ -84,4 +79,12 @@ export function InlineThreadTitle({
       )}
     />
   );
+}
+
+function saveTitle(sdk: ReturnType<typeof useSdk>, threadId: string, title: string) {
+  void sdk.threads.update({ threadId, title }).catch((error) => {
+    toast.error("Could not rename thread", {
+      description: error instanceof Error ? error.message : undefined,
+    });
+  });
 }

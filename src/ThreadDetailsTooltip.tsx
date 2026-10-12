@@ -1,6 +1,6 @@
-import { useProviders, useSidebarThreadSplit, useSidebarThreads, useSidebarThreadActions } from "./bb-sdk";
+import { useProviders, useSidebarThreadSplit, useSidebarThreads } from "./bb-sdk";
 import { useEffect, useId, useState, type ReactElement } from "react";
-import { useRpc, useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, useRpc, useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
 import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { ThreadHoverCard } from "./components/ThreadHoverCard";
@@ -27,7 +27,7 @@ export function ThreadDetailsTooltip({
 }) {
   const { providers } = useProviders();
   const { projects, threads } = useSidebarThreads();
-  const actions = useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const { call } = useRpc<typeof bbSidebarRpcContract>();
   const [iconRevision, setIconRevision] = useState(0);
   useRealtime(PROJECT_ICONS_CHANNEL, () => {
@@ -159,7 +159,7 @@ export function ThreadDetailsTooltip({
                       thread={child}
                       onOpen={() => {
                         setOpen(false);
-                        actions.open(child.id);
+                        navigate.toThread(child.id);
                       }}
                     />
                   </li>

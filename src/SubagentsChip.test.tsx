@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { loadPluginApp } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
 import type { SidebarProvider } from "./ProviderGlyph";
@@ -220,17 +221,21 @@ describe("SubagentsChip", () => {
       let input = await startRename();
       expect(input.closest("button")).toBeNull();
       fireEvent.pointerDown(input, { button: 0 });
-      expect(rendered.sidebarActionCalls).toEqual([]);
+      expect(rendered.splitSourceCalls).toEqual([]);
+      expect(rendered.sdkCalls).toEqual([]);
       fireEvent.change(input, { target: { value: "Canceled" } });
       fireEvent.keyDown(input, { key: "Escape" });
       expect(screen.getByRole("region", { name: "Child threads" })).toBeTruthy();
-      expect(rendered.sidebarActionCalls).toEqual([]);
+      expect(rendered.splitSourceCalls).toEqual([]);
+      expect(rendered.sdkCalls).toEqual([]);
 
       input = await startRename();
       fireEvent.change(input, { target: { value: "Renamed child" } });
       fireEvent.keyDown(input, { key: "Enter" });
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toEqual([{ method: "rename", threadId: targetId, title: "Renamed child" }]),
+        expect(rendered.sdkCalls).toEqual([
+          { method: "threads.update", args: [{ threadId: targetId, title: "Renamed child" }] },
+        ]),
       );
     },
   );
@@ -257,12 +262,12 @@ describe("SubagentsChip", () => {
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
     const disclosure = screen.getByRole("button", { name: "Show 1 grandchild thread for Child" });
     fireEvent.pointerDown(disclosure, { button: 0 });
-    expect(rendered.sidebarActionCalls).toEqual([]);
+    expect(rendered.splitSourceCalls).toEqual([]);
     fireEvent.click(disclosure);
     const deepDisclosure = screen.getByRole("button", { name: "Show 1 great-grandchild thread for Grandchild" });
     fireEvent.pointerDown(deepDisclosure, { button: 0 });
     fireEvent.click(deepDisclosure);
-    expect(rendered.sidebarActionCalls).toEqual([]);
+    expect(rendered.splitSourceCalls).toEqual([]);
     for (const [relation, title, id] of [
       ["child", "Child", "child"],
       ["grandchild", "Grandchild", "grandchild"],
@@ -271,9 +276,9 @@ describe("SubagentsChip", () => {
       const source = screen.getByRole("button", { name: `Open ${relation} thread: ${title}` });
       expect(source.draggable).toBe(false);
       fireEvent.pointerDown(source, { button: 0 });
-      expect(rendered.sidebarActionCalls.at(-1)).toEqual({ method: "open", threadId: id });
+      expect(rendered.splitSourceCalls.at(-1)).toEqual({ threadId: id });
     }
-    expect(rendered.sidebarActionCalls).toHaveLength(3);
+    expect(rendered.splitSourceCalls).toHaveLength(3);
   });
 
   it("mounts the shared child list in the header menu", () => {
@@ -310,8 +315,8 @@ describe("SubagentsChip", () => {
     const list = screen.getByRole("list", { name: "Child threads" });
     expect(list.getAttribute("data-child-thread-list")).toBe("header");
     fireEvent.click(screen.getByRole("button", { name: "Open child thread: Child B" }));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "child-b",
       options: undefined,
     });
@@ -429,8 +434,8 @@ describe("SubagentsChip", () => {
         name: "Open grandchild thread: Grandchild",
       }),
     );
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "grandchild",
       options: undefined,
     });
@@ -460,8 +465,8 @@ describe("SubagentsChip", () => {
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
     fireEvent.contextMenu(screen.getByRole("button", { name: "Open child thread: Child" }));
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).toContainEqual({
+      key: "bb--core/archive",
       threadId: "child",
     });
 
@@ -476,12 +481,12 @@ describe("SubagentsChip", () => {
       }),
     );
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).toContainEqual({
+      key: "bb--core/archive",
       threadId: "grandchild",
     });
-    expect(rendered.sidebarActionCalls).not.toContainEqual({
-      method: "archive",
+    expect(rendered.threadActionCalls).not.toContainEqual({
+      key: "bb--core/archive",
       threadId: "parent",
     });
   });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, render, toastMocks, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -14,11 +14,7 @@ describe("ThreadInbox", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Unpin Pinned work" }));
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({
-        method: "setPinned",
-        threadId: "pin",
-        pinned: false,
-      }),
+      expect(rendered.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "pin" }] }),
     );
   });
 
@@ -66,7 +62,9 @@ describe("ThreadInbox", () => {
           input: { threadId: "to-pin" },
         }),
       );
-      expect(rendered.sidebarActionCalls.filter((call) => call.method === "setPinned")).toEqual([]);
+      expect(
+        rendered.sdkCalls.filter((call) => call.method === "threads.pin" || call.method === "threads.unpin"),
+      ).toEqual([]);
     },
   );
 

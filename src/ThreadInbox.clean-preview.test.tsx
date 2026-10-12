@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { projectColorsById } from "./project-colors";
 import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp } from "./test-inbox";
 
@@ -162,7 +162,7 @@ describe("parking threads", () => {
     fireEvent.click(within(shelf).getByRole("button", { name: "Close terminals and ports of settled threads" }));
     const dialog = await screen.findByRole("dialog", { name: "Clean settled resources?" });
     fireEvent.click(await within(dialog).findByRole("button", { name: "Open thread: Check this terminal" }));
-    expect(rendered.sidebarActionCalls).toContainEqual({ method: "open", threadId: "thr_terminal" });
+    expect(rendered.navigateCalls).toContainEqual({ method: "toThread", threadId: "thr_terminal" });
     expect(onNavigate).toHaveBeenCalledOnce();
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Clean settled resources?" })).toBeNull());
   });
@@ -201,7 +201,7 @@ describe("parking threads", () => {
     const openButton = within(dialog).getByRole("button", { name: "Open thread: Check this terminal" });
     expect(openButton).toHaveProperty("disabled", true);
     fireEvent.click(openButton);
-    expect(rendered.sidebarActionCalls).not.toContainEqual({ method: "open", threadId: "thr_terminal" });
+    expect(rendered.navigateCalls).not.toContainEqual({ method: "toThread", threadId: "thr_terminal" });
     expect(screen.getByRole("dialog", { name: "Clean settled resources?" })).toBeDefined();
     pending.resolve({ closedTerminals: 1, signalledPorts: [], remainingPorts: [], skipped: [], failed: [] });
     await waitFor(() => expect(dialog.textContent).toContain("1 terminal closed"));

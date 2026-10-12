@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -369,7 +369,7 @@ describe("ThreadInbox", () => {
       pointerId: 1,
     });
 
-    const openCalls = () => rendered.sidebarActionCalls.filter((call) => call.method === "open").length;
+    const openCalls = () => rendered.navigateCalls.filter((call) => call.method === "toThread").length;
     const settled = openCalls();
 
     // The gesture's own click.
@@ -472,11 +472,11 @@ describe("ThreadInbox", () => {
       clientY: 30,
       pointerId: 1,
     });
-    const openedBeforeClick = rendered.sidebarActionCalls.filter((call) => call.method === "open").length;
+    const openedBeforeClick = rendered.navigateCalls.filter((call) => call.method === "toThread").length;
     // The browser raises this once the gesture ends. Cancelling a drag must not
     // navigate into the row the drag started from.
     fireEvent.click(card);
 
-    expect(rendered.sidebarActionCalls.filter((call) => call.method === "open")).toHaveLength(openedBeforeClick);
+    expect(rendered.navigateCalls.filter((call) => call.method === "toThread")).toHaveLength(openedBeforeClick);
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { inbox, defaultSidebarSettings, thread, defaultProviders, listProps, render, loadInboxApp } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -59,7 +59,7 @@ it("shows direct subthreads in the hover card and opens them by keyboard or clic
   const reopened = await screen.findByRole("dialog", { name: "Thread details" });
   fireEvent.click(within(reopened).getByRole("button", { name: "Subthreads (2)", expanded: false }));
   fireEvent.click(within(reopened).getByRole("button", { name: "Open subthread: Review" }));
-  expect(rendered.sidebarActionCalls).toContainEqual({ method: "open", threadId: "b" });
+  expect(rendered.navigateCalls).toContainEqual({ method: "toThread", threadId: "b" });
   expect(screen.queryByRole("dialog", { name: "Thread details" })).toBeNull();
 });
 // SDK fake pointerdown is a source-binding probe, not a completed drop.
@@ -72,12 +72,12 @@ it("binds hover subthread sources only to their open buttons", async () => {
   const details = await screen.findByRole("dialog", { name: "Thread details" });
   const toggle = within(details).getByRole("button", { name: "Subthreads (1)" });
   fireEvent.pointerDown(toggle, { button: 0 });
-  expect(rendered.sidebarActionCalls).toEqual([]);
+  expect(rendered.splitSourceCalls).toEqual([]);
   fireEvent.click(toggle);
   const source = within(details).getByRole("button", { name: "Open subthread: Child" });
   expect(source.draggable).toBe(false);
   fireEvent.pointerDown(source, { button: 0 });
-  expect(rendered.sidebarActionCalls).toEqual([{ method: "open", threadId: "child" }]);
+  expect(rendered.splitSourceCalls).toEqual([{ threadId: "child" }]);
 });
 it("binds collapsed-visible sidebar descendants without enabling parent reorder", () => {
   const threads = [
@@ -115,9 +115,9 @@ it("binds collapsed-visible sidebar descendants without enabling parent reorder"
     fireEvent.pointerDown(source, { button: 0, clientX: 20, clientY: 50, pointerId: 1 });
     fireEvent.pointerMove(document, { clientX: 20, clientY: 100, pointerId: 1 });
     fireEvent.pointerUp(document, { clientX: 20, clientY: 100, pointerId: 1 });
-    expect(rendered.sidebarActionCalls.at(-1)).toEqual({ method: "open", threadId: id });
+    expect(rendered.splitSourceCalls.at(-1)).toEqual({ threadId: id });
   }
-  expect(rendered.sidebarActionCalls).toHaveLength(2);
+  expect(rendered.splitSourceCalls).toHaveLength(2);
   expect(mutations).toEqual([]);
   expect(threads).toEqual(before);
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { isWorkingTree } from "./working-tree";
 import {
   inbox,
@@ -198,11 +198,7 @@ describe("parking threads", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Unpin Failed work" }));
     await waitFor(() =>
-      expect(rendered.sidebarActionCalls).toContainEqual({
-        method: "setPinned",
-        threadId: "thr_failed",
-        pinned: false,
-      }),
+      expect(rendered.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "thr_failed" }] }),
     );
 
     const unreadRow = screen.getByText("Unread work").closest("li")!;

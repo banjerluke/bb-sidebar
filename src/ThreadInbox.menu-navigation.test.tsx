@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import {
   inbox,
   SETTLED_NOTHING,
@@ -109,8 +109,8 @@ describe("row context menu", () => {
     rendered.rerender(<InboxComponent {...props} activeThreadId="elsewhere" />);
     pendingSettle.resolve({ ok: true, reclaim: SETTLED_NOTHING });
     await waitFor(() => expect(toastMocks.success).toHaveBeenCalled());
-    expect(
-      rendered.sidebarActionCalls.filter((call) => call.method === "open" || call.method === "openNewThread"),
-    ).toEqual([]);
+    expect(rendered.navigateCalls.filter((call) => call.method === "toThread" || call.method === "toCompose")).toEqual(
+      [],
+    );
   });
 });

@@ -1,6 +1,6 @@
 import { copyFileSync } from "node:fs";
 import { act } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { afterEach, vi } from "vitest";
@@ -15,7 +15,7 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 
-/** SDK 0.6.15 has no host/app bridge. Keep its validation and JSON wire drivers. */
+/** Keep the SDK's validation and JSON wire drivers across the explicit host/app bridge. */
 export async function createWired(
   initial: PluginSidebarThread[],
   options: { fixture?: string; rpcGate?: Promise<void>; terminals?: boolean } = {},

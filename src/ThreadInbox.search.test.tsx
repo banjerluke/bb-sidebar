@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { WORKING_EMPTY_LINES } from "./working-empty-lines";
 import {
   inbox,
@@ -212,8 +212,8 @@ describe("ThreadInbox", () => {
 
     fireEvent.click(screen.getByRole("option", { name: /Match runtime/ }));
     await waitFor(() => expect(acknowledged).toEqual(["search_runtime"]));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "search_runtime",
       options: { split: false },
     });
@@ -295,8 +295,8 @@ describe("ThreadInbox", () => {
 
     fireEvent.keyDown(woke, { key: "Enter" });
     await waitFor(() => expect(acknowledged).toEqual(["woke_match"]));
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "woke_match",
       options: { split: false },
     });
@@ -486,8 +486,8 @@ describe("ThreadInbox", () => {
     expect(results[1]!.tabIndex).toBe(0);
 
     fireEvent.keyDown(results[1]!, { key: "Enter" });
-    expect(rendered.sidebarActionCalls).toContainEqual({
-      method: "open",
+    expect(rendered.navigateCalls).toContainEqual({
+      method: "toThread",
       threadId: "older",
       options: { split: false },
     });

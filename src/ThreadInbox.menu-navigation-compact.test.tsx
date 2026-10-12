@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
-import { renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { renderSlot } from "./test-slot";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, SETTLED_NOTHING, thread, listProps, parkFromMenu, loadInboxApp } from "./test-inbox";
 
@@ -71,10 +71,10 @@ describe("row context menu", () => {
       const region = await screen.findByRole("region", { name: shelf });
       await parkFromMenu(within(region).getByText("Current"), action);
       await waitFor(() =>
-        expect(rendered.sidebarActionCalls).toEqual([
+        expect(rendered.navigateCalls).toEqual([
           destination === "empty"
-            ? { method: "openNewThread", options: { projectId: "proj_1", focusPrompt: true } }
-            : { method: "open", threadId: destination === "pinned" ? "first-pin" : "first-active" },
+            ? { method: "toCompose", options: { projectId: "proj_1", focusPrompt: true } }
+            : { method: "toThread", threadId: destination === "pinned" ? "first-pin" : "first-active" },
         ]),
       );
     });
