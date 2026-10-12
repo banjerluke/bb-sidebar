@@ -9,6 +9,20 @@ if (new URL(fixture.url).port === "38886" || !fixture.env.BB_DATA_DIR.startsWith
   throw new Error("E2E fixture must target a scratch server");
 }
 
+for (const key of [
+  "HOME",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+  "XDG_STATE_HOME",
+  "XDG_CACHE_HOME",
+  "CODEX_HOME",
+  "CLAUDE_CONFIG_DIR",
+  "TMPDIR",
+]) {
+  if (!fixture.env[key]?.startsWith(`${fixture.env.BB_DATA_DIR}/`))
+    throw new Error(`CLI ${key} must be inside scratch`);
+}
+
 export const test = base.extend({
   page: async ({ page }, use) => {
     const errors = [];
@@ -61,6 +75,7 @@ export async function expand(page, name) {
 }
 
 export async function reset(request) {
+  await rpc(request, "updateSidebarSettings", fixture.defaultSettings);
   for (const thread of fixture.threads) {
     await cli(["thread", "unpin", thread.id]);
     await cli(["thread", "read", thread.id]);
@@ -70,7 +85,7 @@ export async function reset(request) {
   await rpc(request, "reorderInbox", { inboxThreadIds: fixture.threads.map(({ id }) => id) });
 }
 
-export async function open(page, { theme = "light", width = 320 } = {}) {
+export async function open(page, { theme = "light", width = 320, empty = false } = {}) {
   await page.addInitScript(
     ({ theme, width }) => {
       localStorage.setItem("bb.theme", theme);
@@ -80,5 +95,9 @@ export async function open(page, { theme = "light", width = 320 } = {}) {
     { theme, width },
   );
   await page.goto(fixture.url);
-  await expect(shelf(page, "Active")).toBeVisible();
+  if (empty) {
+    await expect(page.getByText("All clear. Time to touch some grass.")).toBeVisible();
+  } else {
+    await expect(shelf(page, "Active")).toBeVisible();
+  }
 }

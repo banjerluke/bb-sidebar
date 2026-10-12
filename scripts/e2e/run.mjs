@@ -9,6 +9,14 @@ try {
   for (const title of ["Birch implementation", "Cedar review", "Delta follow-up"]) {
     threads.push(await server.seed(title, { idle: true }));
   }
+  await server.checkIsolation("seeded");
+  const settingsResponse = await fetch(`${server.url}/api/v1/plugins/bb-sidebar/rpc/getSidebarSettings`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  const settingsPayload = await settingsResponse.json();
+  if (!settingsResponse.ok || !settingsPayload.ok) throw new Error("Cannot read scratch fixture settings");
   const fixturePath = join(server.scratch, "fixture.json");
   writeFileSync(
     fixturePath,
@@ -18,6 +26,7 @@ try {
       bb: server.bb,
       threads,
       projectId: server.projectId,
+      defaultSettings: settingsPayload.result,
     }),
   );
   const args = process.argv.slice(2);
@@ -26,8 +35,9 @@ try {
   const result = await server.run(
     process.execPath,
     [resolve("node_modules/@playwright/test/cli.js"), "test", "--config", "e2e/playwright.config.mjs", ...args],
-    { allowFailure: true, timeoutMs: 600_000, stream: true, env: { ...server.env, E2E_FIXTURE: fixturePath } },
+    { allowFailure: true, timeoutMs: 600_000, stream: true, env: { ...server.toolEnv, E2E_FIXTURE: fixturePath } },
   );
+  await server.checkIsolation("complete");
   process.exitCode = result.code ?? 1;
 } finally {
   await server.cleanup();

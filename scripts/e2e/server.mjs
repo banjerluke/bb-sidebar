@@ -1,13 +1,15 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { constants, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { createServer as createHttpServer } from "node:http";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { createIsolationGuard } from "./isolation.mjs";
 
 export async function startScratchServer() {
   const args = process.argv.slice(2);
   const appIndex = args.indexOf("--app-dir");
-  const appDir = resolve(appIndex < 0 ? "node_modules/bb-app" : args[appIndex + 1]);
+  const sourceAppDir = resolve(appIndex < 0 ? "node_modules/bb-app" : args[appIndex + 1]);
   const inheritedUrl = process.env.BB_SERVER_URL;
   if (inheritedUrl && Number(new URL(inheritedUrl).port || 80) === 38886) {
     throw new Error("Refusing BB_SERVER_URL on the developer's port 38886. Strip inherited BB_* variables.");
@@ -16,9 +18,32 @@ export async function startScratchServer() {
   if (!scratch.startsWith("/tmp/")) throw new Error("Scratch data must be under /tmp");
   const children = new Set();
   let cleaning;
-  const env = Object.fromEntries(
+  const toolEnv = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => key === "PATH" || key === "HOME" || /^npm_/i.test(key)),
   );
+  const home = join(scratch, "home");
+  const env = {
+    ...toolEnv,
+    HOME: home,
+    XDG_CONFIG_HOME: join(home, ".config"),
+    XDG_DATA_HOME: join(home, ".local/share"),
+    XDG_STATE_HOME: join(home, ".local/state"),
+    XDG_CACHE_HOME: join(home, ".cache"),
+    CODEX_HOME: join(home, ".codex"),
+    CLAUDE_CONFIG_DIR: join(home, ".claude"),
+    TMPDIR: join(scratch, "tmp"),
+  };
+  for (const path of Object.values(env).filter((value) => value.startsWith(scratch))) {
+    mkdirSync(path, { recursive: true });
+  }
+  const logPath = resolve("e2e-artifacts/isolation.jsonl");
+  mkdirSync(resolve("e2e-artifacts"), { recursive: true });
+  writeFileSync(logPath, "");
+  let checkIsolation;
+  let monitoring;
+  let stopMonitoring = false;
+  let isolationFailure;
+  let marketplace;
   const freePort = () =>
     new Promise((accept, reject) => {
       const server = createServer();
@@ -48,6 +73,7 @@ export async function startScratchServer() {
   }
 
   async function run(command, argv, { allowFailure = false, timeoutMs = 120_000, stream = false, ...options } = {}) {
+    if (isolationFailure) throw isolationFailure;
     const task = start(command, argv, options);
     if (stream) {
       task.child.stdout.pipe(process.stdout);
@@ -76,11 +102,16 @@ export async function startScratchServer() {
 
   function cleanup() {
     cleaning ??= (async () => {
+      stopMonitoring = true;
+      await monitoring;
       for (const child of children) signal(child, "SIGTERM");
       await delay(1500);
       for (const child of children) signal(child, "SIGKILL");
+      marketplace?.closeAllConnections();
+      if (marketplace) await new Promise((accept) => marketplace.close(accept));
       rmSync(scratch, { recursive: true, force: true });
-      console.log("CLEANUP: process groups stopped; scratch data removed");
+      console.log("CLEANUP: process groups stopped; scratch data removed (including scratch TMPDIR)");
+      if (isolationFailure) throw isolationFailure;
     })();
     return cleaning;
   }
@@ -92,30 +123,76 @@ export async function startScratchServer() {
   }
 
   try {
+    const runtimeModules = join(scratch, "runtime/node_modules");
+    cpSync(resolve("node_modules"), runtimeModules, {
+      recursive: true,
+      verbatimSymlinks: true,
+      mode: constants.COPYFILE_FICLONE,
+    });
+    const appDir =
+      sourceAppDir === resolve("node_modules/bb-app")
+        ? join(runtimeModules, "bb-app")
+        : join(scratch, "runtime/bb-app");
+    if (appDir !== join(runtimeModules, "bb-app")) {
+      cpSync(sourceAppDir, appDir, { recursive: true, verbatimSymlinks: true, mode: constants.COPYFILE_FICLONE });
+    }
     const port = await freePort();
     let hostPort = await freePort();
     while (hostPort === port) hostPort = await freePort();
     if (port === 38886 || hostPort === 38886) throw new Error("Refusing the developer's port");
     const url = `http://127.0.0.1:${port}`;
+    // The fresh host otherwise refreshes the community catalog over HTTPS.
+    marketplace = createHttpServer((_request, response) => {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({ schemaVersion: 2, name: "bb-community", displayName: "Scratch catalog", plugins: [] }),
+      );
+    });
+    await new Promise((accept, reject) => {
+      marketplace.once("error", reject);
+      marketplace.listen(0, "127.0.0.1", accept);
+    });
+    const marketplacePort = marketplace.address().port;
+    if (marketplacePort === 38886) throw new Error("Refusing the developer's port");
     Object.assign(env, {
       BB_DATA_DIR: scratch,
       BB_SERVER_URL: url,
       BB_SERVER_PORT: String(port),
       BB_HOST_DAEMON_PORT: String(hostPort),
       BB_TELEMETRY: "false",
+      BB_MARKETPLACE_URL: `http://127.0.0.1:${marketplacePort}/marketplace.json`,
     });
+    writeFileSync(
+      join(env.CODEX_HOME, "config.toml"),
+      `
+check_for_update_on_startup = false
+cli_auth_credentials_store = "file"
+[analytics]
+enabled = false
+[feedback]
+enabled = false
+[otel]
+exporter = "none"
+metrics_exporter = "none"
+trace_exporter = "none"
+`,
+    );
     const version = JSON.parse(readFileSync(join(appDir, "package.json"))).version;
     console.log(`ISOLATION: bb-app ${version}; ${url}; data ${scratch}; host port ${hostPort}`);
-    const app = start(process.execPath, [
-      join(appDir, "dist/bb-app.js"),
-      "--bundled",
-      "--data-dir",
-      scratch,
-      "--server-port",
-      String(port),
-      "--host-daemon-port",
-      String(hostPort),
-    ]);
+    const app = start(
+      process.execPath,
+      [
+        join(appDir, "dist/bb-app.js"),
+        "--bundled",
+        "--data-dir",
+        scratch,
+        "--server-port",
+        String(port),
+        "--host-daemon-port",
+        String(hostPort),
+      ],
+      { cwd: scratch },
+    );
     let ready = false;
     for (let attempt = 0; attempt < 120; attempt++) {
       try {
@@ -130,9 +207,38 @@ export async function startScratchServer() {
     if (!ready) throw new Error(`Server never became ready: ${JSON.stringify(app.output())}`);
     const bb = join(appDir, "host-daemon/dist/bb");
     console.log("READY: GET / returned 200");
-    await run("npm", ["run", "build"]);
+    checkIsolation = createIsolationGuard(app.child.pid, scratch, env, logPath, toolEnv.HOME);
+    await checkIsolation("ready");
+    monitoring = (async () => {
+      while (!stopMonitoring) {
+        await delay(1000);
+        if (stopMonitoring) break;
+        try {
+          await checkIsolation("monitor");
+        } catch (error) {
+          isolationFailure = error;
+          for (const child of children) signal(child, "SIGTERM");
+          break;
+        }
+      }
+    })();
+    await run("npm", ["run", "build"], { env: { ...toolEnv, BB_DATA_DIR: scratch, BB_SERVER_URL: url } });
     console.log("BUILD: passed");
-    await run(bb, ["plugin", "install", `path:${process.cwd()}`, "--yes"]);
+    // Pi model discovery overwrites its process title/environment display on macOS.
+    // These fixtures use Codex; disable Pi in scratch before the UI requests models.
+    await run(bb, ["provider", "disable", "pi"]);
+    const pluginDir = join(scratch, "plugin");
+    cpSync(process.cwd(), pluginDir, {
+      recursive: true,
+      verbatimSymlinks: true,
+      mode: constants.COPYFILE_FICLONE,
+      filter: (path) =>
+        ![".git", "node_modules", "test-results", "playwright-report", "e2e-artifacts"].some(
+          (name) => path === resolve(name) || path.startsWith(`${resolve(name)}/`),
+        ),
+    });
+    symlinkSync(runtimeModules, join(pluginDir, "node_modules"));
+    await run(bb, ["plugin", "install", `path:${pluginDir}`, "--yes"]);
     await run(bb, ["settings", "ui", "set", "sidebar.threadListProvider", "bb-sidebar/inbox"]);
     await run(bb, ["settings", "general", "onboardingCompletedAt", new Date().toISOString()]);
     const repo = join(scratch, "repo");
@@ -199,7 +305,7 @@ export async function startScratchServer() {
       }
       return { id, title };
     }
-    return { url, scratch, env, cli, seed, run, cleanup, projectId, bb };
+    return { url, scratch, env, toolEnv, cli, seed, run, cleanup, checkIsolation, projectId, bb };
   } catch (error) {
     await cleanup();
     throw error;

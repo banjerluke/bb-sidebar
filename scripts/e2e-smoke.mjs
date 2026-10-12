@@ -5,7 +5,7 @@ const server = await startScratchServer();
 let browser;
 try {
   const thread = await server.seed("Sidebar smoke thread");
-  browser = await chromium.launch();
+  browser = await chromium.launch({ env: server.toolEnv });
   const page = await browser.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -23,6 +23,7 @@ try {
     .getByRole("link", { name: thread.title, exact: true })
     .waitFor();
   if (errors.length) throw new Error(errors.join("\n"));
+  await server.checkIsolation("complete");
   console.log("PASS: sidebar renders the scratch thread without JavaScript errors");
 } finally {
   await browser?.close();

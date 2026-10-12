@@ -11,6 +11,7 @@ const config: KnipConfig = {
     "src/test-setup.ts",
     "e2e/*.spec.mjs",
     "e2e/playwright.config.mjs",
+    "scripts/e2e/isolation.test.mjs",
   ],
   project: ["app.tsx", "src/**/*.{ts,tsx}", "scripts/**/*.mjs", "e2e/**/*.mjs"],
   ignoreDependencies: sdkPeerDependencies,
