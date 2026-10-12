@@ -122,6 +122,9 @@ configs.
 Test timeouts are centralized: Testing Library gets 5s in `test-setup.ts`;
 Vitest gets 30s in `vitest.config.ts`. App tests retain file isolation.
 `test-app-setup.ts` resets state, and cleanup hooks register per file.
+Vitest loads real icon data through `test-icon-data.ts` leaf exports. Keep
+them in sync with `components/Icon.tsx`; `hugeicons.test.ts` checks their SVG
+data against the package's full ESM entry.
 New module-level mutable app state (`Map`/`Set`/`let`) needs a `*ForTests`
 reset wired into `test-app-setup.ts`. Existing resets:
 

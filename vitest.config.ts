@@ -1,4 +1,4 @@
-import { availableParallelism } from "node:os";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const appTests = [
@@ -15,11 +15,19 @@ const common = {
 };
 
 export default defineConfig({
+  resolve: {
+    // Load the real SVG data through leaf exports instead of the full barrel.
+    alias: [
+      {
+        find: /^@hugeicons\/core-free-icons$/,
+        replacement: fileURLToPath(new URL("./src/test-icon-data.ts", import.meta.url)),
+      },
+    ],
+  },
   test: {
-    // Limit duplicate app boots and leave a CPU available on smaller runners.
-    maxWorkers: Math.max(1, Math.min(8, availableParallelism() - 1)),
     projects: [
       {
+        extends: true,
         test: {
           ...common,
           name: "app",
@@ -30,6 +38,7 @@ export default defineConfig({
         },
       },
       {
+        extends: true,
         test: {
           ...common,
           name: "isolated",

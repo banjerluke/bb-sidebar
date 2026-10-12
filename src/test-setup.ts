@@ -1,4 +1,4 @@
-import { configure } from "@testing-library/react";
+import { beforeAll } from "vitest";
 
 class TestResizeObserver implements ResizeObserver {
   observe(): void {}
@@ -8,5 +8,11 @@ class TestResizeObserver implements ResizeObserver {
 
 globalThis.ResizeObserver = TestResizeObserver;
 
-// Loaded runners need scheduling headroom; successful queries still resolve immediately.
-configure({ asyncUtilTimeout: 5_000 });
+// Node tests do not need Testing Library's React/DOM dependency graph.
+if (typeof window !== "undefined") {
+  beforeAll(async () => {
+    const { configure } = await import("@testing-library/react");
+    // Loaded runners need headroom; successful queries still resolve immediately.
+    configure({ asyncUtilTimeout: 5_000 });
+  });
+}
