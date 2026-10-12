@@ -110,7 +110,22 @@ for (const input of files) {
   if (!sourceFiles.includes(file)) continue;
   const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
   const shared = matches(file, sharedIncludes);
-  const browserOrShared = matches(file, appIncludes) || shared;
+  const browser = matches(file, appIncludes);
+  const browserOrShared = browser || shared;
+  function checkSdkImport(node) {
+    if (!browser || file === "src/bb-sdk.ts" || !ts.isStringLiteralLike(node.moduleSpecifier)) return;
+    if (node.moduleSpecifier.text !== "@get-bb/plugin-sdk/app") return;
+    const bindings = ts.isExportDeclaration(node) ? node.exportClause : node.importClause?.namedBindings;
+    if (bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings))) {
+      for (const element of bindings.elements) {
+        if ((element.propertyName ?? element.name).text.startsWith("experimental_")) {
+          report(file, source, element, "Import experimental SDK APIs through src/bb-sdk.ts.");
+        }
+      }
+    } else {
+      report(file, source, node, "Use named SDK imports; experimental APIs belong in src/bb-sdk.ts.");
+    }
+  }
   function checkSpecifier(specifier, typeOnly = false) {
     if (!browserOrShared || !specifier || !ts.isStringLiteralLike(specifier)) return;
     const name = specifier.text;
@@ -134,8 +149,12 @@ for (const input of files) {
       report(file, source, node, "Use a top-level import type instead of an import() type annotation.");
     }
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      if (node.moduleSpecifier) checkSdkImport(node);
       checkSpecifier(node.moduleSpecifier, isTypeOnly(node));
     } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      if (browser && file !== "src/bb-sdk.ts" && node.arguments.at(0)?.text === "@get-bb/plugin-sdk/app") {
+        report(file, source, node, "Use named SDK imports; experimental APIs belong in src/bb-sdk.ts.");
+      }
       checkSpecifier(node.arguments.at(0));
     }
     ts.forEachChild(node, visit);

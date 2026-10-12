@@ -1,12 +1,7 @@
+import { useSidebarThreads } from "./bb-sdk";
 import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import {
-  experimental_useSidebarThreads as useSidebarThreads,
-  useBbContext,
-  useBbNavigate,
-  useRpc,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { useBbContext, useBbNavigate, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
 import { threadDisplayTitle } from "./inbox";

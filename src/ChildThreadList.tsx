@@ -1,10 +1,6 @@
+import { useSidebarThreadSplit, useSidebarThreads } from "./bb-sdk";
 import { useId, useState, type ReactNode } from "react";
-import {
-  experimental_useSidebarThreadSplit,
-  experimental_useSidebarThreads as useSidebarThreads,
-  useRealtime,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { Disc } from "./Disc";
@@ -374,7 +370,7 @@ function ChildThreadRow({
   const statusThread = useThreadWithDraft(thread);
   const visibleStatus = threadStatusLabel(statusThread, workingSince.get(thread.id), effectiveNow);
   const [isRenaming, setIsRenaming] = useState(false);
-  const { splitProps } = experimental_useSidebarThreadSplit(thread.id);
+  const { splitProps } = useSidebarThreadSplit(thread.id);
   const RowAction = isRenaming ? "div" : "button";
 
   return (

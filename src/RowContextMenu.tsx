@@ -1,11 +1,7 @@
+import { useSidebarThreadActions, useSidebarThreads } from "./bb-sdk";
 import { useRef, useState, type ReactNode } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  experimental_useSidebarThreads as useSidebarThreads,
-  useRpc,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
@@ -28,7 +24,7 @@ import { beginTitleGeneration, finishTitleGeneration, useTitleGenerating } from 
  *
  * The plugin API ships no menu component on purpose, so a replaced sidebar
  * owns this surface. Native actions use
- * `experimental_useSidebarThreadActions`. The destructive one goes through
+ * `useSidebarThreadActions`. The destructive one goes through
  * this sidebar's own confirmation, which names the thread and project, and
  * then the plugin's `deleteThread` rpc; nothing deletes a subtree silently.
  */

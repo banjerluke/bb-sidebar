@@ -70,7 +70,8 @@
         "src/drag-reorder.ts",
         "src/drag-reorder-geometry.ts",
         "src/drag-auto-scroll.ts",
-        "src/settled-port-prompt.ts"
+        "src/settled-port-prompt.ts",
+        "src/bb-sdk.ts"
       ],
       "linter": {
         "rules": {
@@ -117,7 +118,8 @@
         "!src/drag-reorder-geometry.ts",
         "!src/drag-auto-scroll.ts",
         "!src/settled-port-prompt.ts",
-        "!src/server-*.ts"
+        "!src/server-*.ts",
+        "!src/bb-sdk.ts"
       ],
       "linter": {
         "rules": {
@@ -591,7 +593,31 @@
                       "./**/settled-port-prompt.cjs",
                       "../**/settled-port-prompt.cjs",
                       "./**/settled-port-prompt.cjsx",
-                      "../**/settled-port-prompt.cjsx"
+                      "../**/settled-port-prompt.cjsx",
+                      "./**/bb-sdk",
+                      "../**/bb-sdk",
+                      "./**/bb-sdk.ts",
+                      "../**/bb-sdk.ts",
+                      "./**/bb-sdk.js",
+                      "../**/bb-sdk.js",
+                      "./**/bb-sdk.jsx",
+                      "../**/bb-sdk.jsx",
+                      "./**/bb-sdk.mts",
+                      "../**/bb-sdk.mts",
+                      "./**/bb-sdk.mtsx",
+                      "../**/bb-sdk.mtsx",
+                      "./**/bb-sdk.cts",
+                      "../**/bb-sdk.cts",
+                      "./**/bb-sdk.ctsx",
+                      "../**/bb-sdk.ctsx",
+                      "./**/bb-sdk.mjs",
+                      "../**/bb-sdk.mjs",
+                      "./**/bb-sdk.mjsx",
+                      "../**/bb-sdk.mjsx",
+                      "./**/bb-sdk.cjs",
+                      "../**/bb-sdk.cjs",
+                      "./**/bb-sdk.cjsx",
+                      "../**/bb-sdk.cjsx"
                     ],
                     "message": "Shared modules must not import browser modules."
                   }
@@ -855,7 +881,19 @@
                       "**/settled-port-prompt.mjs",
                       "**/settled-port-prompt.mjsx",
                       "**/settled-port-prompt.cjs",
-                      "**/settled-port-prompt.cjsx"
+                      "**/settled-port-prompt.cjsx",
+                      "**/bb-sdk",
+                      "**/bb-sdk.ts",
+                      "**/bb-sdk.js",
+                      "**/bb-sdk.jsx",
+                      "**/bb-sdk.mts",
+                      "**/bb-sdk.mtsx",
+                      "**/bb-sdk.cts",
+                      "**/bb-sdk.ctsx",
+                      "**/bb-sdk.mjs",
+                      "**/bb-sdk.mjsx",
+                      "**/bb-sdk.cjs",
+                      "**/bb-sdk.cjsx"
                     ],
                     "message": "Node runtime modules must not import browser modules."
                   }

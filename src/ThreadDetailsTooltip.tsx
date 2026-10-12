@@ -1,13 +1,6 @@
+import { useProviders, useSidebarThreadSplit, useSidebarThreads, useSidebarThreadActions } from "./bb-sdk";
 import { useEffect, useId, useState, type ReactElement } from "react";
-import {
-  experimental_useProviders as useProviders,
-  experimental_useSidebarThreadSplit,
-  experimental_useSidebarThreads as useSidebarThreads,
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  useRpc,
-  useRealtime,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { useRpc, useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
 import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { ThreadHoverCard } from "./components/ThreadHoverCard";
@@ -189,7 +182,7 @@ export function ThreadDetailsTooltip({
 }
 
 function SubthreadRow({ thread, onOpen }: { thread: PluginSidebarThread; onOpen: () => void }) {
-  const { splitProps } = experimental_useSidebarThreadSplit(thread.id);
+  const { splitProps } = useSidebarThreadSplit(thread.id);
   const { providers } = useProviders();
   const provider = providers.find((entry) => entry.id === thread.providerId);
   const statusThread = useThreadWithDraft(thread);

@@ -1,10 +1,6 @@
+import { useSidebarThreadPullRequest } from "./bb-sdk";
 import { useEffect, useId, useState } from "react";
-import {
-  experimental_useSidebarThreadPullRequest as useSidebarThreadPullRequest,
-  UrlLink,
-  useRpc,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { UrlLink, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract, ThreadPullRequest } from "./contract";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";

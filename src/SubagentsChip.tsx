@@ -1,10 +1,6 @@
+import { useProviders, useSidebarThreadActions, useSidebarThreads } from "./bb-sdk";
 import { useEffect, useMemo, useState } from "react";
-import {
-  experimental_useProviders as useProviders,
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  experimental_useSidebarThreads as useSidebarThreads,
-  type PluginThreadHeaderActionProps,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginThreadHeaderActionProps } from "@get-bb/plugin-sdk/app";
 import { useSidebarSettings } from "./useSidebarSettings";
 import {
   ChildThreadDots,

@@ -1,5 +1,6 @@
+import type { useSidebarThreads } from "./bb-sdk";
 import type { Dispatch, RefObject, SetStateAction, ReactNode } from "react";
-import type { PluginSidebarThread, experimental_useSidebarThreads as useSidebarThreads } from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
 import {
   CompactShelf,

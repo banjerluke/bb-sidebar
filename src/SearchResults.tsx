@@ -1,9 +1,6 @@
+import { useSidebarThreadActions, useSidebarThreadSplit } from "./bb-sdk";
 import { useEffect, useRef, useState } from "react";
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  experimental_useSidebarThreadSplit as useSidebarThreadSplit,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { cn } from "./lib/utils";
 import { STATUS_SLOT_CLASS, StatusOrTime } from "./StatusSlot";
 import { threadDisplayTitle } from "./inbox";

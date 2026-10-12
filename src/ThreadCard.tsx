@@ -1,3 +1,4 @@
+import { useSidebarThreadPullRequest, useSidebarThreadSplit, useSidebarThreadActions } from "./bb-sdk";
 import {
   useId,
   useLayoutEffect,
@@ -7,12 +8,7 @@ import {
   type KeyboardEventHandler,
   type PointerEventHandler,
 } from "react";
-import {
-  experimental_useSidebarThreadPullRequest as useSidebarThreadPullRequest,
-  experimental_useSidebarThreadSplit as useSidebarThreadSplit,
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";

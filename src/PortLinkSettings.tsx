@@ -1,6 +1,7 @@
+import { useSidebarThreads } from "./bb-sdk";
 import { BROWSER_EVENTS } from "./lib/browser-events";
 import { STORAGE_KEYS } from "./lib/storage-keys";
-import { experimental_useSidebarThreads as useSidebarThreads } from "@get-bb/plugin-sdk/app";
+
 import { usePersistedPreference } from "./lib/use-persisted-preference";
 import type { PreferenceCodec } from "./lib/use-persisted-preference";
 import { SettingRow, SettingsSelect } from "./settings-ui";

@@ -1,8 +1,6 @@
+import { useSidebarThreadActions } from "./bb-sdk";
 import { useState } from "react";
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { cn } from "./lib/utils";

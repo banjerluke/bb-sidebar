@@ -1,8 +1,6 @@
+import { useSidebarThreadActions } from "./bb-sdk";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { cn } from "./lib/utils";
 import { threadDisplayTitle } from "./inbox";
 import { ThreadTitle } from "./ThreadTitle";

@@ -3,10 +3,10 @@ import { readdirSync, readFileSync } from "node:fs";
 // Physical line ceilings after formatting, tracked debt for SB-3/SB-5/SB-6.
 // Production/scripts get 500 lines, tests 1,000. Shrinking debt must lower its ceiling.
 const debtLimits = {
-  "src/ChildThreadList.tsx": 538,
+  "src/ChildThreadList.tsx": 534,
   "src/SidebarSettings.tsx": 535,
-  "src/ThreadCard.tsx": 658,
-  "src/ThreadInbox.tsx": 624,
+  "src/ThreadCard.tsx": 654,
+  "src/ThreadInbox.tsx": 619,
 };
 const files = [
   "app.tsx",

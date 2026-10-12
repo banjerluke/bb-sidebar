@@ -1,8 +1,5 @@
-import {
-  experimental_useSidebarThreadActions as useSidebarThreadActions,
-  experimental_useSidebarThreads as useSidebarThreads,
-  type PluginThreadHeaderActionProps,
-} from "@get-bb/plugin-sdk/app";
+import { useSidebarThreadActions, useSidebarThreads } from "./bb-sdk";
+import type { PluginThreadHeaderActionProps } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { cn } from "./lib/utils";

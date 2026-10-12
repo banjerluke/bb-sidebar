@@ -1,6 +1,7 @@
+import { useSidebarThreadActions } from "./bb-sdk";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { experimental_useSidebarThreadActions as useSidebarThreadActions, useRpc } from "@get-bb/plugin-sdk/app";
+import { useRpc } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult } from "./contract";
