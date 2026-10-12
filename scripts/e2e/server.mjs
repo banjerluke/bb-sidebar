@@ -1,0 +1,207 @@
+import { spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createServer } from "node:net";
+import { join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
+
+export async function startScratchServer() {
+  const args = process.argv.slice(2);
+  const appIndex = args.indexOf("--app-dir");
+  const appDir = resolve(appIndex < 0 ? "node_modules/bb-app" : args[appIndex + 1]);
+  const inheritedUrl = process.env.BB_SERVER_URL;
+  if (inheritedUrl && Number(new URL(inheritedUrl).port || 80) === 38886) {
+    throw new Error("Refusing BB_SERVER_URL on the developer's port 38886. Strip inherited BB_* variables.");
+  }
+  const scratch = mkdtempSync("/tmp/bb-sidebar-smoke-");
+  if (!scratch.startsWith("/tmp/")) throw new Error("Scratch data must be under /tmp");
+  const children = new Set();
+  let cleaning;
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key === "PATH" || key === "HOME" || /^npm_/i.test(key)),
+  );
+  const freePort = () =>
+    new Promise((accept, reject) => {
+      const server = createServer();
+      server.on("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        const port = server.address().port;
+        server.close(() => accept(port));
+      });
+    });
+
+  function start(command, argv, options = {}) {
+    const child = spawn(command, argv, { env, detached: true, stdio: ["ignore", "pipe", "pipe"], ...options });
+    children.add(child);
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const done = new Promise((accept, reject) => {
+      child.once("error", reject);
+      child.once("exit", (code) => accept({ code, stdout, stderr }));
+    });
+    return { child, done, output: () => ({ stdout, stderr }) };
+  }
+
+  async function run(command, argv, { allowFailure = false, timeoutMs = 120_000, stream = false, ...options } = {}) {
+    const task = start(command, argv, options);
+    if (stream) {
+      task.child.stdout.pipe(process.stdout);
+      task.child.stderr.pipe(process.stderr);
+    }
+    let timeout;
+    const result = await Promise.race([
+      task.done,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`Timed out: ${command} ${argv.join(" ")}`)), timeoutMs);
+      }),
+    ]).finally(() => clearTimeout(timeout));
+    if (result.code !== 0 && !allowFailure)
+      throw new Error(`${command} ${argv.join(" ")}\n${result.stdout}\n${result.stderr}`);
+    return result;
+  }
+
+  function signal(child, name) {
+    if (!child.pid) return;
+    try {
+      process.kill(-child.pid, name);
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+  }
+
+  function cleanup() {
+    cleaning ??= (async () => {
+      for (const child of children) signal(child, "SIGTERM");
+      await delay(1500);
+      for (const child of children) signal(child, "SIGKILL");
+      rmSync(scratch, { recursive: true, force: true });
+      console.log("CLEANUP: process groups stopped; scratch data removed");
+    })();
+    return cleaning;
+  }
+
+  for (const name of ["SIGINT", "SIGTERM"]) {
+    process.once(name, () => {
+      void cleanup().then(() => process.exit(130));
+    });
+  }
+
+  try {
+    const port = await freePort();
+    let hostPort = await freePort();
+    while (hostPort === port) hostPort = await freePort();
+    if (port === 38886 || hostPort === 38886) throw new Error("Refusing the developer's port");
+    const url = `http://127.0.0.1:${port}`;
+    Object.assign(env, {
+      BB_DATA_DIR: scratch,
+      BB_SERVER_URL: url,
+      BB_SERVER_PORT: String(port),
+      BB_HOST_DAEMON_PORT: String(hostPort),
+      BB_TELEMETRY: "false",
+    });
+    const version = JSON.parse(readFileSync(join(appDir, "package.json"))).version;
+    console.log(`ISOLATION: bb-app ${version}; ${url}; data ${scratch}; host port ${hostPort}`);
+    const app = start(process.execPath, [
+      join(appDir, "dist/bb-app.js"),
+      "--bundled",
+      "--data-dir",
+      scratch,
+      "--server-port",
+      String(port),
+      "--host-daemon-port",
+      String(hostPort),
+    ]);
+    let ready = false;
+    for (let attempt = 0; attempt < 120; attempt++) {
+      try {
+        ready = (await fetch(url)).status === 200;
+      } catch {
+        /* Not listening yet. */
+      }
+      if (ready) break;
+      if (app.child.exitCode !== null) throw new Error(JSON.stringify(app.output()));
+      await delay(500);
+    }
+    if (!ready) throw new Error(`Server never became ready: ${JSON.stringify(app.output())}`);
+    const bb = join(appDir, "host-daemon/dist/bb");
+    console.log("READY: GET / returned 200");
+    await run("npm", ["run", "build"]);
+    console.log("BUILD: passed");
+    await run(bb, ["plugin", "install", `path:${process.cwd()}`, "--yes"]);
+    await run(bb, ["settings", "ui", "set", "sidebar.threadListProvider", "bb-sidebar/inbox"]);
+    await run(bb, ["settings", "general", "onboardingCompletedAt", new Date().toISOString()]);
+    const repo = join(scratch, "repo");
+    await run("git", ["init", "--initial-branch=main", repo]);
+    await run("git", [
+      "-C",
+      repo,
+      "-c",
+      "user.name=Smoke",
+      "-c",
+      "user.email=smoke@example.invalid",
+      "commit",
+      "--allow-empty",
+      "-m",
+      "Scratch smoke fixture",
+    ]);
+    const projectResult = await run(bb, ["project", "create", "--name", "Sidebar smoke", "--root", repo, "--json"]);
+    const project = JSON.parse(projectResult.stdout);
+    const projectId = project.id ?? project.project?.id;
+    if (!projectId) throw new Error(`No project id: ${projectResult.stdout}`);
+
+    async function cli(argv, options) {
+      return run(bb, argv, options);
+    }
+    async function seed(title, { idle = false } = {}) {
+      const result = await cli([
+        "thread",
+        "spawn",
+        "--project",
+        projectId,
+        "--title",
+        title,
+        "--prompt",
+        idle ? "" : "Scratch scheduled e2e fixture",
+        "--provider",
+        "codex",
+        "--model",
+        "gpt-5",
+        ...(idle ? ["--environment", repo] : ["--send-at", "7d"]),
+        "--json",
+      ]);
+      const data = JSON.parse(result.stdout);
+      const id = data.id ?? data.thread?.id;
+      if (!id) throw new Error("Scratch thread returned no id");
+      if (idle) {
+        await cli(["thread", "stop", id, "--json"]);
+        await cli(["thread", "wait", id, "--status", "idle", "--timeout", "30s", "--json"]);
+        const { thread } = JSON.parse((await cli(["thread", "get", id, "--json"])).stdout);
+        if (!thread.environmentId || thread.queuedMessageCount) throw new Error("Idle fixture is not initialized");
+        const events = JSON.parse((await cli(["thread", "log", id, "--json"])).stdout);
+        const unexpected = events.filter((event) => {
+          if (event.type.startsWith("item/")) return true;
+          if (!event.type.startsWith("provider/")) return false;
+          return (
+            event.type !== "provider/warning" &&
+            !(event.type === "provider/unhandled" && event.data.rawType === "account/updated")
+          );
+        });
+        if (unexpected.length) {
+          throw new Error(
+            `Fixture unexpectedly produced agent output or provider errors: ${unexpected.map((event) => event.type).join(", ")}`,
+          );
+        }
+      }
+      return { id, title };
+    }
+    return { url, scratch, env, cli, seed, run, cleanup, projectId, bb };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
+}

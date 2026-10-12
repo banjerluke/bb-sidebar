@@ -4,8 +4,15 @@ import type { KnipConfig } from "knip";
 export const sdkPeerDependencies = ["hono", "cron-parser", "better-sqlite3"];
 
 const config: KnipConfig = {
-  entry: ["app.tsx", "src/server.ts", "src/ports-host.ts", "src/test-setup.ts"],
-  project: ["app.tsx", "src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+  entry: [
+    "app.tsx",
+    "src/server.ts",
+    "src/ports-host.ts",
+    "src/test-setup.ts",
+    "e2e/*.spec.mjs",
+    "e2e/playwright.config.mjs",
+  ],
+  project: ["app.tsx", "src/**/*.{ts,tsx}", "scripts/**/*.mjs", "e2e/**/*.mjs"],
   ignoreDependencies: sdkPeerDependencies,
   // npm's typescript -> @typescript/typescript6 alias provides tsc; Knip misses that binary.
   ignoreBinaries: ["tsc"],

@@ -54,7 +54,8 @@
     "prepare": "lefthook install",
     "test:measure": "node scripts/measure-tests.mjs",
     "test:stress": "node scripts/measure-tests.mjs --runs 5 --load",
-    "e2e:smoke": "node scripts/e2e-smoke.mjs"
+    "e2e:smoke": "node scripts/e2e-smoke.mjs",
+    "e2e": "node scripts/e2e/run.mjs"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
@@ -66,6 +67,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
     "@get-bb/plugin-sdk": "0.6.37",
+    "@playwright/test": "1.64.0",
     "@radix-ui/react-context-menu": "^2.3.3",
     "@radix-ui/react-dialog": "^1.1.19",
     "@radix-ui/react-popover": "^1.1.19",

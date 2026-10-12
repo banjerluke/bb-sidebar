@@ -1,0 +1,35 @@
+import { writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { startScratchServer } from "./server.mjs";
+
+const started = performance.now();
+const server = await startScratchServer();
+try {
+  const threads = [await server.seed("Atlas planning", { idle: true })];
+  for (const title of ["Birch implementation", "Cedar review", "Delta follow-up"]) {
+    threads.push(await server.seed(title, { idle: true }));
+  }
+  const fixturePath = join(server.scratch, "fixture.json");
+  writeFileSync(
+    fixturePath,
+    JSON.stringify({
+      url: server.url,
+      env: server.env,
+      bb: server.bb,
+      threads,
+      projectId: server.projectId,
+    }),
+  );
+  const args = process.argv.slice(2);
+  const appIndex = args.indexOf("--app-dir");
+  if (appIndex >= 0) args.splice(appIndex, 2);
+  const result = await server.run(
+    process.execPath,
+    [resolve("node_modules/@playwright/test/cli.js"), "test", "--config", "e2e/playwright.config.mjs", ...args],
+    { allowFailure: true, timeoutMs: 600_000, stream: true, env: { ...server.env, E2E_FIXTURE: fixturePath } },
+  );
+  process.exitCode = result.code ?? 1;
+} finally {
+  await server.cleanup();
+  console.log(`E2E elapsed: ${((performance.now() - started) / 1000).toFixed(2)}s`);
+}
