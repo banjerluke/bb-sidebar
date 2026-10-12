@@ -48,7 +48,12 @@ describe("row context menu", () => {
       await parkFromMenu(await screen.findByText("Settle from menu"), action);
       await waitFor(() => expect(settled).toBe("thr_settle"));
       await waitFor(() => expect(toastMocks.success).toHaveBeenCalled());
-      expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
+      expect([
+        ...rendered.navigateCalls,
+        ...rendered.sdkCalls,
+        ...rendered.splitSourceCalls,
+        ...rendered.threadActionCalls,
+      ]).toEqual([]);
     });
 
     it("opens the next Active thread when leaving its first row", async () => {

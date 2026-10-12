@@ -44,13 +44,19 @@ describe("four-level sidebar hierarchy", () => {
     fireEvent.pointerDown(disclosure, { button: 0 });
     fireEvent.click(disclosure);
     expect(screen.getByText("Idle sibling")).toBeDefined();
-    expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
+    expect([
+      ...rendered.navigateCalls,
+      ...rendered.sdkCalls,
+      ...rendered.splitSourceCalls,
+      ...rendered.threadActionCalls,
+    ]).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Hide 2 great-grandchild threads for Grandchild" }));
     expect(screen.queryByText("Idle sibling")).toBeNull();
     fireEvent.pointerDown(deep, { button: 0 });
     expect(rendered.splitSourceCalls).toEqual([{ threadId: "deep" }]);
     expect(rendered.navigateCalls).toEqual([]);
     expect(rendered.sdkCalls).toEqual([]);
+    expect(rendered.threadActionCalls).toEqual([]);
     expect(rendered.rpcCalls.filter((call) => /Parent|reorder|Pinned/.test(call.method))).toEqual([]);
     {
       fireEvent.click(screen.getByRole("button", { name: "Active" }));

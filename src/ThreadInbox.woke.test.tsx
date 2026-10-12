@@ -160,7 +160,12 @@ describe("parking threads", () => {
     fireEvent.click(dismiss);
     await waitFor(() => expect(acknowledged).toEqual(["woke"]));
     expect(navigated).toBe(0);
-    expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
+    expect([
+      ...rendered.navigateCalls,
+      ...rendered.sdkCalls,
+      ...rendered.splitSourceCalls,
+      ...rendered.threadActionCalls,
+    ]).toEqual([]);
 
     await rendered.emitRealtime("lifecycle", {});
     const settled = () => screen.getByText("Woke work").closest("li")!;
