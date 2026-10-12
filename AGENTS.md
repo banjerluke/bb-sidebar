@@ -26,10 +26,10 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   `sidebar-settings-values.ts`.
 - Browser `.ts` modules are `project-colors`, `title-generation-state`,
   `sidebar-settings`, `working-since`, `working-tree`, `drag-preview`,
-  `drag-reorder`, `drag-reorder-geometry`, `drag-auto-scroll`, and
-  `settled-port-prompt`. `project-colors.ts` uses React's `CSSProperties`
-  type and `title-generation-state.ts` uses `useSyncExternalStore`
-  intentionally.
+  `drag-reorder`, `drag-reorder-geometry`, `drag-auto-scroll`,
+  `settled-port-prompt`, and `bb-sdk`. `project-colors.ts` uses React's
+  `CSSProperties` type and `title-generation-state.ts` uses
+  `useSyncExternalStore` intentionally.
 - Shared modules today are all other top-level `src/*.ts`, excluding
   `server-*.ts`, `use*.ts`, `*.test.ts`, `*.d.ts`, and `test-*.ts`.
   They must not import React, React DOM, Node built-ins, Node entries, TSX,
@@ -39,6 +39,10 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
   side effects or DOM access. Tests retain their runtime's boundaries;
   top-level `.ts` tests and test helpers may use Node test tooling. Keep the
   ordered classifications in `biome.json` in sync.
+
+App experimental SDK hooks use stable names from `src/bb-sdk.ts`.
+Pin to the SDK the latest stable bb-app ships; migrate experimental_* breaks
+through `src/bb-sdk.ts`. The current pin stays until SB-16 migrates actions.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The
@@ -146,9 +150,10 @@ main checkout and every worktree; branches without `lefthook.yml` skip these
 checks. Pre-commit runs Biome check and import boundaries on staged files,
 plus the size gate. Pre-push runs `npm run check`. Hooks check files without
 applying fixes.
-`npm run knip:report` reports deferred unused dependencies and exports/types;
-it currently exits 1. `knip.ts` preserves SDK peers and lists dependency debt
-for SB-8. Export/type ignores cover only today's 25 debt files and issue types;
+If Knip says unused and bb plugin types did not pin it, remove it.
+`npm run knip:report` reports deferred unused exports/types; it currently
+exits 1. `knip.ts` preserves SDK peers.
+Export/type ignores cover only today's 25 debt files and issue types;
 new dead exports in clean files fail. Do not add new unused dependencies to
 that list.
 
