@@ -89,12 +89,15 @@ export function renderSlot<Props extends object>(
         "Archive",
         () => options.archiveThread?.(thread.id, client) ?? client.threads.archive({ threadId: thread.id }),
       ),
+      // Keep accidental native delete requests observable without emulating its dialog.
+      entry("delete", "Delete", () => undefined),
     ];
   };
   const Component = slot.component;
-  const Wrapped = (componentProps: Props & { children?: ReactNode }): ReactNode => (
+  let renderedUi: { node: ReactNode } | null = null;
+  const Wrapped = (componentProps: Props): ReactNode => (
     <SplitSources.Provider value={splitSourceCalls}>
-      {componentProps.children ?? <Component {...componentProps} />}
+      {renderedUi ? renderedUi.node : <Component {...componentProps} />}
     </SplitSources.Provider>
   );
   const rendered = sdkRenderSlot({ ...slot, component: Wrapped }, props, {
@@ -103,7 +106,10 @@ export function renderSlot<Props extends object>(
     threadActions: options.threadActions ?? threadActions,
   });
   const sdkRerender = rendered.lifecycle.rerender;
-  const rerender = (ui: ReactNode) => sdkRerender(<Wrapped {...props}>{ui}</Wrapped>);
+  const rerender = (ui: ReactNode) => {
+    renderedUi = { node: ui };
+    sdkRerender(<Wrapped {...props} />);
+  };
   rendered.rerender = rerender;
   rendered.lifecycle.rerender = rerender;
   return Object.assign(rendered, { threadActionCalls, splitSourceCalls });

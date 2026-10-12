@@ -221,13 +221,11 @@ describe("SubagentsChip", () => {
       let input = await startRename();
       expect(input.closest("button")).toBeNull();
       fireEvent.pointerDown(input, { button: 0 });
-      expect(rendered.splitSourceCalls).toEqual([]);
-      expect(rendered.sdkCalls).toEqual([]);
+      expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
       fireEvent.change(input, { target: { value: "Canceled" } });
       fireEvent.keyDown(input, { key: "Escape" });
       expect(screen.getByRole("region", { name: "Child threads" })).toBeTruthy();
-      expect(rendered.splitSourceCalls).toEqual([]);
-      expect(rendered.sdkCalls).toEqual([]);
+      expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
 
       input = await startRename();
       fireEvent.change(input, { target: { value: "Renamed child" } });
@@ -237,6 +235,8 @@ describe("SubagentsChip", () => {
           { method: "threads.update", args: [{ threadId: targetId, title: "Renamed child" }] },
         ]),
       );
+      expect(rendered.navigateCalls).toEqual([]);
+      expect(rendered.splitSourceCalls).toEqual([]);
     },
   );
 
@@ -262,12 +262,12 @@ describe("SubagentsChip", () => {
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
     const disclosure = screen.getByRole("button", { name: "Show 1 grandchild thread for Child" });
     fireEvent.pointerDown(disclosure, { button: 0 });
-    expect(rendered.splitSourceCalls).toEqual([]);
+    expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
     fireEvent.click(disclosure);
     const deepDisclosure = screen.getByRole("button", { name: "Show 1 great-grandchild thread for Grandchild" });
     fireEvent.pointerDown(deepDisclosure, { button: 0 });
     fireEvent.click(deepDisclosure);
-    expect(rendered.splitSourceCalls).toEqual([]);
+    expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
     for (const [relation, title, id] of [
       ["child", "Child", "child"],
       ["grandchild", "Grandchild", "grandchild"],
@@ -279,6 +279,8 @@ describe("SubagentsChip", () => {
       expect(rendered.splitSourceCalls.at(-1)).toEqual({ threadId: id });
     }
     expect(rendered.splitSourceCalls).toHaveLength(3);
+    expect(rendered.navigateCalls).toEqual([]);
+    expect(rendered.sdkCalls).toEqual([]);
   });
 
   it("mounts the shared child list in the header menu", () => {

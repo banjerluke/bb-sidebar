@@ -72,12 +72,14 @@ it("binds hover subthread sources only to their open buttons", async () => {
   const details = await screen.findByRole("dialog", { name: "Thread details" });
   const toggle = within(details).getByRole("button", { name: "Subthreads (1)" });
   fireEvent.pointerDown(toggle, { button: 0 });
-  expect(rendered.splitSourceCalls).toEqual([]);
+  expect([...rendered.navigateCalls, ...rendered.sdkCalls, ...rendered.splitSourceCalls]).toEqual([]);
   fireEvent.click(toggle);
   const source = within(details).getByRole("button", { name: "Open subthread: Child" });
   expect(source.draggable).toBe(false);
   fireEvent.pointerDown(source, { button: 0 });
   expect(rendered.splitSourceCalls).toEqual([{ threadId: "child" }]);
+  expect(rendered.navigateCalls).toEqual([]);
+  expect(rendered.sdkCalls).toEqual([]);
 });
 it("binds collapsed-visible sidebar descendants without enabling parent reorder", () => {
   const threads = [
@@ -118,6 +120,8 @@ it("binds collapsed-visible sidebar descendants without enabling parent reorder"
     expect(rendered.splitSourceCalls.at(-1)).toEqual({ threadId: id });
   }
   expect(rendered.splitSourceCalls).toHaveLength(2);
+  expect(rendered.navigateCalls).toEqual([]);
+  expect(rendered.sdkCalls).toEqual([]);
   expect(mutations).toEqual([]);
   expect(threads).toEqual(before);
 });
