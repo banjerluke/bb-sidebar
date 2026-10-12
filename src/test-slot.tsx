@@ -34,7 +34,9 @@ runtime.experimental_useSidebarThreadSplit = (threadId) => {
 export function renderSlot<Props extends object>(
   slot: { component: ComponentType<Props> },
   props: Props,
-  options: RenderSlotOptions = {},
+  options: RenderSlotOptions & {
+    archiveThread?: (threadId: string, sdk: ReturnType<typeof useSdk>) => Promise<unknown>;
+  } = {},
 ) {
   const threadActionCalls: Array<{ key: string; threadId: string }> = [];
   const splitSourceCalls: Array<{ threadId: string }> = [];
@@ -82,7 +84,11 @@ export function renderSlot<Props extends object>(
           : client.threads.markUnread({ threadId: thread.id }),
       ),
       entry("rename", "Rename", () => requestRename(thread.id)),
-      entry("archive", "Archive", () => client.threads.archive({ threadId: thread.id })),
+      entry(
+        "archive",
+        "Archive",
+        () => options.archiveThread?.(thread.id, client) ?? client.threads.archive({ threadId: thread.id }),
+      ),
     ];
   };
   const Component = slot.component;

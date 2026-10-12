@@ -83,7 +83,8 @@ export function InlineThreadTitle({
 
 function saveTitle(sdk: ReturnType<typeof useSdk>, threadId: string, title: string) {
   void sdk.threads.update({ threadId, title }).catch((error) => {
-    toast.error("Could not rename thread", {
+    // The SDK rolls back; preserve the former sidebar rename's error feedback.
+    toast.error("Failed to update thread", {
       description: error instanceof Error ? error.message : undefined,
     });
   });

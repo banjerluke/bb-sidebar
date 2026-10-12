@@ -241,3 +241,152 @@ it("thread.deleted clears lifecycle and order and publishes both channels to the
   expect(within(remaining).queryByText("Work a")).toBeNull();
   expect(within(remaining).getAllByRole("listitem")).toHaveLength(1);
 });
+
+it("pins a parked root through lifecycle policy, then unpins through the bound core action", async () => {
+  const wired = await createWired([item()]);
+  await wired.call("park", { threadId: "a" });
+  let slot = wired.mount();
+  fireEvent.contextMenu(within(await shelf("Parked")).getByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Pin" }));
+  await saved(wired, "settled_override", "active");
+  expect(lifecycle(wired)).toMatchObject({ parked_at: null, snoozed_until: null, settled_at: null });
+  expect(wired.harness.inspection.sdk.callsTo("threads.pin")).toEqual([[{ threadId: "a" }]]);
+  expect((await wired.bb.sdk.threads.get({ threadId: "a" })).pinnedAt).toEqual(expect.any(Number));
+  wired.unmount(slot);
+  slot = wired.mount();
+  fireEvent.click(await screen.findByRole("button", { name: "Unpin Work a" }));
+  await waitFor(() => expect(slot.sdkCalls).toContainEqual({ method: "threads.unpin", args: [{ threadId: "a" }] }));
+  expect(slot.threadActionCalls).toContainEqual({ key: "bb--core/pin", threadId: "a" });
+  expect(wired.harness.inspection.sdk.callsTo("threads.unpin").at(-1)).toEqual([{ threadId: "a" }]);
+  expect((await wired.bb.sdk.threads.get({ threadId: "a" })).pinnedAt).toBeNull();
+});
+
+it.each([false, true])("changes unread=%s through the bound read action and SDK", async (isUnread) => {
+  const wired = await createWired([item("a", { isUnread })]);
+  const slot = wired.mount();
+  fireEvent.contextMenu(await screen.findByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: isUnread ? "Mark read" : "Mark unread" }));
+  const method = isUnread ? "threads.markRead" : "threads.markUnread";
+  await waitFor(() => expect(wired.harness.inspection.sdk.callsTo(method)).toEqual([[{ threadId: "a" }]]));
+  expect(slot.threadActionCalls).toContainEqual({ key: "bb--core/read", threadId: "a" });
+  const saved = await wired.bb.sdk.threads.get({ threadId: "a" });
+  expect(saved.lastReadAt).toEqual(isUnread ? expect.any(Number) : null);
+});
+
+it("requests inline rename through the bound action and writes the title through the SDK", async () => {
+  const wired = await createWired([item()]);
+  const slot = wired.mount();
+  fireEvent.contextMenu(await screen.findByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+  const input = await screen.findByRole("textbox", { name: "Rename Work a" });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+  expect(document.activeElement).toBe(input);
+  expect(slot.threadActionCalls).toContainEqual({ key: "bb--core/rename", threadId: "a" });
+  expect(wired.harness.inspection.sdk.callsTo("threads.update")).toEqual([]);
+  fireEvent.change(input, { target: { value: "Renamed work" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await waitFor(() =>
+    expect(wired.harness.inspection.sdk.callsTo("threads.update")).toEqual([
+      [{ threadId: "a", title: "Renamed work" }],
+    ]),
+  );
+  expect((await wired.bb.sdk.threads.get({ threadId: "a" })).title).toBe("Renamed work");
+});
+
+it("preserves the native rename error toast without an unhandled rejection or a changed server title", async () => {
+  const wired = await createWired([item()]);
+  wired.harness.inspection.sdk.stub("threads.update", async () => {
+    throw new Error("Title write unavailable");
+  });
+  wired.mount();
+  fireEvent.doubleClick(await screen.findByRole("link", { name: "Work a" }));
+  const input = await screen.findByRole("textbox", { name: "Rename Work a" });
+  fireEvent.change(input, { target: { value: "Rejected title" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await waitFor(() =>
+    expect(wired.harness.inspection.sdk.callsTo("threads.update")).toEqual([
+      [{ threadId: "a", title: "Rejected title" }],
+    ]),
+  );
+  await waitFor(() =>
+    expect(toastMocks.error).toHaveBeenCalledWith("Failed to update thread", {
+      description: "Title write unavailable",
+    }),
+  );
+  expect(toastMocks.error).toHaveBeenCalledTimes(1);
+  expect((await wired.bb.sdk.threads.get({ threadId: "a" })).title).toBe("Work a");
+});
+
+it("hands a parent archive to the bound action, waits for child confirmation, and undoes the tree", async () => {
+  const wired = await createWired([
+    item(),
+    item("child", { parentThreadId: "a" }),
+    item("grandchild", { parentThreadId: "child" }),
+    item("b"),
+  ]);
+  const slot = wired.mount();
+  fireEvent.contextMenu(await screen.findByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Archive" }));
+  await waitFor(() => expect(wired.archiveRequests).toHaveLength(1));
+  expect(slot.threadActionCalls).toContainEqual({ key: "bb--core/archive", threadId: "a" });
+  expect(wired.harness.inspection.sdk.callsTo("threads.archive")).toEqual([]);
+  await act(async () => {
+    await wired.archiveRequests[0]!.confirm();
+  });
+  expect(wired.harness.inspection.sdk.callsTo("threads.archive")).toEqual([[{ threadId: "a" }]]);
+  for (const threadId of ["a", "child", "grandchild"]) {
+    expect((await wired.bb.sdk.threads.get({ threadId })).archivedAt).toEqual(expect.any(Number));
+  }
+  expect((await wired.bb.sdk.threads.get({ threadId: "b" })).archivedAt).toBeNull();
+  const archiveToasts = toastMocks.success.mock.calls.filter(([message]) => message === "Thread archived");
+  expect(archiveToasts).toHaveLength(1);
+  expect(archiveToasts[0]![1].action.label).toBe("Undo");
+  await act(async () => {
+    await archiveToasts[0]![1].action.onClick();
+  });
+  expect(wired.harness.inspection.sdk.callsTo("threads.unarchive")).toEqual([
+    [{ threadId: "a" }],
+    [{ threadId: "child" }],
+    [{ threadId: "grandchild" }],
+  ]);
+  for (const threadId of ["a", "child", "grandchild"]) {
+    expect((await wired.bb.sdk.threads.get({ threadId })).archivedAt).toBeNull();
+  }
+});
+
+it("cancels the host archive request without archiving or offering Undo", async () => {
+  const wired = await createWired([item(), item("child", { parentThreadId: "a" })]);
+  wired.mount();
+  fireEvent.contextMenu(await screen.findByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Archive" }));
+  await waitFor(() => expect(wired.archiveRequests).toHaveLength(1));
+  await act(async () => wired.archiveRequests[0]!.cancel());
+  expect(wired.harness.inspection.sdk.callsTo("threads.archive")).toEqual([]);
+  expect(toastMocks.success).not.toHaveBeenCalled();
+});
+
+it("keeps the named delete confirmation and sends its confirmed tree through the plugin RPC", async () => {
+  const wired = await createWired([item(), item("child", { parentThreadId: "a" })]);
+  const slot = wired.mount();
+  fireEvent.contextMenu(await screen.findByText("Work a"));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+  const dialog = await screen.findByRole("dialog", { name: "Delete thread?" });
+  expect(within(dialog).getByText("Work a")).toBeDefined();
+  expect(within(dialog).getByText("Sidebar")).toBeDefined();
+  expect(within(dialog).getByText(/its 1 child thread/)).toBeDefined();
+  expect(wired.harness.inspection.sdk.callsTo("threads.delete")).toEqual([]);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Delete thread" }));
+  await waitFor(() =>
+    expect(wired.harness.inspection.sdk.callsTo("threads.delete")).toEqual([
+      [{ threadId: "a", childThreadsConfirmed: true }],
+    ]),
+  );
+  expect(slot.rpcCalls).toContainEqual({
+    method: "deleteThread",
+    input: { threadId: "a", childThreadsConfirmed: true },
+  });
+  expect(slot.threadActionCalls.some((call) => call.key === "bb--core/delete")).toBe(false);
+  await expect(wired.bb.sdk.threads.get({ threadId: "child" })).rejects.toThrow("Unknown thread child");
+});
