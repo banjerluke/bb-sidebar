@@ -42,7 +42,16 @@ Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
 
 App experimental SDK hooks use stable names from `src/bb-sdk.ts`.
 Pin to the SDK the latest stable bb-app ships; migrate experimental_* breaks
-through `src/bb-sdk.ts`. The current pin stays until SB-16 migrates actions.
+through `src/bb-sdk.ts`. The minimum host is bb 0.46.0 with SDK 0.6.37.
+
+Keep the sidebar's own menus and named delete confirmation. Bound core actions
+own unpin, read state, rename requests, split, and thread-tree archive. Normal
+opening uses `useBbNavigate`; title saves use the optimistic SDK client.
+Root pinning keeps the lifecycle RPC's parent lock and atomic shelf clearing.
+Delete keeps `deleteThread` RPC after confirming the named tree. Parent, snooze,
+park, settle, project, title regeneration, and clean stay plugin-owned.
+Do not adopt the SDK's thread menu components for this sidebar. The environment
+archive hook is only for whole environments; tree archive uses its bound action.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The
@@ -116,6 +125,14 @@ SidebarSettings.tsx is at its 535-line ceiling; SB-14 should split it.
   type-only syntax when used only as types.
 
 ## Checks
+
+The opt-in smoke test uses a scratch bb-app and never installs on the live host:
+`env -i PATH="$PATH" HOME="$HOME" npm run e2e:smoke`. It creates fresh `/tmp`
+data, two free ports, a git project, and a thread scheduled seven days ahead.
+It prefers scratch Browser Automation; unavailable commands fall back to
+headless Chromium. Inherited `BB_*` values are stripped, and a server URL on
+port 38886 is rejected. The script tears down process groups and scratch data.
+It stays outside `npm run check`; SB-13 can extend this harness.
 
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
 lint, format check, Knip, typecheck, Vitest suite, BB plugin build, and the
