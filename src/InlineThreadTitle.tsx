@@ -85,7 +85,7 @@ function saveTitle(sdk: ReturnType<typeof useSdk>, threadId: string, title: stri
   void sdk.threads.update({ threadId, title }).catch((error) => {
     // The SDK rolls back; preserve the former sidebar rename's error feedback.
     toast.error("Failed to update thread", {
-      description: error instanceof Error ? error.message : undefined,
+      description: error instanceof Error ? error.message.replace(/^HTTP \d+: /, "") : undefined,
     });
   });
 }

@@ -295,29 +295,32 @@ it("requests inline rename through the bound action and writes the title through
   expect((await wired.bb.sdk.threads.get({ threadId: "a" })).title).toBe("Renamed work");
 });
 
-it("preserves the native rename error toast without an unhandled rejection or a changed server title", async () => {
-  const wired = await createWired([item()]);
-  wired.harness.inspection.sdk.stub("threads.update", async () => {
-    throw new Error("Title write unavailable");
-  });
-  wired.mount();
-  fireEvent.doubleClick(await screen.findByRole("link", { name: "Work a" }));
-  const input = await screen.findByRole("textbox", { name: "Rename Work a" });
-  fireEvent.change(input, { target: { value: "Rejected title" } });
-  fireEvent.keyDown(input, { key: "Enter" });
-  await waitFor(() =>
-    expect(wired.harness.inspection.sdk.callsTo("threads.update")).toEqual([
-      [{ threadId: "a", title: "Rejected title" }],
-    ]),
-  );
-  await waitFor(() =>
-    expect(toastMocks.error).toHaveBeenCalledWith("Failed to update thread", {
-      description: "Title write unavailable",
-    }),
-  );
-  expect(toastMocks.error).toHaveBeenCalledTimes(1);
-  expect((await wired.bb.sdk.threads.get({ threadId: "a" })).title).toBe("Work a");
-});
+it.each(["Title write unavailable", "HTTP 500: Title write unavailable"])(
+  "preserves the native rename error toast for %s without an unhandled rejection or a changed server title",
+  async (message) => {
+    const wired = await createWired([item()]);
+    wired.harness.inspection.sdk.stub("threads.update", async () => {
+      throw new Error(message);
+    });
+    wired.mount();
+    fireEvent.doubleClick(await screen.findByRole("link", { name: "Work a" }));
+    const input = await screen.findByRole("textbox", { name: "Rename Work a" });
+    fireEvent.change(input, { target: { value: "Rejected title" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(wired.harness.inspection.sdk.callsTo("threads.update")).toEqual([
+        [{ threadId: "a", title: "Rejected title" }],
+      ]),
+    );
+    await waitFor(() =>
+      expect(toastMocks.error).toHaveBeenCalledWith("Failed to update thread", {
+        description: "Title write unavailable",
+      }),
+    );
+    expect(toastMocks.error).toHaveBeenCalledTimes(1);
+    expect((await wired.bb.sdk.threads.get({ threadId: "a" })).title).toBe("Work a");
+  },
+);
 
 it("hands a parent archive to the bound action, waits for child confirmation, and undoes the tree", async () => {
   const wired = await createWired([
