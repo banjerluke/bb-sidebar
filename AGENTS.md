@@ -50,8 +50,7 @@ opening uses `useBbNavigate`; title saves use the optimistic SDK client.
 Root pinning keeps the lifecycle RPC's parent lock and atomic shelf clearing.
 Delete keeps `deleteThread` RPC after confirming the named tree. Parent, snooze,
 park, settle, project, title regeneration, and clean stay plugin-owned.
-Do not adopt the SDK's thread menu components for this sidebar. The environment
-archive hook is only for whole environments; tree archive uses its bound action.
+Do not adopt the SDK's thread menu components for this sidebar.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The

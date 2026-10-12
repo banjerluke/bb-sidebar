@@ -3,7 +3,6 @@ import type { PluginSidebarThread, PluginThreadActionsOptions } from "@get-bb/pl
 
 export {
   experimental_useSidebarThreads as useSidebarThreads,
-  experimental_useArchiveEnvironmentThreads as useArchiveEnvironmentThreads,
   experimental_useProviders as useProviders,
   experimental_useSidebarThreadSplit as useSidebarThreadSplit,
   experimental_useSidebarThreadPullRequest as useSidebarThreadPullRequest,
