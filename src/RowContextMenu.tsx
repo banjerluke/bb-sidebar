@@ -104,15 +104,15 @@ export function RowContextMenu({
     (canSnooze && onSnooze && snoozePresets.length > 0)
   );
   const togglePin = async () => {
+    if (thread.isPinned) {
+      await run("pin");
+      return;
+    }
+    if (thread.parentThreadId != null) return;
     try {
-      if (thread.isPinned) {
-        await run("pin");
-      } else {
-        if (thread.parentThreadId != null) return;
-        await rpc.call("pin", { threadId: thread.id });
-      }
+      await rpc.call("pin", { threadId: thread.id });
     } catch (error) {
-      toast.error(thread.isPinned ? "Could not unpin thread" : "Could not pin thread", {
+      toast.error("Could not pin thread", {
         description: error instanceof Error ? error.message : undefined,
       });
     }

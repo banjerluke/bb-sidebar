@@ -9,7 +9,6 @@ import {
   type PointerEventHandler,
 } from "react";
 import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
-import { toast } from "sonner";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
@@ -207,6 +206,7 @@ export function ThreadCard({
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
   const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
   const showParkActions = !isWoke && canPark && (snoozePresets.length > 0 || !!onPark);
+
   const unpinButton = thread.isPinned ? (
     <Tooltip label="Unpin thread">
       <button
@@ -215,11 +215,7 @@ export function ThreadCard({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          void pin?.action.run().catch((error) => {
-            toast.error("Could not unpin thread", {
-              description: error instanceof Error ? error.message : undefined,
-            });
-          });
+          void pin?.action.run();
         }}
         className={cn(
           "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground",

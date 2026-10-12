@@ -67,17 +67,30 @@ export function renderSlot<Props extends object>(
         icon: "Pin",
         async run() {
           threadActionCalls.push({ key: `bb--core/${id}`, threadId: thread.id });
-          await run();
+          try {
+            await run();
+          } catch (error) {
+            // Host-bound actions log failures and always resolve.
+            console.error(`thread action "bb--core/${id}" failed`, error);
+          }
         },
       },
     });
     return [
       entry("split", "Open in split", () => navigate.toThread(thread.id, { split: true })),
-      entry("pin", thread.pinnedAt === null ? "Pin" : "Unpin", () =>
-        thread.pinnedAt === null
-          ? client.threads.pin({ threadId: thread.id })
-          : client.threads.unpin({ threadId: thread.id }),
-      ),
+      entry("pin", thread.pinnedAt === null ? "Pin" : "Unpin", async () => {
+        try {
+          await (thread.pinnedAt === null
+            ? client.threads.pin({ threadId: thread.id })
+            : client.threads.unpin({ threadId: thread.id }));
+        } catch (error) {
+          // The core pin registration owns its mutation error toast.
+          const { toast } = await import("sonner");
+          toast.error(thread.pinnedAt === null ? "Failed to pin thread." : "Failed to unpin thread.", {
+            description: error instanceof Error ? error.message : undefined,
+          });
+        }
+      }),
       entry("read", thread.isUnread ? "Mark read" : "Mark unread", () =>
         thread.isUnread
           ? client.threads.markRead({ threadId: thread.id })

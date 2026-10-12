@@ -9,6 +9,36 @@ vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 await loadInboxApp();
 
 describe("ThreadInbox", () => {
+  it.each(["hover", "menu"])("leaves failed %s unpin feedback to the host action", async (source) => {
+    const rendered = renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [thread({ id: "pin", title: "Still pinned", isPinned: true })],
+        projects: [],
+      },
+      sdk: {
+        threads: {
+          unpin: async () => {
+            throw new Error("unpin update failed");
+          },
+        },
+      },
+    });
+    if (source === "hover") {
+      fireEvent.click(await screen.findByRole("button", { name: "Unpin Still pinned" }));
+    } else {
+      fireEvent.contextMenu(await screen.findByText("Still pinned"));
+      fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Unpin"));
+    }
+    await waitFor(() =>
+      expect(toastMocks.error).toHaveBeenCalledExactlyOnceWith("Failed to unpin thread.", {
+        description: "unpin update failed",
+      }),
+    );
+    expect(rendered.sdkCalls).toEqual([{ method: "threads.unpin", args: [{ threadId: "pin" }] }]);
+    expect(within(screen.getByRole("region", { name: "Pinned" })).getByText("Still pinned")).toBeDefined();
+  });
+
   it("unpins a pinned row from its hover action", async () => {
     const rendered = render([thread({ id: "pin", title: "Pinned work", isPinned: true })]);
 
