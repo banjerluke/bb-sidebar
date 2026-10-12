@@ -9,7 +9,7 @@ export default defineConfig({
   timeout: 30_000,
   expect: {
     timeout: 10_000,
-    toHaveScreenshot: { maxDiffPixels: 100, threshold: 0.1, animations: "disabled" },
+    toHaveScreenshot: { maxDiffPixels: 20, threshold: 0.1, animations: "disabled" },
   },
   snapshotPathTemplate: "{testDir}/__snapshots__/{platform}/{arg}{ext}",
   outputDir: "../test-results",

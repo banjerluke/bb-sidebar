@@ -29,8 +29,36 @@ creation, thread creation, RPC calls, and browser navigation target that server.
 The launcher owns one server for the entire run, including test failures. It
 stops detached process groups with TERM followed by KILL and deletes scratch
 data on completion or SIGINT/SIGTERM. The CLI and server use the same pinned
-bb-app package. `--app-dir <absolute-path>` can select another local bb-app for
+bb-app package. The runtime and plugin are staged under scratch so even mapped
+code stays outside the real `~/.bb` tree. `--app-dir <absolute-path>` can select another local bb-app for
 compatibility checks; it does not select a running server or data directory.
+
+The server and every BB CLI call receive a new `HOME=<scratch>/home`, plus
+`XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME`,
+`CODEX_HOME`, and `CLAUDE_CONFIG_DIR` beneath it. `TMPDIR=<scratch>/tmp` keeps
+host-worker temporary directories inside teardown. Only the build and
+Playwright processes retain the real HOME; the build's BB data/toolchain cache
+still targets scratch. The community marketplace is an empty loopback fixture.
+Pi is disabled in scratch because these fixtures use Codex. Codex's scratch
+configuration uses a file credential store and disables analytics/feedback,
+using keys from the [OpenAI configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+
+The credential guard starts after readiness and samples the scratch process
+tree throughout the run. It rejects visible HOME/CODEX_HOME/CLAUDE_CONFIG_DIR
+values outside scratch and any open file under the real `~/.codex`, `~/.claude`,
+`~/.cursor`, `~/.config`, or `~/.bb`, with no workspace exception. macOS helpers
+that replace their process title can hide their environment from `ps`; those
+samples are marked `environmentVisible: false`, and their open files are still
+checked. Raw environments are never logged. Evidence is retained in
+`e2e-artifacts/isolation.jsonl` and uploaded on CI failures.
+
+Known limitation: this guard enforces credential/file isolation, not zero
+outbound traffic. During investigation an unauthenticated Codex child contacted
+`[2606:4700:4408::ac40:9bd1]:443`; its hostname was not established. Other native
+provider discovery helpers also contacted outside addresses. Documented model
+endpoint overrides did not eliminate all traffic. Established TCP destinations
+are recorded with `lsof`; outbound connections do not fail the credential guard.
+The scratch homes contain no developer credentials or copied provider state.
 
 The suite seeds four fixed-title threads using CLI `thread spawn --prompt ''`
 with Codex and the scratch checkout, immediately followed by `thread stop`.
@@ -49,9 +77,10 @@ Working/attention/woke states stay outside this suite. Those stay in the wired t
 There is no direct database mutation or mocked browser RPC response.
 
 Each behavior test resets pin/read/lifecycle/order state through the scratch
-CLI and plugin RPC, then gets a new browser context. The six flows assert
+CLI and plugin RPC, then gets a new browser context. The seven flows assert
 selection/rendering, pin persistence, Alt+ArrowUp manual order persistence,
-snooze/wake, settle/Undo, and the complete right-click menu. Server assertions
+snooze/wake, settle/Undo, the complete right-click menu, and a sidebar settings
+change that updates visible snooze options and persists after reload. Server assertions
 check core pin/idle state and plugin lifecycle/order state. No production test
 IDs were added. The visual capture uses the existing `data-bb-sidebar-root`
 marker because the whole plugin container has no accessible role.
@@ -59,14 +88,15 @@ marker because the whole plugin container has no accessible role.
 ## Visual baselines
 
 Three populated captures cover light, dark, and a 280 px wide plugin sidebar.
+A fourth capture shows empty Active after all threads have been settled.
 The wide captures are 320 px. The host's persisted width includes a 53 px
 navigation rail/border, so the browser fixture adds that amount and asserts the
-actual plugin width. Each image contains Pinned, Active, Snoozed, and Settled.
+actual plugin width. The populated images contain Pinned, Active, Snoozed, and Settled.
 Titles, project name, branch, order, locale, and timezone are fixed. A capture
 stylesheet hides relative update/wake labels while retaining layout, reduced
 motion disables animation, and the mouse moves off the sidebar.
 
-Baselines live in `e2e/__snapshots__/darwin/`. Playwright allows **100 differing
+Baselines live in `e2e/__snapshots__/darwin/`. Playwright allows **20 differing
 pixels**, with a per-pixel perceived-color threshold of **0.1**. Missing
 baselines fail unless updating explicitly. Keep the pinned Playwright version
 and Chromium download together when reviewing new baselines.
@@ -74,13 +104,13 @@ and Chromium download together when reviewing new baselines.
 ```sh
 # On macOS, after an intentional UI change, with no unit suite running:
 env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
-# Inspect all three PNGs and git diff before committing them.
+# Inspect all four PNGs and git diff before committing them.
 ```
 
-Only macOS has reviewed baselines, so Linux skips the three visual comparisons
-and runs all six behavior tests. This avoids treating font/rendering differences
+Only macOS has reviewed baselines, so Linux skips the four visual comparisons
+and runs all seven behavior tests. This avoids treating font/rendering differences
 as product regressions. The nightly/manual Ubuntu workflow installs Chromium's
-Linux dependencies and uploads `test-results/` and `playwright-report/` on
+Linux dependencies, `lsof`, and `procps`. It uploads screenshots, traces, reports, and isolation evidence on
 failure. Ubuntu execution and native addon installation need verification in
 CI; they cannot be verified from this macOS checkout. Linux snapshots should be
 added only after generating and reviewing them on the chosen runner.
