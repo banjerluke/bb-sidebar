@@ -215,8 +215,8 @@ export async function createWired(
                 unarchive: (args) => bb.sdk.threads.unarchive(args),
               },
             },
-            // The SDK fake has no host confirmation/Undo UI. Drive that boundary
-            // explicitly while retaining the real app -> SDK -> server ledger.
+            // Confirmation and the Undo toast below are harness-produced, not host UI.
+            // The real checks assert server-side archive/unarchive calls and state.
             archiveThread: async (threadId, sdk) => {
               const done = deferred<void>();
               archiveRequests.push({
