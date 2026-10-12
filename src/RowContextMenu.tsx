@@ -1,7 +1,7 @@
 import { useThreadActions, useSidebarThreads } from "./bb-sdk";
 import { useRef, useState, type ReactNode } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
@@ -51,7 +51,14 @@ export function RowContextMenu({
     keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename", "bb--core/archive"],
     requestRename: () => onRename?.(),
   });
-  const run = (key: string) => actions.find((entry) => entry.key === `bb--core/${key}`)?.action.run();
+  const navigate = useBbNavigate();
+  // bb 0.46 always supplies pin/read/rename/archive for sidebar rows. Split is
+  // omitted in compact mode and for the focused pane; navigation handles both.
+  const run = (key: string) => {
+    const entry = actions.find((entry) => entry.key === `bb--core/${key}`);
+    if (!entry && key === "split") return navigate.toThread(thread.id, { split: true });
+    return entry?.action.run();
+  };
   const { projects, threads } = useSidebarThreads();
   const project = projects.find((project) => project.id === thread.projectId);
   const portalScope = usePortalScopeProps();
