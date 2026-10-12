@@ -125,13 +125,10 @@ SidebarSettings.tsx is at its 535-line ceiling; SB-14 should split it.
 
 ## Checks
 
-The opt-in smoke test uses a scratch bb-app and never installs on the live host:
-`env -i PATH="$PATH" HOME="$HOME" npm run e2e:smoke`. It creates fresh `/tmp`
-data, two free ports, a git project, and a thread scheduled seven days ahead.
-It prefers scratch Browser Automation; unavailable commands fall back to
-headless Chromium. Inherited `BB_*` values are stripped, and a server URL on
-port 38886 is rejected. The script tears down process groups and scratch data.
-It stays outside `npm run check`; SB-13 can extend this harness.
+E2E: `env -i PATH="$PATH" HOME="$HOME" npm run e2e`; quick: `e2e:smoke`.
+Only drive/install/seed on the runner's scratch server; never the live host.
+macOS: `npm run e2e -- --update-snapshots` with the same clean environment.
+Review `e2e/__snapshots__/` diffs; see `e2e/README.md`. Outside `npm run check`.
 
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
 lint, format check, Knip, typecheck, Vitest suite, BB plugin build, and the

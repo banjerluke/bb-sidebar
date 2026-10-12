@@ -1,0 +1,36 @@
+name: Browser e2e
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 7 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install only Playwright Chromium and its Linux dependencies
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run isolated browser suite
+        # Unit tests run in their own workflow; do not run them beside bb-app.
+        run: env -i PATH="$PATH" HOME="$HOME" npm run e2e
+      - name: Upload failure screenshots, diffs, and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-failure
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
