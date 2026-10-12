@@ -1,4 +1,4 @@
 import config, { sdkPeerDependencies } from "./knip";
 
-// Informational audit. Expected to exit 1 until SB-8 prunes dependencies and exports.
+// Informational audit. Expected to exit 1 while deferred unused exports and types remain.
 export default { ...config, ignoreDependencies: sdkPeerDependencies, ignoreIssues: {} };
