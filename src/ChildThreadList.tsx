@@ -1,3 +1,4 @@
+import { useInboxChildList } from "./InboxContext";
 import { useSidebarThreadSplit, useSidebarThreads } from "./bb-sdk";
 import { useId, useState, type ReactNode } from "react";
 import { useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
@@ -200,36 +201,33 @@ export function ChildThreadBadge({
   );
 }
 
-export function ChildThreadList({
-  threads,
-  childrenByParent,
-  variant,
-  now,
-  id,
-  activeThreadId,
-  expanded = true,
-  showRunningChildrenWhenCollapsed = false,
-  parentProjectId,
-  onOpenThread,
-}: {
+export function ChildThreadList(props: {
   threads: readonly PluginSidebarThread[];
-  childrenByParent: ReadonlyMap<string, readonly PluginSidebarThread[]>;
+  childrenByParent?: ReadonlyMap<string, readonly PluginSidebarThread[]>;
   variant: "header" | "sidebar";
   now?: number;
   id?: string;
   activeThreadId?: string | null;
   /** When false, only children on the path to the active descendant show. */
   expanded?: boolean;
-  /**
-   * While collapsed, also keep children with something to report: failed,
-   * waiting on the user, unread, or working. The setting keeps its original
-   * key; only its wording changed when it grew beyond running children.
-   */
+  /** While collapsed, keep children with something to report. */
   showRunningChildrenWhenCollapsed?: boolean;
   /** The project of the thread these children hang from. */
   parentProjectId?: string | null;
-  onOpenThread: (threadId: string) => void;
+  onOpenThread?: (threadId: string) => void;
 }) {
+  const {
+    threads,
+    childrenByParent,
+    variant,
+    now,
+    id,
+    activeThreadId,
+    expanded = true,
+    showRunningChildrenWhenCollapsed = false,
+    parentProjectId,
+    onOpenThread,
+  } = useInboxChildList(props);
   const disclosureId = useId();
   const { projects } = useSidebarThreads();
   const visibleThreads = expanded

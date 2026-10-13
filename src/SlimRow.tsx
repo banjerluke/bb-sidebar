@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { cn } from "./lib/utils";
@@ -7,13 +7,14 @@ import { RowContextMenu } from "./RowContextMenu";
 import { StatusOrTime } from "./StatusSlot";
 import { threadDisplayTitle } from "./inbox";
 import { snoozeWakeLabel } from "./lifecycle";
-import type { ConfiguredSnoozePreset } from "./lifecycle";
 import { InlineThreadTitle } from "./InlineThreadTitle";
 import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
 import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
 import { OpenPortsIndicator } from "./OpenPorts";
 import { JumpHint, useJumpHint } from "./JumpHints";
+import { useInboxEnvironment, useInboxActions } from "./InboxContext";
+import { projectIconUrl as iconUrl } from "./project-icons";
 
 /**
  * A parked thread: one line instead of a card. Density comes from the user
@@ -24,36 +25,32 @@ import { JumpHint, useJumpHint } from "./JumpHints";
  */
 export function SlimRow({
   thread,
-  projectName,
-  projectIconUrl,
   isActive,
   shelf,
   parkedAt,
-  onPark,
-  onSettle,
   wakeAt,
   now,
-  snoozePresets,
-  onNavigate,
-  onRestore,
-  onSnooze,
 }: {
   thread: PluginSidebarThread;
-  projectName: string | null;
-  projectIconUrl: string | null;
   isActive: boolean;
   shelf: "parked" | "snoozed" | "settled";
   parkedAt?: number | null;
-  onPark?: () => void;
-  onSettle?: () => void;
   wakeAt: number | null;
   now: number;
-  snoozePresets: readonly ConfiguredSnoozePreset[];
-  onNavigate: () => void;
-  onRestore: () => void;
-  onSnooze: (snoozedUntil: number) => void;
 }) {
-  const navigate = useBbNavigate();
+  const { projectNameById, projectIconRevision, snoozePresets, lifecycle } = useInboxEnvironment();
+  const { navigate, onNavigate, parkThread, settleThread, snoozeThread } = useInboxActions();
+  const projectName = projectNameById.get(thread.projectId) ?? null;
+  const projectIconUrl = iconUrl(thread.projectId, projectIconRevision);
+  const onPark = () => parkThread(thread);
+  const onSettle = () => settleThread(thread);
+  const onSnooze = (until: number) => snoozeThread(thread, until);
+  const onRestore = () =>
+    shelf === "parked"
+      ? void lifecycle.resume(thread.id)
+      : shelf === "snoozed"
+        ? void lifecycle.unsnooze(thread.id)
+        : void lifecycle.unsettle(thread.id);
   const projectColor = useProjectColor(thread.projectId);
   const jumpHint = useJumpHint(thread.id);
   const title = threadDisplayTitle(thread);

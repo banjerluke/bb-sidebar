@@ -10,10 +10,17 @@ import {
 import type { PluginSidebarThread, useBbNavigate } from "@get-bb/plugin-sdk/app";
 import type { useSidebarThreads } from "./bb-sdk";
 import type { SidebarProvider } from "./ProviderGlyph";
-import type { SidebarSettingsValues } from "./sidebar-settings";
+import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-settings";
 import type { ConfiguredSnoozePreset } from "./lifecycle";
 import type { LifecycleApi } from "./useLifecycle";
 import type { ShelfExpansionState } from "./ThreadInboxView";
+import { ListAnimationContext, type ListAnimationController } from "./useListAutoAnimate";
+import { ProjectColorsProvider } from "./ProjectColors";
+import { WorkingSinceContext } from "./useWorkingSince";
+import type { WorkingSince } from "./working-since";
+import { ChildThreadDisplayContext, type ChildThreadDisplay } from "./ChildThreadDisplay";
+import { OpenPortsProvider } from "./OpenPorts";
+import { JumpHintsContext } from "./JumpHints";
 import type { ActiveSortMode } from "./inbox-layout";
 import type { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 
@@ -134,13 +141,44 @@ const InboxEnvironmentContext = createContext<InboxValues["environment"] | null>
 const InboxActionsContext = createContext<InboxValues["actions"] | null>(null);
 const InboxActivityContext = createContext<InboxValues["activity"] | null>(null);
 
-export function InboxProvider({ value, children }: { value: InboxValues; children: ReactNode }) {
+export function InboxProvider({
+  value,
+  listAnimationController,
+  workingSince,
+  childDisplay,
+  jumpHints,
+  children,
+}: {
+  value: InboxValues;
+  listAnimationController: ListAnimationController;
+  workingSince: WorkingSince;
+  childDisplay: ChildThreadDisplay;
+  jumpHints: ReadonlyMap<string, string>;
+  children: ReactNode;
+}) {
+  const { sidebarSettings, projects } = value.environment;
   return (
-    <InboxEnvironmentContext.Provider value={value.environment}>
-      <InboxActionsContext.Provider value={value.actions}>
-        <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
-      </InboxActionsContext.Provider>
-    </InboxEnvironmentContext.Provider>
+    <ListAnimationContext.Provider value={listAnimationController}>
+      <ProjectColorsProvider
+        enabled={sidebarSettings?.projectColorsEnabled === true}
+        display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
+        projectIds={projects.map((project) => project.id)}
+      >
+        <WorkingSinceContext.Provider value={workingSince}>
+          <ChildThreadDisplayContext.Provider value={childDisplay}>
+            <OpenPortsProvider>
+              <JumpHintsContext.Provider value={jumpHints}>
+                <InboxEnvironmentContext.Provider value={value.environment}>
+                  <InboxActionsContext.Provider value={value.actions}>
+                    <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
+                  </InboxActionsContext.Provider>
+                </InboxEnvironmentContext.Provider>
+              </JumpHintsContext.Provider>
+            </OpenPortsProvider>
+          </ChildThreadDisplayContext.Provider>
+        </WorkingSinceContext.Provider>
+      </ProjectColorsProvider>
+    </ListAnimationContext.Provider>
   );
 }
 
@@ -160,4 +198,31 @@ export function useInboxActions() {
 
 export function useInboxActivity() {
   return useRequiredContext(InboxActivityContext);
+}
+
+/** Header popovers and standalone lists keep their explicit inputs. */
+export function useInboxChildList<
+  T extends {
+    variant: "header" | "sidebar";
+    childrenByParent?: ReadonlyMap<string, readonly PluginSidebarThread[]>;
+    now?: number;
+    activeThreadId?: string | null;
+    onOpenThread?: (threadId: string) => void;
+  },
+>(props: T) {
+  const environment = useContext(InboxEnvironmentContext);
+  const actions = useContext(InboxActionsContext);
+  const activity = useContext(InboxActivityContext);
+  const sidebar = props.variant === "sidebar";
+  const childrenByParent = props.childrenByParent ?? (sidebar ? environment?.childrenByParentId : undefined);
+  const onOpenThread = props.onOpenThread ?? (sidebar ? actions?.openThread : undefined);
+  if (!childrenByParent || !onOpenThread) throw new Error("Child list needs explicit inputs or InboxProvider");
+  return {
+    ...props,
+    childrenByParent,
+    onOpenThread,
+    now: props.now ?? (sidebar ? activity?.now : undefined),
+    activeThreadId:
+      props.activeThreadId !== undefined ? props.activeThreadId : sidebar ? activity?.activeThreadId : undefined,
+  };
 }

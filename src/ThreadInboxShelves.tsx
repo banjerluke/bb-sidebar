@@ -7,11 +7,10 @@ import { useProjectColor } from "./ProjectColors";
 import type { ThreadReorderControls } from "./ThreadCard";
 import { SlimRow } from "./SlimRow";
 import { CleanSettledDialog } from "./CleanSettledDialog";
-import type { LifecycleApi } from "./useLifecycle";
 import { TRAILING_GLYPH_BOX_CLASS } from "./StatusSlot";
-import type { ConfiguredSnoozePreset } from "./lifecycle";
 import { projectIconUrl } from "./project-icons";
 import type { ProjectViewUnit } from "./inbox-layout";
+import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 
 export const SETTLED_PAGE_SIZE = 25;
 
@@ -24,41 +23,26 @@ export function CompactShelf({
   label,
   icon,
   threads,
-  projectNameById,
   expanded,
   onToggle,
   shelf,
   visibleThreads,
-  activeThreadId,
-  lifecycle,
-  snoozePresets,
-  onNavigate,
-  projectIconRevision,
   settledLimit,
   onLoadMore,
-  onPark,
-  onSettle,
-  onSnooze,
 }: {
   label: string;
   icon: IconName;
   threads: readonly PluginSidebarThread[];
-  projectNameById?: ReadonlyMap<string, string>;
   expanded: boolean;
   onToggle: () => void;
   shelf: "parked" | "snoozed" | "settled";
   visibleThreads: readonly PluginSidebarThread[];
-  activeThreadId: string | null;
-  lifecycle: LifecycleApi;
-  snoozePresets: readonly ConfiguredSnoozePreset[];
-  onNavigate: () => void;
-  projectIconRevision: number;
   settledLimit?: number;
   onLoadMore?: () => void;
-  onPark: (thread: PluginSidebarThread) => void;
-  onSettle: (thread: PluginSidebarThread) => void;
-  onSnooze: (thread: PluginSidebarThread, until: number) => void;
 }) {
+  const { lifecycle } = useInboxEnvironment();
+  const { activeThreadId } = useInboxActivity();
+  const { onNavigate } = useInboxActions();
   const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
   if (threads.length === 0 && shelf !== "settled") return null;
   const now = Date.now();
@@ -83,25 +67,11 @@ export function CompactShelf({
           <SlimRow
             key={thread.id}
             thread={thread}
-            projectName={projectNameById?.get(thread.projectId) ?? null}
-            projectIconUrl={projectIconUrl(thread.projectId, projectIconRevision)}
             isActive={thread.id === activeThreadId}
             shelf={shelf}
             parkedAt={lifecycle.parkedAtFor(thread)}
-            onPark={() => onPark(thread)}
-            onSettle={() => onSettle(thread)}
             wakeAt={lifecycle.wakeAtFor(thread)}
             now={now}
-            snoozePresets={snoozePresets}
-            onSnooze={(until) => onSnooze(thread, until)}
-            onNavigate={onNavigate}
-            onRestore={() =>
-              shelf === "parked"
-                ? void lifecycle.resume(thread.id)
-                : shelf === "snoozed"
-                  ? void lifecycle.unsnooze(thread.id)
-                  : void lifecycle.unsettle(thread.id)
-            }
           />
         ))}
       </ul>
@@ -308,19 +278,15 @@ function ActiveProjectGroup({
 /** Lone threads and whole projects, in one list so either can pass the other. */
 export function ProjectGroups({
   units,
-  projectNameById,
-  projectIconRevision,
-  onToggle,
   reorderControls,
   renderThread,
 }: {
   units: readonly ProjectViewUnit[];
-  projectNameById: ReadonlyMap<string, string>;
-  projectIconRevision: number;
-  onToggle: (projectId: string) => void;
   reorderControls: (unit: Extract<ProjectViewUnit, { kind: "group" }>, projectName: string) => ThreadReorderControls;
   renderThread: (thread: PluginSidebarThread, grouped: boolean) => React.ReactNode;
 }) {
+  const { projectNameById, projectIconRevision } = useInboxEnvironment();
+  const { toggleProjectCollapse: onToggle } = useInboxActions();
   const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
   if (units.length === 0) return null;
   return (

@@ -552,61 +552,41 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   });
 
   return (
-    <InboxProvider value={inboxContext}>
+    <InboxProvider
+      value={inboxContext}
+      listAnimationController={listAnimationController}
+      workingSince={workingSince}
+      childDisplay={childDisplay}
+      jumpHints={jumpHints}
+    >
       <ThreadInboxView
-        listAnimationController={listAnimationController}
-        sidebarSettings={sidebarSettings}
-        projects={projects}
-        workingSince={workingSince}
-        childDisplay={childDisplay}
-        jumpHints={jumpHints}
+        shelves={{
+          pinned: { threads: pinned, visibleThreads: visiblePinned },
+          inbox: { threads: inbox, visibleThreads: visibleInbox },
+          working: { threads: working, visibleThreads: visibleWorking },
+          inactive: { threads: inactive, visibleThreads: visibleInactive },
+          snoozed: { threads: snoozed, visibleThreads: visibleSnoozed },
+          parked: { threads: parked, visibleThreads: visibleParked },
+          settled: { threads: settled, visibleThreads: visibleSettled },
+        }}
         jumpHintsRootRef={jumpHintsRootRef}
         scope={scope}
-        projectIconRevision={projectIconRevision}
-        setScope={setScope}
         reorderAnnouncement={reorderAnnouncement}
         attachScrollFadeRef={attachScrollFadeRef}
         status={status}
         isSearching={isSearching}
         searchResults={searchResults}
-        projectNameById={projectNameById}
-        activeThreadId={activeThreadId}
-        now={now}
         wokeThreadIds={wokeThreadIds}
-        lifecycle={lifecycle}
-        onNavigate={onNavigate}
         dockShelvesEnabled={dockShelvesEnabled}
         attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
         attachDockAutoAnimateRef={attachDockAutoAnimateRef}
-        pinned={pinned}
         expandedShelves={expandedShelves}
-        setExpandedShelves={setExpandedShelves}
-        visiblePinned={visiblePinned}
         renderActiveThread={renderActiveThread}
-        inbox={inbox}
         activeSortMode={activeSortMode}
-        setActiveSortMode={setActiveSortMode}
         inboxProjectView={inboxProjectView}
-        toggleProjectCollapse={toggleProjectCollapse}
         reorderControls={reorderControls}
-        visibleInbox={visibleInbox}
         sortedVisibleInbox={sortedVisibleInbox}
-        working={working}
-        inactive={inactive}
-        visibleWorking={visibleWorking}
-        visibleInactive={visibleInactive}
-        parkThread={parkThread}
-        settleThread={settleThread}
-        snoozeThread={snoozeThread}
-        snoozed={snoozed}
-        snoozePresets={snoozePresets}
-        visibleSnoozed={visibleSnoozed}
-        parked={parked}
-        visibleParked={visibleParked}
-        settled={settled}
-        visibleSettled={visibleSettled}
         settledLimit={settledLimit}
-        setSettledLimit={setSettledLimit}
       />
     </InboxProvider>
   );

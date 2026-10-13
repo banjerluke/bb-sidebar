@@ -528,17 +528,10 @@ export function ThreadCard({
             <ChildThreadList
               id={childListId}
               threads={childThreads}
-              childrenByParent={childrenByParent}
-              activeThreadId={activeThreadId}
               expanded={childrenExpanded}
               showRunningChildrenWhenCollapsed={showChildrenWhenCollapsed}
               parentProjectId={thread.projectId}
               variant="sidebar"
-              now={now}
-              onOpenThread={(childId) => {
-                navigate.toThread(childId, { split: false });
-                onNavigate();
-              }}
             />
           ) : null}
         </div>
