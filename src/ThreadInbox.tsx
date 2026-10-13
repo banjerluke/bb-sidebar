@@ -23,7 +23,9 @@ import {
   type ReorderMode,
   type ProjectViewUnit,
 } from "./inbox-layout";
-import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
+import type { ThreadReorderControls } from "./ThreadCard";
+import { InboxProvider, useInboxContextValues } from "./InboxContext";
+import { createInboxThreadRenderer } from "./InboxThreadRenderer";
 import { childThreadsByParent, collapsedChildThreads } from "./ChildThreadList";
 import { useChildThreadDisplayValue } from "./ChildThreadDisplay";
 import { useLifecycle } from "./useLifecycle";
@@ -50,7 +52,6 @@ import {
 } from "./pinned-order";
 import { parseConfiguredSnoozePresets } from "./lifecycle";
 import { parseInactiveAfterHours } from "./inactive";
-import { projectIconUrl } from "./project-icons";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
@@ -284,12 +285,15 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     inboxProjectUnits,
     visibleInbox,
   ]);
-  const toggleProjectCollapse = (projectId: string) =>
-    setCollapsedProjectIds((current) => {
-      const next = new Set(current);
-      if (!next.delete(projectId)) next.add(projectId);
-      return next;
-    });
+  const toggleProjectCollapse = useCallback(
+    (projectId: string) =>
+      setCollapsedProjectIds((current) => {
+        const next = new Set(current);
+        if (!next.delete(projectId)) next.add(projectId);
+        return next;
+      }),
+    [],
+  );
   // Leaving a thread follows Pinned, then Active, including collapsed rows.
   const nextThreadCandidates = useMemo(
     () => [
@@ -481,139 +485,129 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
     [inactive, inbox, lifecycle, pinned, working],
   );
 
-  const parkActiveThread = async (thread: PluginSidebarThread, mutation: () => Promise<boolean>) => {
-    const parked = await mutation();
-    if (!parked || activeThreadIdRef.current !== thread.id) return;
+  const parkActiveThread = useCallback(
+    async (thread: PluginSidebarThread, mutation: () => Promise<boolean>) => {
+      const parked = await mutation();
+      if (!parked || activeThreadIdRef.current !== thread.id) return;
 
-    // Read the latest list after the request, since another client may
-    // have moved or reordered the first candidate while it was pending.
-    const nextThread = nextThreadCandidatesRef.current.find((candidate) => candidate.id !== thread.id);
-    if (nextThread) {
-      navigate.toThread(nextThread.id);
-    } else {
-      navigate.toCompose({
-        projectId: thread.projectId,
-        focusPrompt: true,
-      });
-    }
-    onNavigate();
-  };
-
-  const parkThread = (thread: PluginSidebarThread) => void parkActiveThread(thread, () => lifecycle.park(thread.id));
-  const settleThread = (thread: PluginSidebarThread) =>
-    void parkActiveThread(thread, () => lifecycle.settle(thread.id));
-  const snoozeThread = (thread: PluginSidebarThread, until: number) =>
-    void parkActiveThread(thread, () => lifecycle.snooze(thread.id, until));
-
-  const renderActiveThread = (
-    thread: PluginSidebarThread,
-    shelf: ActiveShelfKind,
-    reorderable = true,
-    showProject = true,
-    compact = false,
-    renameShelf: "active" | "working" | "inactive" = "active",
-  ) => (
-    <ThreadCard
-      key={thread.id}
-      thread={thread}
-      provider={providerById.get(thread.providerId) ?? null}
-      projectName={projectNameById.get(thread.projectId) ?? null}
-      projectIconUrl={projectIconUrl(thread.projectId, projectIconRevision)}
-      showProject={showProject}
-      isActive={thread.id === activeThreadId}
-      isWoke={wokeThreadIds.has(thread.id)}
-      canPark={lifecycle.canPark(thread)}
-      snoozePresets={snoozePresets}
-      onNavigate={onNavigate}
-      onRenamingChange={(editing) => {
-        setRenamingShelfLocks((current) => {
-          const next = new Map(current);
-          if (editing) next.set(thread.id, renameShelf);
-          else next.delete(thread.id);
-          return next;
+      // Read the latest list after the request, since another client may
+      // have moved or reordered the first candidate while it was pending.
+      const nextThread = nextThreadCandidatesRef.current.find((candidate) => candidate.id !== thread.id);
+      if (nextThread) {
+        navigate.toThread(nextThread.id);
+      } else {
+        navigate.toCompose({
+          projectId: thread.projectId,
+          focusPrompt: true,
         });
-      }}
-      onPark={() => parkThread(thread)}
-      onSettle={() => settleThread(thread)}
-      onSnooze={(until) => snoozeThread(thread, until)}
-      onAcknowledgeWake={() => void lifecycle.acknowledgeWake(thread.id)}
-      childThreads={childrenByParentId.get(thread.id) ?? []}
-      childrenByParent={childrenByParentId}
-      activeThreadId={activeThreadId}
-      childrenExpanded={expandedChildParentIds.has(thread.id)}
-      showRunningChildrenWhenCollapsed={
-        sidebarSettings?.showRunningChildrenWhenCollapsed ?? DEFAULT_SIDEBAR_SETTINGS.showRunningChildrenWhenCollapsed
       }
-      onToggleChildren={() => toggleChildExpansion(thread.id)}
-      reorder={
-        !reorderable ||
-        (shelf === "pinned" && thread.pinSortKey == null) ||
-        (shelf === "inbox" && (activeSortMode === "activity" || activeSortMode === "created"))
-          ? undefined
-          : threadReorderControls(thread, shelf)
-      }
-      compactWhenWorking={
-        compact || (sidebarSettings?.compactWorkingThreads ?? DEFAULT_SIDEBAR_SETTINGS.compactWorkingThreads)
-      }
-      now={now}
-    />
+      onNavigate();
+    },
+    [navigate, onNavigate],
   );
 
+  const parkThread = useCallback(
+    (thread: PluginSidebarThread) => void parkActiveThread(thread, () => lifecycle.park(thread.id)),
+    [parkActiveThread, lifecycle],
+  );
+  const settleThread = useCallback(
+    (thread: PluginSidebarThread) => void parkActiveThread(thread, () => lifecycle.settle(thread.id)),
+    [parkActiveThread, lifecycle],
+  );
+  const snoozeThread = useCallback(
+    (thread: PluginSidebarThread, until: number) =>
+      void parkActiveThread(thread, () => lifecycle.snooze(thread.id, until)),
+    [parkActiveThread, lifecycle],
+  );
+
+  const inboxContext = useInboxContextValues({
+    providerById,
+    projectNameById,
+    projectIconRevision,
+    projects,
+    sidebarSettings,
+    snoozePresets,
+    lifecycle,
+    childrenByParentId,
+    activeThreadId,
+    now,
+    navigate,
+    onNavigate,
+    parkThread,
+    settleThread,
+    snoozeThread,
+    toggleChildExpansion,
+    setRenamingShelfLocks,
+    setScope,
+    setExpandedShelves,
+    setActiveSortMode,
+    setSettledLimit,
+    toggleProjectCollapse,
+  });
+  const renderActiveThread = createInboxThreadRenderer(inboxContext, {
+    wokeThreadIds,
+    expandedChildParentIds,
+    threadReorderControls,
+    activeSortMode,
+  });
+
   return (
-    <ThreadInboxView
-      listAnimationController={listAnimationController}
-      sidebarSettings={sidebarSettings}
-      projects={projects}
-      workingSince={workingSince}
-      childDisplay={childDisplay}
-      jumpHints={jumpHints}
-      jumpHintsRootRef={jumpHintsRootRef}
-      scope={scope}
-      projectIconRevision={projectIconRevision}
-      setScope={setScope}
-      reorderAnnouncement={reorderAnnouncement}
-      attachScrollFadeRef={attachScrollFadeRef}
-      status={status}
-      isSearching={isSearching}
-      searchResults={searchResults}
-      projectNameById={projectNameById}
-      activeThreadId={activeThreadId}
-      now={now}
-      wokeThreadIds={wokeThreadIds}
-      lifecycle={lifecycle}
-      onNavigate={onNavigate}
-      dockShelvesEnabled={dockShelvesEnabled}
-      attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
-      attachDockAutoAnimateRef={attachDockAutoAnimateRef}
-      pinned={pinned}
-      expandedShelves={expandedShelves}
-      setExpandedShelves={setExpandedShelves}
-      visiblePinned={visiblePinned}
-      renderActiveThread={renderActiveThread}
-      inbox={inbox}
-      activeSortMode={activeSortMode}
-      setActiveSortMode={setActiveSortMode}
-      inboxProjectView={inboxProjectView}
-      toggleProjectCollapse={toggleProjectCollapse}
-      reorderControls={reorderControls}
-      visibleInbox={visibleInbox}
-      sortedVisibleInbox={sortedVisibleInbox}
-      working={working}
-      inactive={inactive}
-      visibleWorking={visibleWorking}
-      visibleInactive={visibleInactive}
-      parkThread={parkThread}
-      settleThread={settleThread}
-      snoozeThread={snoozeThread}
-      snoozed={snoozed}
-      snoozePresets={snoozePresets}
-      visibleSnoozed={visibleSnoozed}
-      parked={parked}
-      visibleParked={visibleParked}
-      settled={settled}
-      visibleSettled={visibleSettled}
-      settledLimit={settledLimit}
-      setSettledLimit={setSettledLimit}
-    />
+    <InboxProvider value={inboxContext}>
+      <ThreadInboxView
+        listAnimationController={listAnimationController}
+        sidebarSettings={sidebarSettings}
+        projects={projects}
+        workingSince={workingSince}
+        childDisplay={childDisplay}
+        jumpHints={jumpHints}
+        jumpHintsRootRef={jumpHintsRootRef}
+        scope={scope}
+        projectIconRevision={projectIconRevision}
+        setScope={setScope}
+        reorderAnnouncement={reorderAnnouncement}
+        attachScrollFadeRef={attachScrollFadeRef}
+        status={status}
+        isSearching={isSearching}
+        searchResults={searchResults}
+        projectNameById={projectNameById}
+        activeThreadId={activeThreadId}
+        now={now}
+        wokeThreadIds={wokeThreadIds}
+        lifecycle={lifecycle}
+        onNavigate={onNavigate}
+        dockShelvesEnabled={dockShelvesEnabled}
+        attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
+        attachDockAutoAnimateRef={attachDockAutoAnimateRef}
+        pinned={pinned}
+        expandedShelves={expandedShelves}
+        setExpandedShelves={setExpandedShelves}
+        visiblePinned={visiblePinned}
+        renderActiveThread={renderActiveThread}
+        inbox={inbox}
+        activeSortMode={activeSortMode}
+        setActiveSortMode={setActiveSortMode}
+        inboxProjectView={inboxProjectView}
+        toggleProjectCollapse={toggleProjectCollapse}
+        reorderControls={reorderControls}
+        visibleInbox={visibleInbox}
+        sortedVisibleInbox={sortedVisibleInbox}
+        working={working}
+        inactive={inactive}
+        visibleWorking={visibleWorking}
+        visibleInactive={visibleInactive}
+        parkThread={parkThread}
+        settleThread={settleThread}
+        snoozeThread={snoozeThread}
+        snoozed={snoozed}
+        snoozePresets={snoozePresets}
+        visibleSnoozed={visibleSnoozed}
+        parked={parked}
+        visibleParked={visibleParked}
+        settled={settled}
+        visibleSettled={visibleSettled}
+        settledLimit={settledLimit}
+        setSettledLimit={setSettledLimit}
+      />
+    </InboxProvider>
   );
 }
