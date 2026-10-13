@@ -1,4 +1,4 @@
-import { useInboxChildList } from "./InboxContext";
+import { useInboxChildList, type InboxChildListInputs } from "./InboxContext";
 import { useSidebarThreadSplit, useSidebarThreads } from "./bb-sdk";
 import { useId, useState, type ReactNode } from "react";
 import { useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
@@ -201,13 +201,9 @@ export function ChildThreadBadge({
   );
 }
 
-export function ChildThreadList(props: {
+type ChildThreadListProps = {
   threads: readonly PluginSidebarThread[];
-  childrenByParent?: ReadonlyMap<string, readonly PluginSidebarThread[]>;
-  variant: "header" | "sidebar";
-  now?: number;
   id?: string;
-  activeThreadId?: string | null;
   /** When false, only children on the path to the active descendant show. */
   expanded?: boolean;
   /**
@@ -218,8 +214,9 @@ export function ChildThreadList(props: {
   showRunningChildrenWhenCollapsed?: boolean;
   /** The project of the thread these children hang from. */
   parentProjectId?: string | null;
-  onOpenThread?: (threadId: string) => void;
-}) {
+} & InboxChildListInputs;
+
+export function ChildThreadList(props: ChildThreadListProps) {
   const {
     threads,
     childrenByParent,
@@ -238,6 +235,7 @@ export function ChildThreadList(props: {
     ? threads.filter((thread) => !thread.isArchived)
     : collapsedChildThreads(threads, childrenByParent, activeThreadId, showRunningChildrenWhenCollapsed);
   const [expandedDescendantParentIds, setExpandedDescendantParentIds] = useState<ReadonlySet<string>>(() => new Set());
+
   const toggleDescendants = (threadId: string) => {
     setExpandedDescendantParentIds((current) => {
       const next = new Set(current);
@@ -249,6 +247,7 @@ export function ChildThreadList(props: {
       return next;
     });
   };
+
   const renderRows = (
     siblings: readonly PluginSidebarThread[],
     depth: number,

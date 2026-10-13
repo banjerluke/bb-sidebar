@@ -182,10 +182,13 @@ export function InboxProvider({
   );
 }
 
-function useRequiredContext<T>(context: Context<T | null>): T {
-  const value = useContext(context);
+function requireInboxContext<T>(value: T | null): T {
   if (value === null) throw new Error("Inbox consumers must be inside InboxProvider");
   return value;
+}
+
+function useRequiredContext<T>(context: Context<T | null>): T {
+  return requireInboxContext(useContext(context));
 }
 
 export function useInboxEnvironment() {
@@ -200,23 +203,24 @@ export function useInboxActivity() {
   return useRequiredContext(InboxActivityContext);
 }
 
+type ExplicitChildListInputs = {
+  childrenByParent: ReadonlyMap<string, readonly PluginSidebarThread[]>;
+  onOpenThread: (threadId: string) => void;
+};
+
+export type InboxChildListInputs = {
+  now?: number;
+  activeThreadId?: string | null;
+} & (({ variant: "header" } & ExplicitChildListInputs) | ({ variant: "sidebar" } & Partial<ExplicitChildListInputs>));
+
 /** Header popovers and standalone lists keep their explicit inputs. */
-export function useInboxChildList<
-  T extends {
-    variant: "header" | "sidebar";
-    childrenByParent?: ReadonlyMap<string, readonly PluginSidebarThread[]>;
-    now?: number;
-    activeThreadId?: string | null;
-    onOpenThread?: (threadId: string) => void;
-  },
->(props: T) {
+export function useInboxChildList<T extends InboxChildListInputs>(props: T) {
   const environment = useContext(InboxEnvironmentContext);
   const actions = useContext(InboxActionsContext);
   const activity = useContext(InboxActivityContext);
   const sidebar = props.variant === "sidebar";
-  const childrenByParent = props.childrenByParent ?? (sidebar ? environment?.childrenByParentId : undefined);
-  const onOpenThread = props.onOpenThread ?? (sidebar ? actions?.openThread : undefined);
-  if (!childrenByParent || !onOpenThread) throw new Error("Child list needs explicit inputs or InboxProvider");
+  const childrenByParent = props.childrenByParent ?? requireInboxContext(environment).childrenByParentId;
+  const onOpenThread = props.onOpenThread ?? requireInboxContext(actions).openThread;
   return {
     ...props,
     childrenByParent,
