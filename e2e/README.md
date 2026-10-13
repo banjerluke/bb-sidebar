@@ -17,6 +17,7 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'settle moves'
 and failure screenshots/traces. Both commands use `scripts/e2e/server.mjs` and
 bb-app 0.46.0. Neither runs as part of `npm run check`. Run e2e separately from
 Vitest; the scratch server and Chromium compete with the unit suite for CPU.
+Before releases on macOS: `npm run e2e`; CI: `gh workflow run "Browser e2e"`.
 
 ## Isolation and fixtures
 
@@ -109,7 +110,7 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
 
 Only macOS has reviewed baselines, so Linux skips the four visual comparisons
 and runs all seven behavior tests. This avoids treating font/rendering differences
-as product regressions. The nightly/manual Ubuntu workflow installs Chromium's
+as product regressions. The manual Ubuntu workflow installs Chromium's
 Linux dependencies, `lsof`, and `procps`. It uploads screenshots, traces, reports, and isolation evidence on
 failure. Ubuntu execution and native addon installation need verification in
 CI; they cannot be verified from this macOS checkout. Linux snapshots should be

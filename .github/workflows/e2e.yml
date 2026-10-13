@@ -2,8 +2,6 @@ name: Browser e2e
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "23 7 * * *"
 
 permissions:
   contents: read

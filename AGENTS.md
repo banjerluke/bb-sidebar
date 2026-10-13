@@ -130,6 +130,7 @@ E2E: `env -i PATH="$PATH" HOME="$HOME" npm run e2e`; quick: `e2e:smoke`.
 Only drive/install/seed on the runner's scratch server; never the live host.
 macOS: `npm run e2e -- --update-snapshots` with the same clean environment.
 Review `e2e/__snapshots__/` diffs; see `e2e/README.md`. Outside `npm run check`.
+Before releases on macOS: `npm run e2e`; CI: `gh workflow run "Browser e2e"`.
 
 Run `npm ci`, then `npm run check` before and after changes. CI runs the same
 lint, format check, Knip, typecheck, Vitest suite, BB plugin build, and the
