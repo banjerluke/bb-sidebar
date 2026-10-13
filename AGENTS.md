@@ -6,6 +6,7 @@ meaning intact.
 Inbox layout: `src/inbox-layout.ts`; shelves: `ThreadInboxShelves.tsx`.
 Inbox hooks use `src/use*.ts`; gesture helpers use `src/drag-*.ts`.
 Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
+Inbox context: `src/InboxContext.tsx` shares environment, actions, and activity.
 
 ## Runtimes and imports
 

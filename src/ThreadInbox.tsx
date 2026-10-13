@@ -66,12 +66,11 @@ const SETTLED_INITIAL_LIMIT = 10;
 type ActiveShelfKind = "pinned" | "inbox";
 
 /**
- * The sidebar's scrolling list. Manual order is durable, while optional views
- * can sort the same rows without changing their saved positions.
+ * The sidebar's scrolling list. Manual order is durable; optional views sort
+ * the same rows without changing their saved positions.
  *
- * The host owns the New-thread button and the search field above it, so this
- * ships neither. It filters by the `searchQuery` prop and keeps only the one
- * control the host has no equivalent for: the project scope picker.
+ * The host owns New thread and search. This list applies searchQuery and adds
+ * the plugin's project scope picker.
  */
 export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginThreadListProps) {
   const { status, threads, projects } = useSidebarThreads();

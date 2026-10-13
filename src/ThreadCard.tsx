@@ -49,15 +49,12 @@ export interface ThreadReorderControls {
 }
 
 /**
- * One thread as a three-line card: project and status, title, then branch and
- * activity. With `compactWhenWorking`, a thread with live work folds to one
- * line, like a settled row, ending in its status glyph and run time. Under a shared project header the project line is dropped and the
- * title takes its place beside the status. Status lives in the row instead of
- * its position, so manual order can stay fixed while work changes state.
+ * One thread as a three-line card: project/status, title, then branch/activity.
+ * With compactWhenWorking, live work folds to one line. Project groups omit
+ * the project line. Status follows the row through manual reorders.
  *
- * The row is a positioned container with a full-bleed anchor UNDER the
- * controls, the way bb's own thread row does it: a `<button>` inside an `<a>`
- * is invalid interactive nesting and breaks keyboard behaviour.
+ * Controls sit above a full-bleed anchor in a positioned row, keeping buttons
+ * outside the anchor for valid markup and keyboard behaviour.
  */
 export function ThreadCard({
   thread,
