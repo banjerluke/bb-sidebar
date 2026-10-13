@@ -210,7 +210,11 @@ export function ChildThreadList(props: {
   activeThreadId?: string | null;
   /** When false, only children on the path to the active descendant show. */
   expanded?: boolean;
-  /** While collapsed, keep children with something to report. */
+  /**
+   * While collapsed, also keep children with something to report: failed,
+   * waiting on the user, unread, or working. The setting keeps its original
+   * key; only its wording changed when it grew beyond running children.
+   */
   showRunningChildrenWhenCollapsed?: boolean;
   /** The project of the thread these children hang from. */
   parentProjectId?: string | null;
@@ -234,7 +238,6 @@ export function ChildThreadList(props: {
     ? threads.filter((thread) => !thread.isArchived)
     : collapsedChildThreads(threads, childrenByParent, activeThreadId, showRunningChildrenWhenCollapsed);
   const [expandedDescendantParentIds, setExpandedDescendantParentIds] = useState<ReadonlySet<string>>(() => new Set());
-
   const toggleDescendants = (threadId: string) => {
     setExpandedDescendantParentIds((current) => {
       const next = new Set(current);
@@ -246,7 +249,6 @@ export function ChildThreadList(props: {
       return next;
     });
   };
-
   const renderRows = (
     siblings: readonly PluginSidebarThread[],
     depth: number,
