@@ -5,6 +5,7 @@ import { createServer as createHttpServer } from "node:http";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createIsolationGuard } from "./isolation.mjs";
+import { createScratchKeychain } from "./keychain.mjs";
 
 export async function startScratchServer() {
   const args = process.argv.slice(2);
@@ -123,6 +124,7 @@ export async function startScratchServer() {
   }
 
   try {
+    await createScratchKeychain({ ...env, BB_DATA_DIR: scratch });
     const runtimeModules = join(scratch, "runtime/node_modules");
     cpSync(resolve("node_modules"), runtimeModules, {
       recursive: true,

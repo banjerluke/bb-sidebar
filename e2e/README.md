@@ -40,6 +40,11 @@ The server and every BB CLI call receive a new `HOME=<scratch>/home`, plus
 host-worker temporary directories inside teardown. Only the build and
 Playwright processes retain the real HOME; the build's BB data/toolchain cache
 still targets scratch. The community marketplace is an empty loopback fixture.
+On macOS the launcher creates an unlocked throwaway keychain in scratch HOME
+before starting bb-app, sets it as the only user search-list/default keychain,
+and aliases the login keychain to it. All three lookups are verified before
+providers can start. Chromium also receives `--use-mock-keychain` in both
+launchers. Teardown removes the scratch keychain with the scratch home.
 Pi is disabled in scratch because these fixtures use Codex. Codex's scratch
 configuration uses a file credential store and disables analytics/feedback,
 using keys from the [OpenAI configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
@@ -127,12 +132,13 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
 ```
 
 Only macOS has reviewed baselines, so Linux skips the four visual comparisons
-and runs all twelve behavior tests. This avoids treating font/rendering differences
-as product regressions. The manual Ubuntu workflow installs Chromium's
-Linux dependencies, `lsof`, and `procps`. It uploads screenshots, traces, reports, and isolation evidence on
-failure. Ubuntu execution and native addon installation need verification in
-CI; they cannot be verified from this macOS checkout. Linux snapshots should be
-added only after generating and reviewing them on the chosen runner.
+and runs all twelve behavior tests. This avoids treating font/rendering
+differences as product regressions. The manual Ubuntu workflow installs
+Chromium's Linux dependencies, `lsof`, and `procps`. It uploads screenshots,
+traces, reports, and isolation evidence on failure. Ubuntu execution and
+native addon installation need verification in CI; they cannot be verified
+from this macOS checkout. Linux snapshots should be added only after
+generating and reviewing them on the chosen runner.
 
 Inspect failures with `npx --no-install playwright show-report` or
 `npx --no-install playwright show-trace test-results/<test>/trace.zip`.

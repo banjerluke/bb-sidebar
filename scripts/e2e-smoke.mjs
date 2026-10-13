@@ -5,7 +5,7 @@ const server = await startScratchServer();
 let browser;
 try {
   const thread = await server.seed("Sidebar smoke thread");
-  browser = await chromium.launch({ env: server.toolEnv });
+  browser = await chromium.launch({ env: server.toolEnv, args: ["--use-mock-keychain"] });
   const page = await browser.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

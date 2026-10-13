@@ -16,6 +16,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
     browserName: "chromium",
+    launchOptions: { args: ["--use-mock-keychain"] },
     viewport: { width: 1100, height: 800 },
     locale: "en-US",
     timezoneId: "UTC",
