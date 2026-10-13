@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 const debtLimits = {
   "src/ChildThreadList.tsx": 534,
   "src/SidebarSettings.tsx": 535,
-  "src/ThreadCard.tsx": 650,
+  "src/ThreadCard.tsx": 643,
   "src/ThreadInbox.tsx": 613,
 };
 const files = [

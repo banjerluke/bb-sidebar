@@ -1,4 +1,12 @@
-import { createContext, useMemo, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  type Context,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { PluginSidebarThread, useBbNavigate } from "@get-bb/plugin-sdk/app";
 import type { useSidebarThreads } from "./bb-sdk";
 import type { SidebarProvider } from "./ProviderGlyph";
@@ -95,6 +103,11 @@ export function useInboxContextValues({
       setActiveSortMode,
       setSettledLimit,
       toggleProjectCollapse,
+      acknowledgeWake: (threadId: string) => void lifecycle.acknowledgeWake(threadId),
+      openThread: (threadId: string) => {
+        navigate.toThread(threadId, { split: false });
+        onNavigate();
+      },
     }),
     [
       navigate,
@@ -109,6 +122,7 @@ export function useInboxContextValues({
       setActiveSortMode,
       setSettledLimit,
       toggleProjectCollapse,
+      lifecycle,
     ],
   );
   const activity = useMemo(() => ({ activeThreadId, now }), [activeThreadId, now]);
@@ -128,4 +142,22 @@ export function InboxProvider({ value, children }: { value: InboxValues; childre
       </InboxActionsContext.Provider>
     </InboxEnvironmentContext.Provider>
   );
+}
+
+function useRequiredContext<T>(context: Context<T | null>): T {
+  const value = useContext(context);
+  if (value === null) throw new Error("Inbox consumers must be inside InboxProvider");
+  return value;
+}
+
+export function useInboxEnvironment() {
+  return useRequiredContext(InboxEnvironmentContext);
+}
+
+export function useInboxActions() {
+  return useRequiredContext(InboxActionsContext);
+}
+
+export function useInboxActivity() {
+  return useRequiredContext(InboxActivityContext);
 }

@@ -8,7 +8,7 @@ import {
   type KeyboardEventHandler,
   type PointerEventHandler,
 } from "react";
-import { useBbNavigate, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
@@ -17,17 +17,19 @@ import { SnoozeSelect } from "./SnoozeSelect";
 import { cn } from "./lib/utils";
 import { pullRequestStatusLabel, pullRequestToneClass } from "./pull-request-display";
 import { RowContextMenu } from "./RowContextMenu";
-import { ProviderGlyph, type SidebarProvider } from "./ProviderGlyph";
+import { ProviderGlyph } from "./ProviderGlyph";
 import { STATUS_SLOT_CLASS, StatusOrTime, threadShortStatus } from "./StatusSlot";
 import { CompactLiveStatus } from "./StatusGlyph";
 import { threadDisplayTitle } from "./inbox";
 import { InlineThreadTitle } from "./InlineThreadTitle";
-import type { ConfiguredSnoozePreset } from "./lifecycle";
 import { isWorkingTree } from "./working-tree";
 import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
 import { OpenPortsIndicator } from "./OpenPorts";
 import { JumpHint, useJumpHint } from "./JumpHints";
+import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
+import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
+import { projectIconUrl as iconUrl } from "./project-icons";
 import "./settle-button.css";
 
 /** How long the settle sweep plays before the thread actually moves. */
@@ -59,34 +61,17 @@ export interface ThreadReorderControls {
  */
 export function ThreadCard({
   thread,
-  provider,
-  projectName,
-  projectIconUrl,
   showProject = true,
   isActive,
   isWoke,
   canPark,
-  snoozePresets,
-  onNavigate,
-  onRenamingChange,
-  onPark,
-  onSettle,
-  onSnooze,
-  onAcknowledgeWake,
   childThreads,
-  childrenByParent,
-  activeThreadId,
   childrenExpanded,
-  showRunningChildrenWhenCollapsed,
-  onToggleChildren,
   reorder,
   compactWhenWorking = false,
-  now,
+  onRenamingChange,
 }: {
   thread: PluginSidebarThread;
-  provider: SidebarProvider | null;
-  projectName: string | null;
-  projectIconUrl: string | null;
   /** False when a group header already names the project. */
   showProject?: boolean;
   isActive: boolean;
@@ -94,27 +79,35 @@ export function ThreadCard({
   isWoke: boolean;
   /** False while the thread is working or blocked on the user. */
   canPark: boolean;
-  snoozePresets: readonly ConfiguredSnoozePreset[];
-  onNavigate: () => void;
-  onRenamingChange?: (editing: boolean) => void;
-  onPark?: () => void;
-  onSettle: () => void;
-  onSnooze: (snoozedUntil: number) => void;
-  onAcknowledgeWake: () => void;
   childThreads: readonly PluginSidebarThread[];
-  childrenByParent: ReadonlyMap<string, readonly PluginSidebarThread[]>;
-  activeThreadId: string | null;
   childrenExpanded: boolean;
-  showRunningChildrenWhenCollapsed: boolean;
-  onToggleChildren: () => void;
   reorder?: ThreadReorderControls;
   /** Experimental: show threads with live work as a single line. */
   compactWhenWorking?: boolean;
-  /** Quantized clock, so every card in one render agrees on "now". */
-  now: number;
+  onRenamingChange?: (editing: boolean) => void;
 }) {
   const [pin] = useThreadActions(thread, { keys: ["bb--core/pin"] });
-  const navigate = useBbNavigate();
+  const {
+    providerById,
+    projectNameById,
+    projectIconRevision,
+    snoozePresets,
+    childrenByParentId: childrenByParent,
+    sidebarSettings,
+  } = useInboxEnvironment();
+  const { navigate, onNavigate, parkThread, settleThread, snoozeThread, acknowledgeWake, toggleChildExpansion } =
+    useInboxActions();
+  const { activeThreadId, now } = useInboxActivity();
+  const provider = providerById.get(thread.providerId) ?? null;
+  const projectName = projectNameById.get(thread.projectId) ?? null;
+  const projectIconUrl = iconUrl(thread.projectId, projectIconRevision);
+  const showRunningChildrenWhenCollapsed =
+    sidebarSettings?.showRunningChildrenWhenCollapsed ?? DEFAULT_SIDEBAR_SETTINGS.showRunningChildrenWhenCollapsed;
+  const onPark = () => parkThread(thread);
+  const onSettle = () => settleThread(thread);
+  const onSnooze = (until: number) => snoozeThread(thread, until);
+  const onAcknowledgeWake = () => acknowledgeWake(thread.id);
+  const onToggleChildren = () => toggleChildExpansion(thread.id);
   const jumpHint = useJumpHint(thread.id);
   const { splitProps, layout } = useSidebarThreadSplit(thread.id);
   const rowRef = useRef<HTMLLIElement>(null);
