@@ -78,13 +78,31 @@ Working/attention/woke states stay outside this suite. Those stay in the wired t
 There is no direct database mutation or mocked browser RPC response.
 
 Each behavior test resets pin/read/lifecycle/order state through the scratch
-CLI and plugin RPC, then gets a new browser context. The seven flows assert
+CLI and plugin RPC, then gets a new browser context. The twelve flows assert
 selection/rendering, pin persistence, Alt+ArrowUp manual order persistence,
 snooze/wake, settle/Undo, the complete right-click menu, and a sidebar settings
-change that updates visible snooze options and persists after reload. Server assertions
-check core pin/idle state and plugin lifecycle/order state. No production test
-IDs were added. The visual capture uses the existing `data-bb-sidebar-root`
-marker because the whole plugin container has no accessible role.
+change that updates visible snooze options and persists after reload. They also
+cover park/resume across reload, project filtering, custom project name/stripe
+colors through computed styles across reload, child-chip expansion/collapse,
+and the Settled Clean preview. Server assertions check core pin/idle/parent
+state and plugin lifecycle/order/settings/color state. No production test IDs
+were added. The visual capture uses the existing `data-bb-sidebar-root` marker
+because the whole plugin container has no accessible role.
+
+`seeds.mjs` creates a separate scratch Git checkout and project with one idle
+thread for filtering, and two idle children for the child-chip flow. Fixtures
+delete these extra projects/threads even when assertions fail. Children are
+assigned through the sidebar's Parent menu after their empty turns stop;
+`--parent-thread` on spawn can send completion reports that start the parent.
+The color flow clears its override and settings in a `finally` block. These
+seeds and overrides are gone before the four original snapshot captures.
+
+The Clean flow settles all four original seeds, which share a checkout, so an
+Active fixture cannot protect the workspace and hide resources. These seeds
+have no terminals or owned listening ports. The empty dialog offers Cancel,
+with no Clean resources button. The test calls the real cleanup RPC with the
+UI preview's token and verifies zero closed resources and unchanged thread,
+terminal, and lifecycle state. It does not exercise closing a real terminal.
 
 ## Visual baselines
 
@@ -109,7 +127,7 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
 ```
 
 Only macOS has reviewed baselines, so Linux skips the four visual comparisons
-and runs all seven behavior tests. This avoids treating font/rendering differences
+and runs all twelve behavior tests. This avoids treating font/rendering differences
 as product regressions. The manual Ubuntu workflow installs Chromium's
 Linux dependencies, `lsof`, and `procps`. It uploads screenshots, traces, reports, and isolation evidence on
 failure. Ubuntu execution and native addon installation need verification in
