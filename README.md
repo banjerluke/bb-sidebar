@@ -54,9 +54,8 @@ Use **Parent** in a thread's context menu to search threads in the same project,
 
 ### Contributors
 
-Thank you to everyone who has contributed to BB Sidebar:
-
-- [@a-kras](https://github.com/a-kras): Child threads settings, sorting, and provider icons ([#3](https://github.com/yusuf8834/bb-sidebar/pull/3)); pinned order, animated reordering, child-thread drag and drop, and full thread trees ([#6](https://github.com/yusuf8834/bb-sidebar/pull/6))
-- [@amrtawfik160](https://github.com/amrtawfik160): pull-request lookups only for visible rows ([#5](https://github.com/yusuf8834/bb-sidebar/pull/5))
-- [@banjerluke](https://github.com/banjerluke): row and card actions on touch devices ([#2](https://github.com/yusuf8834/bb-sidebar/pull/2))
-- [@elianiva](https://github.com/elianiva): bounded browser storage and quota-error recovery ([#1](https://github.com/yusuf8834/bb-sidebar/pull/1))
+- [@a-kras](https://github.com/a-kras)
+- [@amrtawfik160](https://github.com/amrtawfik160)
+- [@banjerluke](https://github.com/banjerluke)
+- [@elianiva](https://github.com/elianiva)
+- [@synco101](https://github.com/synco101)
