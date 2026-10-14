@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1] - 2026-10-14
+
+### Added
+
+- Select several projects in the sidebar's searchable project picker. The selection applies to every shelf and thread search, with an All projects action to reset it.
+- Project selections survive reloads independently in each window. Removed projects are cleared after the project list finishes loading.
+
+### Changed
+
+- Each selected project keeps its icon, and project names wrap onto additional lines instead of being truncated.
+- The project picker stays open while selecting projects, with a Done button to close it. Filtered thread searches show that they are limited to the selected projects.
+
 ## [0.3.0] - 2026-10-13
 
 ### Added
