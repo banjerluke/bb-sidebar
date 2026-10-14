@@ -45,7 +45,7 @@ interface ShelfThreads {
 interface ThreadInboxViewProps {
   shelves: Record<"pinned" | "inbox" | "working" | "inactive" | "snoozed" | "parked" | "settled", ShelfThreads>;
   jumpHintsRootRef: RefObject<HTMLDivElement | null>;
-  scope: string;
+  scope: readonly string[];
   reorderAnnouncement: string;
   attachScrollFadeRef: (node: HTMLDivElement | null) => void;
   status: ReturnType<typeof useSidebarThreads>["status"];
@@ -107,6 +107,12 @@ export function ThreadInboxView({
           onScopeChange={setScope}
         />
       </div>
+
+      {isSearching && scope.length > 0 ? (
+        <p className="px-3 pb-1 text-2xs text-muted-foreground">
+          Searching {scope.length === 1 ? "selected project" : `${scope.length} selected projects`}
+        </p>
+      ) : null}
 
       <p role="status" aria-live="polite" className="sr-only">
         {reorderAnnouncement}

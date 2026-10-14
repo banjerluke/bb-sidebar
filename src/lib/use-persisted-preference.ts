@@ -15,7 +15,7 @@ const noSnapshot = () => null;
 
 export function usePersistedPreference<T>(key: string, codec: PreferenceCodec<T>): [T, Dispatch<SetStateAction<T>>] {
   const [local, setLocal] = useState(() => readStoredValue(key, codec) ?? codec.fallback());
-  const snapshot = useCallback(() => readStorageRaw(key), [key]);
+  const snapshot = useCallback(() => readStorageRaw(key, codec.storage), [key, codec.storage]);
   const stored = useSyncExternalStore(
     codec.subscribe ?? noSubscription,
     codec.subscribe ? snapshot : noSnapshot,

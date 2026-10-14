@@ -4,12 +4,21 @@ import {
   activeSortCodec,
   childExpansionCodec,
   projectCollapseCodec,
+  projectScopeCodec,
   shelfExpansionCodec,
 } from "./inbox-preference-codecs";
 import { decodeStoredValue } from "./storage-codec";
 import { STORAGE_KEYS } from "./storage-keys";
 
 afterEach(() => localStorage.clear());
+
+it("validates saved project selections and removes duplicate IDs", () => {
+  expect(projectScopeCodec.decode('["b","a","b"]')).toEqual(["b", "a"]);
+  expect(projectScopeCodec.decode("[]")).toEqual([]);
+  for (const raw of [null, "invalid", "null", "{}", '["a",1]', '[""]', '[" "]']) {
+    expect(decodeStoredValue(raw, projectScopeCodec)).toBeNull();
+  }
+});
 
 it("retains permissive set filtering and the existing array formats", () => {
   for (const codec of [childExpansionCodec, projectCollapseCodec]) {

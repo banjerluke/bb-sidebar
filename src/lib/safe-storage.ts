@@ -14,9 +14,15 @@ function isQuotaExceededError(error: unknown): boolean {
   return false;
 }
 
-export function safeSetItem(key: string, value: string): boolean {
+export function safeSetItem(key: string, value: string, storage: "local" | "session" = "local"): boolean {
+  let target: Storage;
   try {
-    window.localStorage.setItem(key, value);
+    target = storage === "session" ? window.sessionStorage : window.localStorage;
+  } catch {
+    return false;
+  }
+  try {
+    target.setItem(key, value);
     return true;
   } catch (error) {
     if (!isQuotaExceededError(error)) return false;
@@ -26,12 +32,12 @@ export function safeSetItem(key: string, value: string): boolean {
     for (const candidate of PLUGIN_STORAGE_KEYS) {
       if (candidate === key) continue;
       try {
-        window.localStorage.removeItem(candidate);
+        target.removeItem(candidate);
       } catch {
         continue;
       }
       try {
-        window.localStorage.setItem(key, value);
+        target.setItem(key, value);
         return true;
       } catch (retryError) {
         if (!isQuotaExceededError(retryError)) return false;
@@ -41,7 +47,7 @@ export function safeSetItem(key: string, value: string): boolean {
     // The value still does not fit. Clear its old cache entry to leave room
     // for bb core, without ever removing keys owned by core or other plugins.
     try {
-      window.localStorage.removeItem(key);
+      target.removeItem(key);
     } catch {
       // Storage can become unavailable while recovering from quota pressure.
     }

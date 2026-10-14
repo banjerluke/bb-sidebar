@@ -3,8 +3,7 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
 import { childNeedsYouCount, childThreadsByParent, childrenOf } from "./ChildThreadList";
 import {
-  ALL_PROJECTS,
-  filterByProject,
+  filterByProjects,
   hideChildrenOfVisibleParents,
   parentOf,
   partitionPinned,
@@ -161,8 +160,8 @@ describe("searchThreadsByTitle", () => {
 describe("filtering", () => {
   it("scopes to one project, or to all", () => {
     const threads = [thread({ id: "a", projectId: "p1" }), thread({ id: "b", projectId: "p2" })];
-    expect(filterByProject(threads, "p1").map((t) => t.id)).toEqual(["a"]);
-    expect(filterByProject(threads, null)).toHaveLength(2);
+    expect(filterByProjects(threads, ["p1"]).map((t) => t.id)).toEqual(["a"]);
+    expect(filterByProjects(threads, [])).toHaveLength(2);
   });
 
   it("drops archived threads", () => {
@@ -329,11 +328,15 @@ describe("reconcileProjectScope", () => {
   const projects = [{ id: "project-a" }, { id: "project-b" }];
 
   it("keeps an available project and the all-projects scope", () => {
-    expect(reconcileProjectScope("project-a", projects)).toBe("project-a");
-    expect(reconcileProjectScope(ALL_PROJECTS, projects)).toBe(ALL_PROJECTS);
+    expect(reconcileProjectScope(["project-a"], projects)).toEqual(["project-a"]);
+    expect(reconcileProjectScope([], projects)).toEqual([]);
   });
 
   it("returns to all projects when the selected project disappears", () => {
-    expect(reconcileProjectScope("deleted-project", projects)).toBe(ALL_PROJECTS);
+    expect(reconcileProjectScope(["deleted-project"], projects)).toEqual([]);
+  });
+
+  it("drops only removed projects and preserves the chosen order", () => {
+    expect(reconcileProjectScope(["project-b", "deleted", "project-a"], projects)).toEqual(["project-b", "project-a"]);
   });
 });

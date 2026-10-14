@@ -53,7 +53,7 @@ it("keeps storage and event key construction inside their registries", () => {
   expect(unexpected).toEqual([]);
 });
 
-it("keeps production localStorage access inside the shared storage helpers", () => {
-  const accesses = sources.filter(({ content }) => content.includes("localStorage")).map(({ file }) => file);
+it("keeps production browser storage access inside the shared storage helpers", () => {
+  const accesses = sources.filter(({ content }) => /localStorage|sessionStorage/.test(content)).map(({ file }) => file);
   expect(accesses).toEqual(["src/lib/safe-storage.ts", "src/lib/storage-codec.ts"]);
 });

@@ -42,7 +42,7 @@ interface InboxContextInputs {
   snoozeThread: (thread: PluginSidebarThread, until: number) => void;
   toggleChildExpansion: (threadId: string) => void;
   setRenamingShelfLocks: ReturnType<typeof useRenamingShelfLocks>[1];
-  setScope: Dispatch<SetStateAction<string>>;
+  setScope: Dispatch<SetStateAction<string[]>>;
   setExpandedShelves: Dispatch<SetStateAction<ShelfExpansionState>>;
   setActiveSortMode: Dispatch<SetStateAction<ActiveSortMode>>;
   setSettledLimit: Dispatch<SetStateAction<number>>;

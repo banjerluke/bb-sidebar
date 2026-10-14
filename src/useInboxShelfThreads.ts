@@ -2,8 +2,7 @@ import { useMemo } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { LifecycleApi } from "./useLifecycle";
 import {
-  ALL_PROJECTS,
-  filterByProject,
+  filterByProjects,
   hideChildrenOfVisibleParents,
   partitionPinned,
   sortByCreatedAtDescending,
@@ -22,7 +21,7 @@ interface InboxShelfThreadsOptions {
   lifecycle: LifecycleApi;
   now: number;
   renamingShelfLocks: ReadonlyMap<string, "active" | "working" | "inactive">;
-  scope: string;
+  scope: readonly string[];
   threads: readonly PluginSidebarThread[];
   workingShelfEnabled: boolean;
 }
@@ -40,7 +39,7 @@ export function useInboxShelfThreads({
 }: InboxShelfThreadsOptions) {
   return useMemo(() => {
     const allVisible = visibleInboxThreads(threads);
-    const scoped = filterByProject(allVisible, scope === ALL_PROJECTS ? null : scope);
+    const scoped = filterByProjects(allVisible, scope);
     // Children live in their parent's header chip instead of the flat list;
     // an orphan whose parent is not on screen stays here.
     const visible = hideChildrenOfVisibleParents(scoped);

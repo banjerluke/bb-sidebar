@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { seededTest as test } from "./seeds.mjs";
 import { fixture, rpc, shelf, link, reset, open } from "./helpers.mjs";
 
-test("project filter shows only the chosen project and All projects restores every thread", async ({
+test("project filter remembers multiple projects per window and All projects restores every thread", async ({
   page,
   request,
   secondProject,
@@ -17,8 +17,36 @@ test("project filter shows only the chosen project and All projects restores eve
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(1);
   await expect(link(page, secondProject.thread.title)).toBeVisible();
   for (const { title } of fixture.threads) await expect(link(page, title)).toHaveCount(0);
-  await page.getByRole("button", { name: `Project scope: ${secondProject.name}`, exact: true }).click();
+
+  // The picker stays open for a second choice; Enter toggles the filtered result.
+  await page.getByRole("combobox", { name: "Filter projects" }).fill("Sidebar smoke");
+  await page.getByRole("combobox", { name: "Filter projects" }).press("Enter");
+  const selectedLabel = `Project scope: ${secondProject.name} + Sidebar smoke`;
+  await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
+  await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length + 1);
+
+  const otherWindow = await page.context().newPage();
+  try {
+    await open(otherWindow);
+    await expect(otherWindow.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
+    await otherWindow.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
+    await otherWindow.getByRole("option", { name: secondProject.name, exact: true }).click();
+    await page.reload();
+    await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
+  } finally {
+    await otherWindow.close();
+  }
+
+  await page.getByRole("button", { name: selectedLabel, exact: true }).click();
+  await page.getByRole("option", { name: "Sidebar smoke", exact: true }).click();
+  await expect(shelf(page, "Active").getByRole("link")).toHaveCount(1);
   await page.getByRole("option", { name: "All projects", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length + 1);
   for (const { title } of [...fixture.threads, secondProject.thread]) await expect(link(page, title)).toBeVisible();
 });

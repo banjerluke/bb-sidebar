@@ -6,6 +6,18 @@ import { readStorageRaw } from "./storage-codec";
 import { STORAGE_KEYS } from "./storage-keys";
 import type { PreferenceCodec } from "./use-persisted-preference";
 
+export const projectScopeCodec: PreferenceCodec<string[]> = {
+  storage: "session",
+  fallback: () => [],
+  decode: (stored) => {
+    const value: unknown = JSON.parse(stored ?? "null");
+    return Array.isArray(value) && value.every((id) => typeof id === "string" && id.trim().length > 0)
+      ? [...new Set(value)]
+      : null;
+  },
+  encode: JSON.stringify,
+};
+
 export const projectCollapseCodec: PreferenceCodec<Set<string>> = {
   fallback: () => new Set(),
   decode: (stored) => {

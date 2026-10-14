@@ -4,10 +4,11 @@ import { Icon } from "./components/Icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { projectIconUrl } from "./project-icons";
-import { ALL_PROJECTS, filterProjectsByName } from "./inbox";
+import { filterProjectsByName } from "./inbox";
 import { cn } from "./lib/utils";
 
 const ALL_PROJECTS_LABEL = "All projects";
+const ALL_PROJECTS = "__all__";
 const LISTBOX_ID = "bb-sidebar-project-scope-list";
 const optionId = (index: number) => `${LISTBOX_ID}-option-${index}`;
 
@@ -26,15 +27,16 @@ export function ProjectScopeSelect({
   projectIconRevision,
   onScopeChange,
 }: {
-  scope: string;
+  scope: readonly string[];
   projects: readonly PluginSidebarProject[];
   projectIconRevision: number;
-  onScopeChange: (scope: string) => void;
+  onScopeChange: (scope: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const queryRef = useRef<HTMLInputElement>(null);
 
   const options = useMemo<ScopeOption[]>(
     () => [
@@ -44,7 +46,9 @@ export function ProjectScopeSelect({
     [projects],
   );
   const matches = useMemo(() => filterProjectsByName(options, query), [options, query]);
-  const scopeLabel = options.find((option) => option.id === scope)?.name ?? ALL_PROJECTS_LABEL;
+  const scopeNames = scope.map((id) => projects.find((project) => project.id === id)?.name ?? id);
+  const scopeLabel = scope.length === 0 ? ALL_PROJECTS_LABEL : scopeNames.join(" + ");
+  const selected = (id: string) => (id === ALL_PROJECTS ? scope.length === 0 : scope.includes(id));
   // The highlight follows the list as filtering shrinks it under the cursor.
   const highlighted = matches.length === 0 ? -1 : Math.min(activeIndex, matches.length - 1);
 
@@ -57,14 +61,20 @@ export function ProjectScopeSelect({
     setOpen(nextOpen);
     setQuery("");
     if (nextOpen) {
-      const current = options.findIndex((option) => option.id === scope);
+      const current = options.findIndex((option) => selected(option.id));
       setActiveIndex(current < 0 ? 0 : current);
     }
   };
 
   const select = (optionId: string) => {
-    onScopeChange(optionId);
-    handleOpenChange(false);
+    onScopeChange(
+      optionId === ALL_PROJECTS
+        ? []
+        : scope.includes(optionId)
+          ? scope.filter((id) => id !== optionId)
+          : [...scope, optionId],
+    );
+    queryRef.current?.focus();
   };
 
   const handleTriggerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -78,6 +88,7 @@ export function ProjectScopeSelect({
   };
 
   const handleQueryKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (matches.length === 0) return;
@@ -107,14 +118,23 @@ export function ProjectScopeSelect({
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-label={`Project scope: ${scopeLabel}`}
+          title={scopeLabel}
           onKeyDown={handleTriggerKeyDown}
-          className="flex h-7 min-w-0 flex-1 items-center justify-between gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-sidebar-accent hover:duration-0"
+          className="flex min-h-7 min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-sidebar-accent hover:duration-0"
         >
-          <span className="flex min-w-0 items-center gap-1.5">
-            {scope !== ALL_PROJECTS ? (
-              <ProjectFavicon src={projectIconUrl(scope, projectIconRevision)} name={scopeLabel} className="size-3" />
-            ) : null}
-            <span className="truncate">{scopeLabel}</span>
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-left">
+            {scope.length === 0
+              ? ALL_PROJECTS_LABEL
+              : scope.map((id, index) => (
+                  <span key={id} className="flex min-w-0 max-w-full items-center gap-1.5">
+                    <ProjectFavicon
+                      src={projectIconUrl(id, projectIconRevision)}
+                      name={scopeNames[index]}
+                      className="size-3"
+                    />
+                    <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{scopeNames[index]}</span>
+                  </span>
+                ))}
           </span>
           <Icon name="ChevronDown" className="size-4 shrink-0 opacity-50" />
         </button>
@@ -123,6 +143,7 @@ export function ProjectScopeSelect({
         <div className="flex items-center gap-1.5 border-b border-border px-2">
           <Icon name="Search" className="size-3 shrink-0 opacity-50" aria-hidden="true" />
           <input
+            ref={queryRef}
             role="combobox"
             aria-label="Filter projects"
             aria-expanded
@@ -144,6 +165,7 @@ export function ProjectScopeSelect({
           id={LISTBOX_ID}
           role="listbox"
           aria-label="Projects"
+          aria-multiselectable="true"
           className="max-h-72 overflow-y-auto p-1"
         >
           {matches.length === 0 ? (
@@ -155,7 +177,7 @@ export function ProjectScopeSelect({
                 id={optionId(index)}
                 data-scope-option={index}
                 role="option"
-                aria-selected={option.id === scope}
+                aria-selected={selected(option.id)}
                 onPointerMove={() => setActiveIndex(index)}
                 onClick={() => select(option.id)}
                 className={cn(
@@ -173,14 +195,36 @@ export function ProjectScopeSelect({
                   ) : null}
                   <span className="truncate">{option.name}</span>
                 </span>
-                {option.id === scope ? (
-                  <span className="absolute right-2 flex size-3.5 items-center justify-center">
-                    <Icon name="Check" className="size-4" />
-                  </span>
-                ) : null}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute right-2 flex size-3.5 items-center justify-center rounded-sm border",
+                    selected(option.id)
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/40",
+                  )}
+                >
+                  {selected(option.id) ? <Icon name="Check" className="size-3" /> : null}
+                </span>
               </div>
             ))
           )}
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => select(ALL_PROJECTS)}
+            className="rounded-sm px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            All projects
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenChange(false)}
+            className="rounded-sm px-1 py-0.5 text-xs font-medium hover:bg-state-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            Done
+          </button>
         </div>
       </PopoverContent>
     </Popover>

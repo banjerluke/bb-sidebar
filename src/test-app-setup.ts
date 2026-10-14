@@ -11,6 +11,7 @@ function resetAppState() {
   resetTitleGenerationForTests();
   resetWorkingEmptyLineForTests();
   localStorage.clear();
+  sessionStorage.clear();
 }
 
 // Setup files run for every file, even when imported helpers are cached.

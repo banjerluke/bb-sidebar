@@ -1,10 +1,9 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 
-export const ALL_PROJECTS = "__all__";
-
-export function reconcileProjectScope(scope: string, projects: readonly { id: string }[]): string {
-  if (scope === ALL_PROJECTS) return scope;
-  return projects.some((project) => project.id === scope) ? scope : ALL_PROJECTS;
+export function reconcileProjectScope(scope: string[], projects: readonly { id: string }[]): string[] {
+  const available = new Set(projects.map((project) => project.id));
+  const remaining = scope.filter((id) => available.has(id));
+  return remaining.length === scope.length ? scope : remaining;
 }
 
 /**
@@ -57,13 +56,14 @@ export function filterProjectsByName<T extends { name: string }>(projects: reado
   return projects.filter((project) => project.name.toLowerCase().includes(normalized));
 }
 
-/** Threads in the chosen scope; every thread when the scope is null. */
-export function filterByProject(
+/** Threads in the chosen projects; an empty selection includes every project. */
+export function filterByProjects(
   threads: readonly PluginSidebarThread[],
-  projectId: string | null,
+  projectIds: readonly string[],
 ): PluginSidebarThread[] {
-  if (projectId === null) return [...threads];
-  return threads.filter((thread) => thread.projectId === projectId);
+  if (projectIds.length === 0) return [...threads];
+  const selected = new Set(projectIds);
+  return threads.filter((thread) => selected.has(thread.projectId));
 }
 
 /** Archived threads never belong in the inbox. */

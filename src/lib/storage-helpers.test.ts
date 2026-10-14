@@ -44,9 +44,25 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 describe("persisted preference", () => {
+  it("restores window preferences from session storage without changing local preferences", () => {
+    const sessionCodec: PreferenceCodec<number> = { ...codec, storage: "session" };
+    localStorage.setItem(key, "99");
+    const first = renderHook(() => usePersistedPreference(key, sessionCodec));
+    expect(first.result.current[0]).toBe(7);
+    act(() => first.result.current[1](12));
+    first.unmount();
+    const restored = renderHook(() => usePersistedPreference(key, sessionCodec));
+    expect(restored.result.current[0]).toBe(12);
+    expect(localStorage.getItem(key)).toBe("99");
+    sessionStorage.clear();
+    const freshWindow = renderHook(() => usePersistedPreference(key, sessionCodec));
+    expect(freshWindow.result.current[0]).toBe(7);
+  });
+
   it.each([null, "bad JSON", "{}", '"wrong type"'])("falls back for %s and writes the fallback on mount", (stored) => {
     if (stored !== null) localStorage.setItem(key, stored);
     const hook = renderHook(() => usePersistedPreference(key, codec));

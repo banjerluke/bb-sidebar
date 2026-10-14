@@ -35,14 +35,8 @@ import { useInboxReorder } from "./useInboxReorder";
 import { useWorkingSince } from "./useWorkingSince";
 import { useJumpHints } from "./JumpHints";
 import { useSidebarSettings } from "./useSidebarSettings";
-import {
-  ALL_PROJECTS,
-  filterByProject,
-  reconcileProjectScope,
-  searchThreadsByTitle,
-  threadDisplayTitle,
-  visibleInboxThreads,
-} from "./inbox";
+import { useProjectScope } from "./useProjectScope";
+import { filterByProjects, searchThreadsByTitle, threadDisplayTitle, visibleInboxThreads } from "./inbox";
 import {
   movePinnedIdByOffset,
   orderPinnedThreads,
@@ -97,10 +91,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   );
   const dockShelvesEnabled = sidebarSettings?.dockShelves ?? DEFAULT_SIDEBAR_SETTINGS.dockShelves;
   const workingShelfEnabled = sidebarSettings?.workingShelf ?? DEFAULT_SIDEBAR_SETTINGS.workingShelf;
-  const [scope, setScope] = useState<string>(ALL_PROJECTS);
-  useEffect(() => {
-    setScope((current) => reconcileProjectScope(current, projects));
-  }, [projects]);
+  const [scope, setScope] = useProjectScope({ projects, status });
   const now = useQuantizedNow();
   const projectNameById = useMemo(() => new Map(projects.map((project) => [project.id, project.name])), [projects]);
   const collapseCodec = useMemo(
@@ -454,10 +445,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   };
 
   const isSearching = searchQuery.trim().length > 0;
-  const searchCandidates = useMemo(
-    () => filterByProject(visibleInboxThreads(threads), scope === ALL_PROJECTS ? null : scope),
-    [scope, threads],
-  );
+  const searchCandidates = useMemo(() => filterByProjects(visibleInboxThreads(threads), scope), [scope, threads]);
   const searchResults = useMemo(
     () => searchThreadsByTitle(searchCandidates, searchQuery),
     [searchCandidates, searchQuery],
