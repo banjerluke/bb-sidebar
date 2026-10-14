@@ -39,6 +39,10 @@ try {
   );
   await server.checkIsolation("complete");
   process.exitCode = result.code ?? 1;
+  if (process.exitCode !== 0) await server.diagnostics();
+} catch (error) {
+  await server.diagnostics();
+  throw error;
 } finally {
   await server.cleanup();
   console.log(`E2E elapsed: ${((performance.now() - started) / 1000).toFixed(2)}s`);

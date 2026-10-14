@@ -18,6 +18,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Install fixture provider CLI
+        run: npm install --global @openai/codex@0.162.1
       - name: Install only Playwright Chromium and its Linux dependencies
         run: npx --no-install playwright install --with-deps chromium
       - name: Install process inspection tools

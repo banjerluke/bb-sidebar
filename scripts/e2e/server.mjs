@@ -124,6 +124,14 @@ export async function startScratchServer() {
   }
 
   try {
+    try {
+      const codex = await run("codex", ["--version"], { timeoutMs: 10_000 });
+      console.log(`FIXTURE PROVIDER: ${codex.stdout.trim()}`);
+    } catch (cause) {
+      throw new Error("Browser fixtures require Codex on PATH. Install @openai/codex@0.162.1 before running e2e.", {
+        cause,
+      });
+    }
     await createScratchKeychain({ ...env, BB_DATA_DIR: scratch });
     const runtimeModules = join(scratch, "runtime/node_modules");
     cpSync(resolve("node_modules"), runtimeModules, {
@@ -265,6 +273,24 @@ trace_exporter = "none"
     async function cli(argv, options) {
       return run(bb, argv, options);
     }
+    async function diagnostics() {
+      try {
+        writeFileSync(resolve("e2e-artifacts/server.log"), JSON.stringify(app.output(), null, 2));
+        const listing = await cli(["thread", "list", "--json"], { timeoutMs: 10_000 });
+        const data = JSON.parse(listing.stdout);
+        for (const thread of Array.isArray(data) ? data : (data.threads ?? [])) {
+          for (const command of ["get", "log"]) {
+            const result = await cli(["thread", command, thread.id, "--json"], {
+              allowFailure: true,
+              timeoutMs: 10_000,
+            });
+            writeFileSync(resolve(`e2e-artifacts/${thread.id}-${command}.json`), result.stdout || result.stderr);
+          }
+        }
+      } catch (error) {
+        console.error("Could not collect scratch thread diagnostics:", error.message);
+      }
+    }
     async function seed(title, { idle = false } = {}) {
       const result = await cli([
         "thread",
@@ -307,7 +333,7 @@ trace_exporter = "none"
       }
       return { id, title };
     }
-    return { url, scratch, env, toolEnv, cli, seed, run, cleanup, checkIsolation, projectId, bb };
+    return { url, scratch, env, toolEnv, cli, seed, run, cleanup, diagnostics, checkIsolation, projectId, bb };
   } catch (error) {
     await cleanup();
     throw error;

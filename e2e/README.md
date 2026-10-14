@@ -1,8 +1,9 @@
 # Sidebar browser tests
 
-Install dependencies with `npm ci`, then install only Chromium:
+Install dependencies with `npm ci`, the fixture provider CLI, and Chromium:
 
 ```sh
+npm install --global @openai/codex@0.162.1
 npx --no-install playwright install chromium
 # On Linux, install the browser's OS dependencies too:
 npx --no-install playwright install --with-deps chromium
@@ -75,6 +76,12 @@ this is a create-and-cancel fixture, not a guarantee that no turn ever starts.
 It supplies idle rows without completed agent output. The quick smoke keeps
 the original seven-day scheduled fixture.
 
+The launcher checks `codex --version` before starting the scratch server. CI
+installs the pinned CLI above; no login or credentials are needed. Without the
+executable, provider startup can fail before cancellation reaches the thread,
+leaving it in `error`. On suite failure, the runner saves server output and
+thread state/event logs in `e2e-artifacts/` before deleting scratch data.
+
 Seeding investigation: scheduled threads stayed `pending` even after queue
 deletion and stop; unknown providers were rejected; idle forks required an
 active provider session to clone. Empty-prompt creation and cancellation worked
@@ -134,8 +141,8 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
 Only macOS has reviewed baselines, so Linux skips the four visual comparisons
 and runs all twelve behavior tests. This avoids treating font/rendering
 differences as product regressions. The manual Ubuntu workflow installs
-Chromium's Linux dependencies, `lsof`, and `procps`. It uploads screenshots,
-traces, reports, and isolation evidence on failure. Ubuntu execution and
+Chromium's Linux dependencies, the pinned Codex CLI, `lsof`, and `procps`.
+It uploads screenshots, traces, reports, thread/server diagnostics, and isolation evidence on failure. Ubuntu execution and
 native addon installation need verification in CI; they cannot be verified
 from this macOS checkout. Linux snapshots should be added only after
 generating and reviewing them on the chosen runner.
