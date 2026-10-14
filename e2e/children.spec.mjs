@@ -1,20 +1,20 @@
 import { expect } from "@playwright/test";
 import { seededTest as test } from "./seeds.mjs";
-import { fixture, cli, shelf, link, menu, reset, open } from "./helpers.mjs";
+import { cli, shelf, link, menu, reset, open } from "./helpers.mjs";
 
-test("parent child-thread chip expands and collapses its children", async ({ page, request, children }) => {
+test("parent child-thread chip expands and collapses its children", async ({ page, request, family }) => {
   await reset(request);
   await open(page);
-  const parent = fixture.threads[0];
+  const { parent, children } = family;
+  expect((await cli(["thread", "get", parent.id])).thread.status).toBe("idle");
   for (const child of children) {
-    // CLI parenting sends completion reports when stop cancels the empty turn.
-    // Assign after stopping via the sidebar so the parent fixture stays idle.
+    // Ownership notifications can start a parent turn asynchronously. This
+    // family's parent is disposable so those turns cannot affect later tests.
     await (await menu(page, child.title)).getByRole("menuitem", { name: "Parent", exact: true }).hover();
     await page.getByRole("menuitemradio", { name: parent.title, exact: true }).click();
     await expect.poll(async () => (await cli(["thread", "get", child.id])).thread.parentThreadId).toBe(parent.id);
     await expect(link(page, child.title)).toHaveCount(0);
   }
-  expect((await cli(["thread", "get", parent.id])).thread.status).toBe("idle");
   const row = shelf(page, "Active")
     .getByRole("listitem")
     .filter({ has: page.getByRole("link", { name: parent.title, exact: true }) });

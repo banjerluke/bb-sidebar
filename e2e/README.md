@@ -90,7 +90,7 @@ Working/attention/woke states stay outside this suite. Those stay in the wired t
 There is no direct database mutation or mocked browser RPC response.
 
 Each behavior test resets pin/read/lifecycle/order state through the scratch
-CLI and plugin RPC, then gets a new browser context. The twelve flows assert
+CLI and plugin RPC, then gets a new browser context. The fourteen flows assert
 selection/rendering, pin persistence, Alt+ArrowUp manual order persistence,
 snooze/wake, settle/Undo, the complete right-click menu, and a sidebar settings
 change that updates visible snooze options and persists after reload. They also
@@ -102,10 +102,12 @@ were added. The visual capture uses the existing `data-bb-sidebar-root` marker
 because the whole plugin container has no accessible role.
 
 `seeds.mjs` creates a separate scratch Git checkout and project with one idle
-thread for filtering, and two idle children for the child-chip flow. Fixtures
+thread for filtering, and an idle parent with two idle children for the child-chip flow. Fixtures
 delete these extra projects/threads even when assertions fail. Children are
-assigned through the sidebar's Parent menu after their empty turns stop;
-`--parent-thread` on spawn can send completion reports that start the parent.
+assigned through the sidebar's Parent menu after their empty turns stop.
+Parent assignment can asynchronously send ownership notifications that start
+an agent turn, so this flow uses a disposable parent instead of a shared seed.
+The family is deleted at teardown; its background turns cannot affect later tests.
 The color flow clears its override and settings in a `finally` block. These
 seeds and overrides are gone before the four original snapshot captures.
 
@@ -139,12 +141,12 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --update-snapshots
 ```
 
 Only macOS has reviewed baselines, so Linux skips the four visual comparisons
-and runs all twelve behavior tests. This avoids treating font/rendering
+and runs all fourteen behavior tests. This avoids treating font/rendering
 differences as product regressions. The manual Ubuntu workflow installs
 Chromium's Linux dependencies, the pinned Codex CLI, `lsof`, and `procps`.
-It uploads screenshots, traces, reports, thread/server diagnostics, and isolation evidence on failure. Ubuntu execution and
-native addon installation need verification in CI; they cannot be verified
-from this macOS checkout. Linux snapshots should be added only after
+It uploads screenshots, traces, reports, thread/server diagnostics, and isolation
+evidence on failure. Use this workflow to verify Ubuntu execution and native
+addon installation; macOS checks do not cover them. Linux snapshots should be added only after
 generating and reviewing them on the chosen runner.
 
 Inspect failures with `npx --no-install playwright show-report` or

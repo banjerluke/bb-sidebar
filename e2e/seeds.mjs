@@ -78,15 +78,20 @@ export const seededTest = test.extend({
       await cli(["project", "delete", id, "--yes"]);
     }
   },
-  children: async ({}, use) => {
+  family: async ({}, use) => {
+    const parent = await seed("Chip parent");
     const children = [];
     try {
       for (const title of ["Atlas child one", "Atlas child two"]) {
         children.push(await seed(title));
       }
-      await use(children);
+      await use({ parent, children });
     } finally {
-      for (const { id } of children) await cli(["thread", "delete", id, "--yes"]);
+      try {
+        for (const { id } of children) await cli(["thread", "delete", id, "--yes"]);
+      } finally {
+        await cli(["thread", "delete", parent.id, "--yes"]);
+      }
     }
   },
 });
