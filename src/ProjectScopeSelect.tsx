@@ -18,6 +18,14 @@ interface ScopeOption {
 }
 
 /**
+ * Focusing the filter field raises the on-screen keyboard on touch devices,
+ * which covers the list the user opened the picker to tap.
+ */
+function hasCoarsePointer(): boolean {
+  return window.matchMedia?.("(pointer: coarse)").matches === true;
+}
+
+/**
  * Project scope picker. The card opens with a filter field in its first row, so
  * a long project list stays reachable by typing instead of scrolling.
  */
@@ -74,7 +82,7 @@ export function ProjectScopeSelect({
           ? scope.filter((id) => id !== optionId)
           : [...scope, optionId],
     );
-    queryRef.current?.focus();
+    if (!hasCoarsePointer()) queryRef.current?.focus();
   };
 
   const handleTriggerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -139,7 +147,12 @@ export function ProjectScopeSelect({
           <Icon name="ChevronDown" className="size-4 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-48 p-0">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] min-w-48 p-0"
+        onOpenAutoFocus={(event) => {
+          if (hasCoarsePointer()) event.preventDefault();
+        }}
+      >
         <div className="flex items-center gap-1.5 border-b border-border px-2">
           <Icon name="Search" className="size-3 shrink-0 opacity-50" aria-hidden="true" />
           <input

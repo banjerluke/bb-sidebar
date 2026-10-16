@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- On touch devices, opening the project picker or selecting a project no longer focuses the filter field, so the on-screen keyboard stays down. Tap the field to search.
+
 ## [0.3.1] - 2026-10-14
 
 ### Added

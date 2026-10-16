@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, it, vi } from "vitest";
+import { expect, it, onTestFinished, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, loadInboxApp, defaultSidebarSettings } from "./test-inbox";
@@ -156,4 +156,25 @@ it("filters every shelf without changing lifecycle or order", async () => {
     expect(screen.queryByText(`Beta ${shelf}`)).toBeNull();
   }
   expect(rendered.rpcCalls.filter(({ method }) => /^(reorder|settle|snooze|park|setThread)/.test(method))).toEqual([]);
+});
+
+it("keeps the on-screen keyboard down on touch devices", async () => {
+  // Reduced motion keeps list animations off; jsdom has no Element.animate.
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: query === "(pointer: coarse)" || query.includes("reduce"),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+  });
+  renderProjects();
+  const picker = openPicker();
+  const filter = screen.getByRole("combobox", { name: "Filter projects" });
+  await waitFor(() => expect(within(picker).getByRole("option", { name: "Alpha" })).toBeDefined());
+  expect(document.activeElement).not.toBe(filter);
+  fireEvent.click(within(picker).getByRole("option", { name: "Alpha" }));
+  expect(screen.getByRole("button", { name: "Project scope: Alpha" })).toBeDefined();
+  expect(document.activeElement).not.toBe(filter);
 });
