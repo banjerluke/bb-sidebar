@@ -12,6 +12,7 @@ import {
 const THREAD_DISPLAY_LABELS: Record<ThreadDisplay, string> = {
   full: "Full cards",
   "compact-working": "Compact working threads",
+  "compact-all": "Compact all threads",
 };
 
 export function SidebarLayoutSettings({
@@ -25,7 +26,7 @@ export function SidebarLayoutSettings({
       <SettingRow
         title="Thread display"
         experimental
-        description="Full cards show each thread on three lines. Compact working threads use one line while a thread or its child agents are working, and expand when work finishes, fails, or needs you."
+        description="Full cards show each thread on three lines. Compact working threads use one line while a thread or its child agents are working. Compact all threads keeps every thread on one line, with its status, unread state, and children chip."
         control={
           <SettingsSelect
             aria-label="Thread display"
@@ -40,7 +41,34 @@ export function SidebarLayoutSettings({
             ))}
           </SettingsSelect>
         }
-      />
+      >
+        {draft.threadDisplay === "compact-all" ? (
+          <div className="border-l-2 border-border">
+            <SettingRow
+              title="Keep pinned threads full"
+              description="Pinned threads keep their full cards."
+              control={
+                <Switch
+                  label="Keep pinned threads full"
+                  checked={draft.keepPinnedThreadsFull}
+                  onChange={(checked) => update("keepPinnedThreadsFull", checked)}
+                />
+              }
+            />
+            <SettingRow
+              title="Keep woken threads full"
+              description="A snoozed thread that wakes shows a full card until you open it or dismiss its Woke marker."
+              control={
+                <Switch
+                  label="Keep woken threads full"
+                  checked={draft.keepWokeThreadsFull}
+                  onChange={(checked) => update("keepWokeThreadsFull", checked)}
+                />
+              }
+            />
+          </div>
+        ) : null}
+      </SettingRow>
       <SettingRow
         title="Working shelf"
         experimental

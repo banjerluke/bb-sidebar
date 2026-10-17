@@ -38,6 +38,8 @@ const SECTION_BY_SETTING: Record<keyof SidebarSettingsValues, string> = {
   childSortDirection: "Child threads",
   childIconStyle: "Child threads",
   threadDisplay: "Sidebar layout",
+  keepPinnedThreadsFull: "Sidebar layout",
+  keepWokeThreadsFull: "Sidebar layout",
   compactWorkingThreads: "Sidebar layout",
   workingShelf: "Sidebar layout",
   dockShelves: "Sidebar layout",

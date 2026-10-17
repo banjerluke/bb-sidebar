@@ -4,6 +4,7 @@
 
 ### Added
 
+- Compact all threads, a new Thread display choice in Sidebar layout that keeps every Pinned, Active, and Inactive thread on one line with its status, unread state, Woke marker, and children chip. Options keep pinned or woken threads as full cards. Thanks @dillonzq (#16) and @a-kras.
 - Group by worktree, an option under the Project sort in the Active sort picker, off by default. Inside each project, root threads that share a bb worktree are grouped under its branch. Groups can be collapsed and reordered by drag or Alt+Arrow keys. Threads alone in their worktree, threads in the project checkout, and child threads stay as before. Thanks @s-KaiNet (#9).
 - Snoozed, Parked, and Settled rows show the child-thread chip, and the chip expands their children, as on compact working rows. Settling a thread folds its children; expanding them again in Settled sticks.
 
@@ -14,7 +15,7 @@
 
 ### Changed
 
-- The Compact working threads switch in Sidebar layout is now a Thread display choice: Full cards or Compact working threads. Your current choice carries over.
+- The Compact working threads switch in Sidebar layout is now the Thread display choice: Full cards, Compact working threads, or Compact all threads. Your current choice carries over.
 - The Active sort picker is now a menu with a check beside the current mode, so it can hold the Group by worktree option. Arrow keys move between modes, and Enter or a click closes it.
 - On phones and tablets, sidebar lists no longer animate rows into place. The animation kept measuring every row even when nothing moved.
 - Thread, project, and parent context menus use bb's menu text size and spacing.

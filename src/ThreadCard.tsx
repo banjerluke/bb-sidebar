@@ -1,5 +1,6 @@
 import { ThreadLocation, ThreadPullRequest } from "./ThreadMetadata";
 import { CompactRow } from "./CompactRow";
+import { WokeMarker } from "./WokeMarker";
 import { useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
 import {
   useId,
@@ -68,6 +69,7 @@ export function ThreadCard({
   childrenExpanded,
   reorder,
   compactWhenWorking = false,
+  compactAlways = false,
   onRenamingChange,
 }: {
   thread: PluginSidebarThread;
@@ -84,6 +86,8 @@ export function ThreadCard({
   reorder?: ThreadReorderControls;
   /** Experimental: show threads with live work as a single line. */
   compactWhenWorking?: boolean;
+  /** Compact all threads: one line regardless of work, woke state included. */
+  compactAlways?: boolean;
   onRenamingChange?: (editing: boolean) => void;
 }) {
   const [pin] = useThreadActions(thread, { keys: ["bb--core/pin"] });
@@ -185,7 +189,8 @@ export function ThreadCard({
   const liveStatus = threadShortStatus(thread)?.showsDuration === true;
   // A thread stays folded until everything under it is done; it unfolds at
   // once when it needs you, fails, or just woke.
-  const naturalCompact = compactWhenWorking && !isWoke && isWorkingTree(thread, childThreads, childrenByParent);
+  const naturalCompact =
+    compactAlways || (compactWhenWorking && !isWoke && isWorkingTree(thread, childThreads, childrenByParent));
   const compact = isRenaming ? compactAtRenameStart.current : naturalCompact;
   const stripeView = compact ? "collapsed" : "full";
   const projectColor = useProjectColor(thread.projectId);
@@ -313,6 +318,7 @@ export function ThreadCard({
                   ) : (
                     <>
                       {unpinButton}
+                      {isWoke ? <WokeMarker onDismiss={onAcknowledgeWake} /> : null}
                       {/* The parent's own run time while it works; otherwise its
                           usual status or age, with the badge showing the
                           children still running. */}
@@ -417,20 +423,7 @@ export function ThreadCard({
                 ) : isWoke ? (
                   <span className={cn(STATUS_SLOT_CLASS, "w-auto gap-1.5")}>
                     {unpinButton}
-                    <Tooltip label="Dismiss Woke marker">
-                      <button
-                        type="button"
-                        aria-label="Dismiss Woke marker"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          onAcknowledgeWake();
-                        }}
-                        className="pointer-events-auto text-2xs font-medium text-[color:var(--bb-sidebar-woke)] hover:underline"
-                      >
-                        Woke
-                      </button>
-                    </Tooltip>
+                    <WokeMarker onDismiss={onAcknowledgeWake} />
                     <StatusOrTime thread={thread} now={now} />
                   </span>
                 ) : (

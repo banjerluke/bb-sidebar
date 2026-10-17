@@ -111,6 +111,8 @@ export const defaultSidebarSettings = {
   childSortDirection: "ascending",
   childIconStyle: "disc",
   threadDisplay: "full",
+  keepPinnedThreadsFull: false,
+  keepWokeThreadsFull: false,
   compactWorkingThreads: false,
   workingShelf: false,
   dockShelves: false,

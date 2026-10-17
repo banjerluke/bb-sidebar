@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 // Production/scripts get 500 lines, tests 1,000. Shrinking debt must lower its ceiling.
 const debtLimits = {
   "src/ChildThreadList.tsx": 533,
-  "src/ThreadCard.tsx": 589,
+  "src/ThreadCard.tsx": 582,
 };
 const files = [
   "app.tsx",

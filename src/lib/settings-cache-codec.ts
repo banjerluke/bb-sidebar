@@ -39,6 +39,8 @@ export function decodeSettingsCache(input: unknown): SidebarSettingsValues | nul
     ...value,
     ...childThreadSettingsOf(value),
     threadDisplay: threadDisplayOf(value),
+    keepPinnedThreadsFull: value.keepPinnedThreadsFull === true,
+    keepWokeThreadsFull: value.keepWokeThreadsFull === true,
     compactWorkingThreads: threadDisplayOf(value) !== "full",
     workingShelf: value.workingShelf === true,
     dockShelves: value.dockShelves === true,

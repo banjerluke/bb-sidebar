@@ -21,6 +21,7 @@ export function createInboxThreadRenderer(
   },
 ) {
   const { sidebarSettings, lifecycle, childrenByParentId } = environment;
+  const settings = sidebarSettings ?? DEFAULT_SIDEBAR_SETTINGS;
   const { activeThreadId } = activity;
   const { setRenamingShelfLocks } = actions;
   const renderActiveThread = (
@@ -57,8 +58,11 @@ export function createInboxThreadRenderer(
           ? undefined
           : threadReorderControls(thread, shelf)
       }
-      compactWhenWorking={
-        compact || (sidebarSettings?.threadDisplay ?? DEFAULT_SIDEBAR_SETTINGS.threadDisplay) === "compact-working"
+      compactWhenWorking={compact || settings.threadDisplay === "compact-working"}
+      compactAlways={
+        settings.threadDisplay === "compact-all" &&
+        !(shelf === "pinned" && settings.keepPinnedThreadsFull) &&
+        !(wokeThreadIds.has(thread.id) && settings.keepWokeThreadsFull)
       }
     />
   );

@@ -250,8 +250,21 @@ it("replaces the compact switch with a thread display choice", async () => {
   expect([...(picker as HTMLSelectElement).options].map((option) => option.textContent)).toEqual([
     "Full cards",
     "Compact working threads",
+    "Compact all threads",
   ]);
   expect((picker as HTMLSelectElement).value).toBe("full");
   fireEvent.change(picker, { target: { value: "compact-working" } });
   await waitFor(() => expect(writes).toEqual([{ threadDisplay: "compact-working" }]));
+  // The Compact all options appear only with that choice.
+  expect(screen.queryByRole("switch", { name: "Keep pinned threads full" })).toBeNull();
+  fireEvent.change(picker, { target: { value: "compact-all" } });
+  fireEvent.click(await screen.findByRole("switch", { name: "Keep pinned threads full" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Keep woken threads full" }));
+  await waitFor(() =>
+    expect(stored).toMatchObject({
+      threadDisplay: "compact-all",
+      keepPinnedThreadsFull: true,
+      keepWokeThreadsFull: true,
+    }),
+  );
 });

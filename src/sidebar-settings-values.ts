@@ -9,7 +9,7 @@ export type ChildThreadSortDirection = (typeof CHILD_THREAD_SORT_DIRECTIONS)[num
 export const CHILD_THREAD_ICON_STYLES = ["disc", "provider"] as const;
 export type ChildThreadIconStyle = (typeof CHILD_THREAD_ICON_STYLES)[number];
 
-export const THREAD_DISPLAYS = ["full", "compact-working"] as const;
+export const THREAD_DISPLAYS = ["full", "compact-working", "compact-all"] as const;
 export type ThreadDisplay = (typeof THREAD_DISPLAYS)[number];
 
 export const PROJECT_COLOR_DISPLAYS = ["all", "full", "grouped"] as const;
@@ -33,6 +33,10 @@ export interface SidebarSettingsValues {
   childIconStyle: ChildThreadIconStyle;
   /** How Pinned, Active, and Inactive threads are drawn. */
   threadDisplay: ThreadDisplay;
+  /** With Compact all threads: keep pinned threads as full cards. */
+  keepPinnedThreadsFull: boolean;
+  /** With Compact all threads: keep threads that just woke as full cards. */
+  keepWokeThreadsFull: boolean;
   /**
    * Legacy switch that threadDisplay replaced. Kept in step with it so an
    * older plugin version still reads the user's choice.
@@ -59,6 +63,8 @@ export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   childSortDirection: "ascending",
   childIconStyle: "disc",
   threadDisplay: "full",
+  keepPinnedThreadsFull: false,
+  keepWokeThreadsFull: false,
   compactWorkingThreads: false,
   workingShelf: false,
   dockShelves: false,

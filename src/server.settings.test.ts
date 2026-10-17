@@ -257,8 +257,8 @@ it.each([
   [{ compactWorkingThreads: true }, "compact-working"],
   [{ compactWorkingThreads: false }, "full"],
   // A newer version's choice this version doesn't know falls back to the switch it kept in step.
-  [{ threadDisplay: "compact-all", compactWorkingThreads: true }, "compact-working"],
-  [{ threadDisplay: "compact-all", compactWorkingThreads: false }, "full"],
+  [{ threadDisplay: "dense-future", compactWorkingThreads: true }, "compact-working"],
+  [{ threadDisplay: "dense-future", compactWorkingThreads: false }, "full"],
 ])("reads thread display %j from settings saved without a known value", async (stored, threadDisplay) => {
   const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
   await plugin(bb);
@@ -278,6 +278,10 @@ it("keeps the legacy switch in step when thread display changes", async () => {
   await expect(
     harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "compact-working" }),
   ).resolves.toMatchObject({ threadDisplay: "compact-working", compactWorkingThreads: true });
+  // An older version reads Compact all as the old switch turned on.
+  await expect(
+    harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "compact-all" }),
+  ).resolves.toMatchObject({ threadDisplay: "compact-all", compactWorkingThreads: true });
   await expect(harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "full" })).resolves.toMatchObject({
     threadDisplay: "full",
     compactWorkingThreads: false,
