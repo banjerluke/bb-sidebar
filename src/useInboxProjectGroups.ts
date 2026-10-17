@@ -59,17 +59,28 @@ export function useInboxProjectGroups({
     () => layoutActiveGroups(orderedInbox, groupEnvironments),
     [orderedInbox, groupEnvironments],
   );
+  // Rows move across environments when their environment headers are hidden.
+  // Keep the full thread lists so rebasing preserves hidden siblings' slots.
+  const reorderUnits = useMemo(
+    () =>
+      groupEnvironments && !expanded
+        ? orderedInbox.map((thread): ProjectViewUnit => ({ kind: "thread", key: thread.id, thread }))
+        : storedUnits.map((unit) =>
+            unit.kind === "group" && collapsedProjects.has(unit.projectId) ? { ...unit, children: undefined } : unit,
+          ),
+    [orderedInbox, storedUnits, groupEnvironments, expanded, collapsedProjects],
+  );
   const orderUnits = useMemo(() => allOrderUnits(storedUnits), [storedUnits]);
   const inbox = useMemo(() => {
     if (dragOrder?.shelf !== "inbox") return orderedInbox;
-    const scope = unitsAtScope(storedUnits, dragOrder.parentKey ?? null);
+    const scope = unitsAtScope(reorderUnits, dragOrder.parentKey ?? null);
     if (dragOrder.mode === "unit" && !scope.some((unit) => unit.key === dragOrder.movingId)) return orderedInbox;
     const idsByKey = new Map(projectOrderUnits(scope).map((unit) => [unit.key, unit.ids]));
     return orderSubsetInPlace(
       orderedInbox,
       dragOrder.mode === "unit" ? dragOrder.ids.flatMap((key) => idsByKey.get(key) ?? []) : dragOrder.ids,
     );
-  }, [orderedInbox, storedUnits, dragOrder]);
+  }, [orderedInbox, reorderUnits, dragOrder]);
   const units = useMemo(() => layoutActiveGroups(inbox, groupEnvironments), [inbox, groupEnvironments]);
   const visibleInbox = useMemo(
     () => visibleShelfThreads(inbox, expanded, activeThreadId, undefined, attentionIds),
@@ -84,7 +95,7 @@ export function useInboxProjectGroups({
   );
   const reorderScope = (key: string): ReorderScope => {
     const visibleKeys = new Set(allOrderUnits(view).map((unit) => unit.key));
-    const { units: scopeUnits, parentKey } = siblingScope(storedUnits, key);
+    const { units: scopeUnits, parentKey } = siblingScope(reorderUnits, key);
     const siblings = scopeUnits.filter(
       (unit) =>
         visibleKeys.has(unit.key) ||
@@ -103,7 +114,7 @@ export function useInboxProjectGroups({
     parentKey: string | null,
   ) => {
     const participating = new Set(previewIds);
-    const liveUnits = projectOrderUnits(unitsAtScope(storedUnits, parentKey)).filter((unit) =>
+    const liveUnits = projectOrderUnits(unitsAtScope(reorderUnits, parentKey)).filter((unit) =>
       participating.has(unit.key),
     );
     if (!liveUnits.some((unit) => unit.key === movingId)) return null;

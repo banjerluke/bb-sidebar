@@ -192,6 +192,48 @@ it("reorders threads only within their environment and moves whole environments 
   ).toEqual(["Search review", "Search implementation"]);
 });
 
+it.each(["project", "shelf"].flatMap((fold) => ["keyboard", "pointer"].map((gesture) => ({ fold, gesture }))))(
+  "reorders flat rows in a collapsed grouped $fold with $gesture",
+  async ({ fold, gesture }) => {
+    const rendered = setup({
+      activeThreadId: "a",
+      rows: [
+        thread({ id: "a", title: "Search implementation", environment: worktree("search") }),
+        thread({ id: "b", title: "Search review", environment: worktree("search") }),
+        thread({ id: "c", title: "Menu implementation", environment: worktree("menus") }),
+        thread({ id: "d", title: "Menu review", environment: worktree("menus") }),
+        thread({ id: "child", title: "Working child", parentThreadId: "c", indicator: "runtime" }),
+      ],
+    });
+    await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "listInboxOrder")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: fold === "project" ? "Sidebar (4)" : "Active" }));
+    const active = screen.getByRole("region", { name: "Active" });
+    const visible = () =>
+      within(active)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("aria-label"));
+    expect(visible()).toEqual(["Search implementation", "Menu implementation"]);
+    expect(within(active).queryByRole("region", { name: "search environment" })).toBeNull();
+    const row = screen.getByRole("link", { name: "Search implementation" });
+    if (gesture === "keyboard") {
+      fireEvent.keyDown(row, { key: "ArrowDown", altKey: true });
+      expect(screen.getByText("Search implementation moved to 2 of 2 in Active")).toBeDefined();
+    } else {
+      vi.mocked(document.elementFromPoint).mockReturnValue(
+        screen.getByRole("link", { name: "Menu implementation" }).closest("li")!,
+      );
+      fireEvent.pointerDown(row, { button: 0, clientX: 20, clientY: 0, pointerId: 1 });
+      fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 60, pointerId: 1 });
+      expect(visible()).toEqual(["Menu implementation", "Search implementation"]);
+      fireEvent.pointerUp(window, { clientX: 20, clientY: 60, pointerId: 1 });
+    }
+    await waitFor(() =>
+      expect(rendered.save).toHaveBeenCalledExactlyOnceWith({ inboxThreadIds: ["child", "c", "b", "a", "d"] }),
+    );
+    expect(visible()).toEqual(["Menu implementation", "Search implementation"]);
+  },
+);
+
 it("rebases an environment drag on host updates while preserving another project's slot", async () => {
   const rendered = setup({
     rows: [
