@@ -98,13 +98,16 @@ export function SlimRow({
             <>
               <OpenPortsIndicator thread={thread} />
               {childThreads.length > 0 ? (
-                <ChildThreadBadge
-                  threads={childThreads}
-                  childrenByParent={childrenByParentId}
-                  expanded={childrenExpanded}
-                  controls={childListId}
-                  onToggle={() => toggleChildExpansion(thread.id)}
-                />
+                // Positioned, so the chip sits above the row's full-bleed link.
+                <span className="pointer-events-none relative flex shrink-0 items-center">
+                  <ChildThreadBadge
+                    threads={childThreads}
+                    childrenByParent={childrenByParentId}
+                    expanded={childrenExpanded}
+                    controls={childListId}
+                    onToggle={() => toggleChildExpansion(thread.id)}
+                  />
+                </span>
               ) : null}
               {/* Size to the label so the port icon stays beside it. Keep enough
               room for the restore button, which replaces the label on hover.
