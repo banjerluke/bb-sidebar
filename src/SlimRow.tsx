@@ -2,15 +2,12 @@ import { useState } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
-import { cn } from "./lib/utils";
+import { CompactRow } from "./CompactRow";
 import { RowContextMenu } from "./RowContextMenu";
 import { StatusOrTime } from "./StatusSlot";
 import { threadDisplayTitle } from "./inbox";
 import { snoozeWakeLabel } from "./lifecycle";
-import { InlineThreadTitle } from "./InlineThreadTitle";
-import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
-import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
 import { OpenPortsIndicator } from "./OpenPorts";
 import { JumpHint, useJumpHint } from "./JumpHints";
 import { useInboxEnvironment, useInboxActions } from "./InboxContext";
@@ -71,128 +68,74 @@ export function SlimRow({
       onRename={() => setIsRenaming(true)}
     >
       <li className="list-none">
-        <div
-          className={cn(
-            "group/slim relative flex h-8 items-center gap-2 rounded-md px-2.5 text-xs transition-colors duration-150 ease-out motion-reduce:transition-none",
-            isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60",
-          )}
-        >
-          {projectName ? <ProjectStripe projectId={thread.projectId} view="collapsed" /> : null}
-          <ThreadDetailsTooltip thread={thread} disabled={isRenaming}>
-            <a
-              data-sidebar-thread-shortcut-target=""
-              data-sidebar-thread-id={thread.id}
-              href="#"
-              aria-label={rowLabel}
-              aria-current={isActive ? "page" : undefined}
-              onClick={(event) => {
-                event.preventDefault();
-                if (isRenaming || event.detail > 1) return;
-                navigate.toThread(thread.id, { split: false });
-                onNavigate();
-              }}
-              onDoubleClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setIsRenaming(true);
-              }}
-              className="absolute inset-0 cursor-pointer rounded-md"
-            />
-          </ThreadDetailsTooltip>
-          <span
-            className={cn(
-              "pointer-events-none relative flex min-w-0 flex-1 items-center gap-1",
-              isRenaming && "pointer-events-auto",
-              isActive ? "text-foreground" : "text-muted-foreground/70",
-              "group-hover/slim:text-foreground",
-            )}
-          >
-            {projectName && !isRenaming ? (
-              <>
-                <ProjectFavicon
-                  projectId={thread.projectId}
-                  src={projectIconUrl}
-                  name={projectName}
-                  className="size-3"
-                />
-                <span
-                  style={projectColor}
-                  className={cn(
-                    "max-w-[40%] shrink truncate",
-                    projectColor
-                      ? "bb-sidebar-project-name"
-                      : isActive
-                        ? "text-muted-foreground/70"
-                        : "text-muted-foreground/50 group-hover/slim:text-muted-foreground/70",
-                  )}
-                >
-                  {projectName}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "shrink-0 text-sm leading-none",
-                    isActive
-                      ? "text-muted-foreground/60"
-                      : "text-muted-foreground/45 group-hover/slim:text-muted-foreground/60",
-                  )}
-                >
-                  ·
-                </span>
-              </>
-            ) : null}
-            <InlineThreadTitle
-              thread={thread}
-              editing={isRenaming}
-              onEditingChange={setIsRenaming}
-              className={cn(
-                "min-w-0 flex-1 truncate",
-                isActive ? "text-foreground" : "text-foreground/80 group-hover/slim:text-foreground",
-              )}
-            />
-          </span>
-          <OpenPortsIndicator thread={thread} />
-          {/* Size to the label so the port icon stays beside it. Keep enough
+        <CompactRow
+          thread={thread}
+          tone="muted"
+          projectName={projectName}
+          projectIconUrl={projectIconUrl}
+          projectColor={projectColor}
+          label={rowLabel}
+          isActive={isActive}
+          isRenaming={isRenaming}
+          onRenamingChange={setIsRenaming}
+          onOpen={() => {
+            navigate.toThread(thread.id, { split: false });
+            onNavigate();
+          }}
+          trailing={
+            <>
+              <OpenPortsIndicator thread={thread} />
+              {/* Size to the label so the port icon stays beside it. Keep enough
               room for the restore button, which replaces the label on hover.
               On touch devices, show both side by side. */}
-          {jumpHint ? (
-            <JumpHint label={jumpHint} />
-          ) : (
-            <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
-              <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">
-                {shelf === "parked" && parkedAt != null ? (
-                  `Waiting ${Math.max(0, Math.floor((now - parkedAt) / 86_400_000))}d`
-                ) : shelf === "snoozed" && wakeAt !== null ? (
-                  snoozeWakeLabel(wakeAt, now)
-                ) : (
-                  <StatusOrTime thread={thread} now={now} />
-                )}
-              </span>
-              <Tooltip
-                label={
-                  shelf === "parked" ? "Resume thread" : shelf === "snoozed" ? "Wake thread now" : "Un-settle thread"
-                }
-              >
-                <button
-                  type="button"
-                  aria-label={
-                    shelf === "parked" ? "Resume thread" : shelf === "snoozed" ? "Wake thread now" : "Un-settle thread"
-                  }
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onRestore();
-                  }}
-                  // Pulled right by its own padding, so the icon — not the hit
-                  // area — lands on the column.
-                  className="pointer-events-auto absolute -right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 group-hover/slim:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
-                >
-                  <Icon name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"} className="size-3.5" />
-                </button>
-              </Tooltip>
-            </span>
-          )}
-        </div>
+              {jumpHint ? (
+                <JumpHint label={jumpHint} />
+              ) : (
+                <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
+                  <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">
+                    {shelf === "parked" && parkedAt != null ? (
+                      `Waiting ${Math.max(0, Math.floor((now - parkedAt) / 86_400_000))}d`
+                    ) : shelf === "snoozed" && wakeAt !== null ? (
+                      snoozeWakeLabel(wakeAt, now)
+                    ) : (
+                      <StatusOrTime thread={thread} now={now} />
+                    )}
+                  </span>
+                  <Tooltip
+                    label={
+                      shelf === "parked"
+                        ? "Resume thread"
+                        : shelf === "snoozed"
+                          ? "Wake thread now"
+                          : "Un-settle thread"
+                    }
+                  >
+                    <button
+                      type="button"
+                      aria-label={
+                        shelf === "parked"
+                          ? "Resume thread"
+                          : shelf === "snoozed"
+                            ? "Wake thread now"
+                            : "Un-settle thread"
+                      }
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onRestore();
+                      }}
+                      // Pulled right by its own padding, so the icon — not the hit
+                      // area — lands on the column.
+                      className="pointer-events-auto absolute -right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 group-hover/slim:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
+                    >
+                      <Icon name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"} className="size-3.5" />
+                    </button>
+                  </Tooltip>
+                </span>
+              )}
+            </>
+          }
+        />
       </li>
     </RowContextMenu>
   );
