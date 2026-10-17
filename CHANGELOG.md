@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Group by worktree, an option under the Project sort in the Active sort picker, off by default. Inside each project, root threads that share a bb worktree are grouped under its branch. Groups can be collapsed and reordered by drag or Alt+Arrow keys. Threads alone in their worktree, threads in the project checkout, and child threads stay as before. Thanks @s-KaiNet (#9).
+
 ### Fixed
 
 - On touch devices, opening the project picker or selecting a project no longer focuses the filter field, so the on-screen keyboard stays down. Tap the field to search.
@@ -9,6 +13,10 @@
 
 ### Changed
 
+- The Active sort picker is now a menu with a check beside the current mode, so it can hold the Group by worktree option. Arrow keys move between modes, and Enter or a click closes it.
+- On phones and tablets, sidebar lists no longer animate rows into place. The animation kept measuring every row even when nothing moved.
+- Thread, project, and parent context menus use bb's menu text size and spacing.
+- The settings page no longer has a row of section links at the top. Sections still follow each other on one page under their own headings.
 - Thread hover cards show the model and reasoning effort on one line with bb's names, such as GPT 6.1 Sol Medium, instead of the raw model ID. Thanks @dillonzq.
 - Built against bb 0.46.1 and plugin SDK 0.6.49. bb 0.46.0 remains supported.
 
