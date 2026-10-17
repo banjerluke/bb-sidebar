@@ -41,7 +41,7 @@ export async function lastUserMessages(bb: BbPluginApi, threadId: string) {
     });
     for (const row of userRows(page.rows)) found.set(row.id, row);
     cursor = page.timelinePage.olderCursor;
-    if (!page.timelinePage.hasOlderRows || !cursor) break;
+    if (!cursor) break;
     const key = JSON.stringify(cursor);
     if (cursors.has(key)) throw new Error("Could not read the latest user messages");
     cursors.add(key);

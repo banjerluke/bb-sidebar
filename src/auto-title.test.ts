@@ -237,7 +237,7 @@ function setupCodex(text = "Check this sidebar pull request") {
         turnRequest: { status: "accepted" },
       },
     ],
-    timelinePage: { hasOlderRows: false, olderCursor: null },
+    timelinePage: { olderCursor: null },
   }));
   state.sdk.stub("providers.list", async () => [{ id: "codex", available: true }]);
   state.sdk.stub("providers.models", async () => ({

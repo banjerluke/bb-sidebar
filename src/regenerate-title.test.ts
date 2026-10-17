@@ -25,7 +25,6 @@ function page(rows: unknown[], older = false) {
   return {
     rows,
     timelinePage: {
-      hasOlderRows: older,
       olderCursor: older ? { anchorId: "older", anchorSeq: 4 } : null,
     },
   };

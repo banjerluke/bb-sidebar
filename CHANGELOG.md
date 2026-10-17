@@ -5,6 +5,11 @@
 ### Fixed
 
 - On touch devices, opening the project picker or selecting a project no longer focuses the filter field, so the on-screen keyboard stays down. Tap the field to search.
+- On bb 0.46.1, Regenerate title reads the thread's earlier messages again instead of only the most recent ones.
+
+### Changed
+
+- Built against bb 0.46.1 and plugin SDK 0.6.49. bb 0.46.0 remains supported.
 
 ## [0.3.1] - 2026-10-14
 
