@@ -64,7 +64,7 @@ export function useInboxProjectGroups({
   const reorderUnits = useMemo(
     () =>
       groupEnvironments && !expanded
-        ? orderedInbox.map((thread): ProjectViewUnit => ({ kind: "thread", key: thread.id, thread }))
+        ? layoutActiveGroups(orderedInbox, false)
         : storedUnits.map((unit) =>
             unit.kind === "group" && collapsedProjects.has(unit.projectId) ? { ...unit, children: undefined } : unit,
           ),

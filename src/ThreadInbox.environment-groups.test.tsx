@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, loadInboxApp } from "./test-inbox";
@@ -231,6 +231,72 @@ it.each(["project", "shelf"].flatMap((fold) => ["keyboard", "pointer"].map((gest
       expect(rendered.save).toHaveBeenCalledExactlyOnceWith({ inboxThreadIds: ["child", "c", "b", "a", "d"] }),
     );
     expect(visible()).toEqual(["Menu implementation", "Search implementation"]);
+  },
+);
+
+it.each([false, true].flatMap((enabled) => ["keyboard", "pointer"].map((gesture) => ({ enabled, gesture }))))(
+  "keeps folded Active reordering within projects: grouping=$enabled/$gesture",
+  async ({ enabled, gesture }) => {
+    const rows = [
+      thread({ id: "a", title: "A", environment: worktree("search") }),
+      thread({ id: "x", title: "X", projectId: "other" }),
+      thread({ id: "b", title: "B", environment: worktree("search") }),
+      thread({ id: "c", title: "C", environment: worktree("menus") }),
+      thread({ id: "y", title: "Y", projectId: "other" }),
+      thread({ id: "d", title: "D", environment: worktree("menus") }),
+      ...["x", "c", "y"].map((id) =>
+        thread({
+          id: `child-${id}`,
+          title: `Working child of ${id}`,
+          projectId: id === "c" ? "proj_1" : "other",
+          parentThreadId: id,
+          indicator: "runtime",
+        }),
+      ),
+    ];
+    const rendered = setup({ enabled, activeThreadId: "a", rows });
+    await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "listInboxOrder")).toBe(true));
+    await rendered.pushOrder(rows.map((row) => row.id));
+    fireEvent.click(screen.getByRole("button", { name: "Active" }));
+    const active = screen.getByRole("region", { name: "Active" });
+    const visible = () =>
+      within(active)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("aria-label"));
+    expect(visible()).toEqual(["A", "X", "C", "Y"]);
+    const row = within(active).getByRole("link", { name: "A" });
+    if (gesture === "keyboard") {
+      await act(async () => {
+        fireEvent.keyDown(row, { key: "ArrowDown", altKey: true });
+      });
+      expect(screen.getByRole("status").textContent).toBe("A moved to 2 of 2 in Active");
+    } else {
+      vi.mocked(document.elementFromPoint).mockReturnValue(
+        within(active).getByRole("link", { name: "X" }).closest("li")!,
+      );
+      fireEvent.pointerDown(row, { button: 0, clientX: 20, clientY: 0, pointerId: 1 });
+      fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 30, pointerId: 1 });
+      expect(visible()).toEqual(["A", "X", "C", "Y"]);
+      expect(rendered.save).not.toHaveBeenCalled();
+      vi.mocked(document.elementFromPoint).mockReturnValue(
+        within(active).getByRole("link", { name: "C" }).closest("li")!,
+      );
+      fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 60, pointerId: 1 });
+      expect(visible()).toEqual(["C", "X", "A", "Y"]);
+      fireEvent.pointerUp(window, { clientX: 20, clientY: 60, pointerId: 1 });
+      expect(screen.getByRole("status").textContent).toBe("");
+    }
+    await waitFor(() =>
+      expect(rendered.save).toHaveBeenCalledExactlyOnceWith({
+        inboxThreadIds: ["c", "x", "b", "a", "y", "d", "child-x", "child-c", "child-y"],
+      }),
+    );
+    expect(visible()).toEqual(["C", "X", "A", "Y"]);
+    if (gesture === "keyboard") {
+      fireEvent.keyDown(row, { key: "ArrowDown", altKey: true });
+      expect(screen.getByRole("status").textContent).toBe("A is already last in Active");
+      expect(rendered.save).toHaveBeenCalledTimes(1);
+    }
   },
 );
 
