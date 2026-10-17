@@ -95,7 +95,7 @@ export function ActiveSortPicker({
                 onChange={(event) => onGroupEnvironmentsChange(event.target.checked)}
               />
               <span className="flex items-center justify-between gap-4 rounded-sm px-2 py-1.5 text-xs hover:bg-state-hover peer-focus-visible:bg-state-hover">
-                Group by environment
+                Group by worktree
                 <span className="flex size-3.5 items-center justify-center">
                   {groupEnvironments ? <Icon name="Check" className="size-4" aria-hidden /> : null}
                 </span>

@@ -29,7 +29,7 @@ export function EnvironmentGroup({
         reorder.isDragging && "relative z-20 bg-sidebar-accent shadow-lg ring-1 ring-sidebar-border",
       )}
     >
-      <section data-drag-visual="" aria-label={`${label} environment`}>
+      <section data-drag-visual="" aria-label={`${label} worktree`}>
         <button
           type="button"
           data-reorder-key={unit.key}

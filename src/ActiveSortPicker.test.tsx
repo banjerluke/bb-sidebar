@@ -52,7 +52,7 @@ it("keeps Project open for environment grouping after pointer and Enter activati
   fireEvent.click(project, { detail: 1 });
   fireEvent.keyDown(project, { key: "Enter" });
   expect(screen.getByRole("dialog", { name: "Sort active threads" })).toBeDefined();
-  const toggle = screen.getByRole("checkbox", { name: "Group by environment" });
+  const toggle = screen.getByRole("checkbox", { name: "Group by worktree" });
   fireEvent.click(toggle);
   expect((toggle as HTMLInputElement).checked).toBe(true);
 });

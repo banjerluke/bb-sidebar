@@ -47,7 +47,7 @@ test("Active sort keeps Project open and dismisses other pointer choices", async
   await expect(project).toBeChecked();
   await project.press("Enter");
   await expect(picker).toHaveAttribute("data-state", "open");
-  const toggle = picker.getByRole("checkbox", { name: "Group by environment" });
+  const toggle = picker.getByRole("checkbox", { name: "Group by worktree" });
   await expect(toggle).toBeVisible();
   await toggle.press("Space");
   await expect(toggle).toBeChecked();

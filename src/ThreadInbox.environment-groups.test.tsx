@@ -72,27 +72,27 @@ function setup({
 
 it("shows environment grouping only inside the Project sort picker and remembers it across modes", async () => {
   const rendered = setup({ enabled: false });
-  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
   fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Project" }), { key: "Enter" });
   const picker = screen.getByRole("dialog", { name: "Sort active threads" });
-  const toggle = within(picker).getByRole("checkbox", { name: "Group by environment" });
+  const toggle = within(picker).getByRole("checkbox", { name: "Group by worktree" });
   expect((toggle as HTMLInputElement).checked).toBe(false);
-  expect(screen.queryByRole("region", { name: "search environment" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "search worktree" })).toBeNull();
   fireEvent.click(toggle);
-  expect(screen.getByRole("region", { name: "search environment" })).toBeDefined();
+  expect(screen.getByRole("region", { name: "search worktree" })).toBeDefined();
   expect(localStorage.getItem("bb-sidebar:environment-grouping:v1")).toBe("true");
   fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }), { detail: 1 });
-  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
-  expect(screen.queryByRole("region", { name: "search environment" })).toBeNull();
+  expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "search worktree" })).toBeNull();
   expect(screen.getAllByRole("link")).toHaveLength(4);
   fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Manual order" }), { key: "ArrowDown" });
-  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: "Project" }), { detail: 1 });
-  const restored = await screen.findByRole("checkbox", { name: "Group by environment" });
+  const restored = await screen.findByRole("checkbox", { name: "Group by worktree" });
   expect((restored as HTMLInputElement).checked).toBe(true);
   fireEvent.keyDown(restored, { key: "Escape" });
-  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
-  expect(screen.getByRole("region", { name: "search environment" })).toBeDefined();
+  expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
+  expect(screen.getByRole("region", { name: "search worktree" })).toBeDefined();
   expect(rendered.save).not.toHaveBeenCalled();
 });
 
@@ -122,7 +122,7 @@ it("uses environment identity, excludes ordinary checkouts and singletons, and l
       ),
     ],
   });
-  const groups = screen.getAllByRole("region", { name: "same-branch environment" });
+  const groups = screen.getAllByRole("region", { name: "same-branch worktree" });
   expect(groups).toHaveLength(2);
   expect(
     within(groups[0]!)
@@ -134,8 +134,8 @@ it("uses environment identity, excludes ordinary checkouts and singletons, and l
       .getAllByRole("link")
       .map((link) => link.getAttribute("aria-label")),
   ).toEqual(["two1", "two2"]);
-  expect(screen.queryByRole("region", { name: "single environment" })).toBeNull();
-  expect(screen.queryByRole("region", { name: "checkout environment" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "single worktree" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "checkout worktree" })).toBeNull();
   expect(within(screen.getByRole("region", { name: "Pinned" })).queryAllByRole("region")).toHaveLength(0);
 });
 
@@ -186,7 +186,7 @@ it("reorders threads only within their environment and moves whole environments 
   fireEvent.keyDown(screen.getByRole("button", { name: "search (2)" }), { key: "ArrowDown", altKey: true });
   await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["c", "d", "b", "a"] }));
   expect(
-    within(screen.getByRole("region", { name: "search environment" }))
+    within(screen.getByRole("region", { name: "search worktree" }))
       .getAllByRole("link")
       .map((link) => link.getAttribute("aria-label")),
   ).toEqual(["Search review", "Search implementation"]);
@@ -213,7 +213,7 @@ it.each(["project", "shelf"].flatMap((fold) => ["keyboard", "pointer"].map((gest
         .getAllByRole("link")
         .map((link) => link.getAttribute("aria-label"));
     expect(visible()).toEqual(["Search implementation", "Menu implementation"]);
-    expect(within(active).queryByRole("region", { name: "search environment" })).toBeNull();
+    expect(within(active).queryByRole("region", { name: "search worktree" })).toBeNull();
     const row = screen.getByRole("link", { name: "Search implementation" });
     if (gesture === "keyboard") {
       fireEvent.keyDown(row, { key: "ArrowDown", altKey: true });

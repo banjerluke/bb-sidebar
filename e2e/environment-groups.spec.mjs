@@ -18,18 +18,18 @@ for (const [name, theme, width] of [
     await rpc(request, "reorderInbox", { inboxThreadIds: worktrees.map(({ id }) => id) });
     await open(page, { theme, width });
     await page.getByRole("button", { name: "Sort active threads: Manual order" }).click();
-    await expect(page.getByRole("checkbox", { name: "Group by environment" })).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: "Group by worktree" })).toHaveCount(0);
     await page.getByRole("dialog", { name: "Sort active threads" }).getByText("Project", { exact: true }).click();
-    const toggle = page.getByRole("checkbox", { name: "Group by environment" });
+    const toggle = page.getByRole("checkbox", { name: "Group by worktree" });
     await expect(toggle).not.toBeChecked();
     await toggle.focus();
     await page.keyboard.press("Space");
     await expect(toggle).toBeChecked();
-    const search = page.getByRole("region", { name: "feature/search environment", exact: true });
+    const search = page.getByRole("region", { name: "feature/search worktree", exact: true });
     await expect(search.getByRole("link")).toHaveCount(2);
-    await expect(
-      page.getByRole("region", { name: "fix/menus environment", exact: true }).getByRole("link"),
-    ).toHaveCount(2);
+    await expect(page.getByRole("region", { name: "fix/menus worktree", exact: true }).getByRole("link")).toHaveCount(
+      2,
+    );
     await expect(shelf(page, "Pinned").getByRole("region")).toHaveCount(0);
     mkdirSync("e2e-artifacts", { recursive: true });
     const sidebar = page.locator("[data-bb-sidebar-root]");
@@ -52,7 +52,7 @@ for (const [name, theme, width] of [
     await expect(toggle).toBeChecked();
     await page
       .getByRole("dialog", { name: "Sort active threads" })
-      .getByText("Group by environment", { exact: true })
+      .getByText("Group by worktree", { exact: true })
       .click();
     await page.keyboard.press("Escape");
     await expect(search).toHaveCount(0);
