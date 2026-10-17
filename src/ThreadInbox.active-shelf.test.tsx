@@ -217,7 +217,7 @@ describe("ThreadInbox", () => {
     expect(screen.getByRole("radio", { name: "Recent activity" })).toBeDefined();
     expect(screen.getByRole("radio", { name: "Date created" })).toBeDefined();
     expect(screen.getByRole("radio", { name: "Project" })).toBeDefined();
-    fireEvent.click(screen.getByRole("radio", { name: "Recent activity" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Recent activity" }), { detail: 1 });
 
     expect(
       within(activeShelf)
@@ -241,7 +241,7 @@ describe("ThreadInbox", () => {
       }),
       { key: "Enter" },
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Date created" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Date created" }), { detail: 1 });
     expect(
       within(activeShelf)
         .getAllByRole("listitem")
@@ -259,7 +259,7 @@ describe("ThreadInbox", () => {
       }),
       { key: "Enter" },
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Project" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Project" }), { detail: 1 });
     // Projects sit where their first thread is in manual order.
     expect(
       within(activeShelf)

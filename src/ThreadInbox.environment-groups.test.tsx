@@ -81,13 +81,13 @@ it("shows environment grouping only inside the Project sort picker and remembers
   fireEvent.click(toggle);
   expect(screen.getByRole("region", { name: "search environment" })).toBeDefined();
   expect(localStorage.getItem("bb-sidebar:environment-grouping:v1")).toBe("true");
-  fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }));
+  fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }), { detail: 1 });
   expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
   expect(screen.queryByRole("region", { name: "search environment" })).toBeNull();
   expect(screen.getAllByRole("link")).toHaveLength(4);
   fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Manual order" }), { key: "ArrowDown" });
   expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
-  fireEvent.click(screen.getByRole("radio", { name: "Project" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Project" }), { detail: 1 });
   const restored = await screen.findByRole("checkbox", { name: "Group by environment" });
   expect((restored as HTMLInputElement).checked).toBe(true);
   fireEvent.keyDown(restored, { key: "Escape" });

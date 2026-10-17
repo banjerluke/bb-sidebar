@@ -141,8 +141,10 @@
                       "./**/*.tsx",
                       "../**/*.tsx",
                       "./**/ActiveSortPicker",
+                      "./**/ActiveSortPicker.test",
                       "./**/Calendar",
                       "../**/ActiveSortPicker",
+                      "../**/ActiveSortPicker.test",
                       "../**/Calendar",
                       "./**/ChildThreadDisplay",
                       "../**/ChildThreadDisplay",
@@ -673,6 +675,7 @@
                     "group": [
                       "**/*.tsx",
                       "**/ActiveSortPicker",
+                      "**/ActiveSortPicker.test",
                       "**/Calendar",
                       "**/ChildThreadDisplay",
                       "**/ChildThreadList",

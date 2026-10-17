@@ -159,7 +159,7 @@ describe("sidebar settings", () => {
       fireEvent.click(within(group).getByRole("button", { name: "group (2)" }));
     }
     fireEvent.keyDown(screen.getByRole("button", { name: /Sort active threads/ }), { key: "Enter" });
-    fireEvent.click(await screen.findByRole("radio", { name: "Manual order" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Manual order" }), { detail: 1 });
     await waitFor(() => expect(screen.queryByRole("region", { name: "group project" })).toBeNull());
     expect(document.querySelector("[data-project-stripe]")).toBeNull();
     for (const title of ["First grouped", "Second grouped", "Full card", "Compact card", "Settled row"]) {

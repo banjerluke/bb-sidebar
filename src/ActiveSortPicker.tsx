@@ -66,8 +66,14 @@ export function ActiveSortPicker({
                 checked={mode === value}
                 className="peer sr-only"
                 onChange={() => onModeChange(value)}
-                onClick={() => {
-                  if (value !== "project") setOpen(false);
+                onClick={(event) => {
+                  if (event.detail > 0 && value !== "project") setOpen(false);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && value !== "project") {
+                    event.preventDefault();
+                    setOpen(false);
+                  }
                 }}
               />
               <span className="flex items-center justify-between gap-4 rounded-sm px-2 py-1.5 text-xs hover:bg-state-hover peer-focus-visible:bg-state-hover">
