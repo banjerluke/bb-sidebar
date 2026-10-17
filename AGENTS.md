@@ -103,10 +103,10 @@ access are checked by `src/storage-keys.test.ts`.
 
 ## Size and style budgets
 
-SidebarSettings.tsx is at its 524-line ceiling; SB-14 should split it.
+SB-14 split SidebarSettings.tsx into section components; keep draft and save logic centralized.
 
 - Production files and `scripts/**/*.mjs`: at most 500 physical lines. Tests get
-  1,000. `scripts/check-file-sizes.mjs` records ceilings for three production
+  1,000. `scripts/check-file-sizes.mjs` records ceilings for two production
   files. Growth fails; shrinkage also fails until the ceiling is lowered.
   Remove entries once within the default budget. `SubagentsChip.test.tsx` is
   within 1,000 and needs no exception.

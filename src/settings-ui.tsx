@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
+import type { SidebarSettingsValues } from "./sidebar-settings-values";
 
 function settingsSectionId(title: string): string {
   return `settings-${title.toLowerCase().replaceAll(" ", "-")}`;
@@ -45,6 +46,12 @@ export function SettingsGroup({ title, children }: { title: string; children: Re
 }
 
 export type SaveStatus = "saving" | "saved" | "error";
+
+export interface SettingsDraftSectionProps {
+  draft: SidebarSettingsValues;
+  update: <Key extends keyof SidebarSettingsValues>(key: Key, value: SidebarSettingsValues[Key]) => void;
+  status?: SaveStatus;
+}
 
 /**
  * "Saving…", then "Saved", beside the section that changed. The last label

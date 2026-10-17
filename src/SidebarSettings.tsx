@@ -6,51 +6,19 @@ import { SIDEBAR_SETTINGS_CHANNEL } from "./realtime-channels";
 import {
   cachedSidebarSettings,
   cacheSidebarSettings,
-  CHILD_THREAD_ICON_STYLES,
-  CHILD_THREAD_SORT_DIRECTIONS,
-  CHILD_THREAD_SORT_FIELDS,
   DEFAULT_SIDEBAR_SETTINGS,
-  PROJECT_COLOR_DISPLAYS,
-  type ChildThreadIconStyle,
-  type ChildThreadSortDirection,
-  type ChildThreadSortField,
   type SidebarSettingsValues,
-  type ProjectColorDisplay,
 } from "./sidebar-settings";
-import { ProjectAppearanceSettings } from "./ProjectSettings";
+import { SidebarLayoutSettings } from "./SidebarLayoutSettings";
+import { ProjectAppearanceSection } from "./ProjectAppearanceSection";
+import { ThreadBehaviorSettings } from "./ThreadBehaviorSettings";
+import { ChildThreadSettings } from "./ChildThreadSettings";
+import { DeviceSettings } from "./DeviceSettings";
 import { ProjectManagement } from "./ProjectManagement";
-import { PortLinkSettings } from "./PortLinkSettings";
 import { configuredSnoozePresetError, parseConfiguredSnoozePresets } from "./lifecycle";
 import { MAX_INACTIVE_AFTER_HOURS, MIN_INACTIVE_AFTER_HOURS } from "./inactive";
 import { MAX_AUTO_SETTLE_AFTER_DAYS, MIN_AUTO_SETTLE_AFTER_DAYS } from "./auto-settle";
-import {
-  InlineNumber,
-  SettingRow,
-  SettingsSection,
-  SettingsGroup,
-  SettingsSelect,
-  Switch,
-  type SaveStatus,
-} from "./settings-ui";
-
-const CHILD_SORT_FIELD_LABELS: Record<ChildThreadSortField, string> = {
-  created: "Date created",
-  activity: "Last activity",
-};
-const CHILD_ICON_STYLE_LABELS: Record<ChildThreadIconStyle, string> = {
-  disc: "Colour circle",
-  provider: "Provider icon",
-};
-const CHILD_SORT_DIRECTION_LABELS: Record<ChildThreadSortDirection, string> = {
-  ascending: "Oldest first",
-  descending: "Newest first",
-};
-
-const PROJECT_COLOR_DISPLAY_LABELS: Record<ProjectColorDisplay, string> = {
-  all: "Full and collapsed mode",
-  full: "Full mode only",
-  grouped: "Grouped projects only",
-};
+import type { SaveStatus } from "./settings-ui";
 
 /** Long enough to finish typing a shortcut, short enough to feel instant. */
 const SAVE_DELAY_MS = 500;
@@ -261,264 +229,32 @@ export function SidebarSettings() {
 
   return (
     <div className="max-w-3xl space-y-8 pb-4">
-      <SettingsSection title="Sidebar layout" status={statusFor("Sidebar layout")}>
-        <SettingRow
-          title="Compact working threads"
-          experimental
-          description="Use one line while a thread or its child agents are working. Expand it when work finishes, fails, or needs you."
-          control={
-            <Switch
-              label="Compact working threads"
-              checked={draft.compactWorkingThreads}
-              onChange={(checked) => update("compactWorkingThreads", checked)}
-            />
-          }
-        />
-        <SettingRow
-          title="Working shelf"
-          experimental
-          description="Keep working threads in their own shelf. They return to Active when work finishes, fails, or needs you. Pinned threads stay pinned."
-          control={
-            <Switch
-              label="Working shelf"
-              checked={draft.workingShelf}
-              onChange={(checked) => update("workingShelf", checked)}
-            />
-          }
-        />
-        <SettingRow
-          title="Inactive shelf"
-          description="Move quiet, unpinned threads out of Active. New activity brings them back."
-          control={
-            <Switch
-              label="Inactive shelf"
-              checked={draft.inactiveThreadsEnabled}
-              onChange={(checked) => update("inactiveThreadsEnabled", checked)}
-            />
-          }
-        >
-          {draft.inactiveThreadsEnabled ? (
-            <InlineNumber
-              label="Hours before inactive"
-              prefix="After"
-              suffix="hours without activity"
-              value={draft.inactiveAfterHours}
-              min={MIN_INACTIVE_AFTER_HOURS}
-              max={MAX_INACTIVE_AFTER_HOURS}
-              valid={inactiveHoursValid}
-              errorId="inactive-hours-error"
-              onChange={(value) => update("inactiveAfterHours", value)}
-            />
-          ) : null}
-        </SettingRow>
+      <SidebarLayoutSettings
+        draft={draft}
+        update={update}
+        status={statusFor("Sidebar layout")}
+        inactiveHoursValid={inactiveHoursValid}
+      />
 
-        <SettingRow
-          title="Dock shelves to the bottom"
-          experimental
-          description="Keep shelves below Active at the bottom of the sidebar. Expanded shelves scroll with the thread list."
-          control={
-            <Switch
-              label="Dock shelves to the bottom"
-              checked={draft.dockShelves}
-              onChange={(checked) => update("dockShelves", checked)}
-            />
-          }
-        />
-      </SettingsSection>
+      <ProjectAppearanceSection draft={draft} update={update} status={statusFor("Project appearance")} />
 
-      <SettingsSection title="Project appearance" status={statusFor("Project appearance")}>
-        <SettingRow
-          title="Project colors"
-          description="Color project names in every mode. Choose where their stripes appear below."
-          control={
-            <Switch
-              label="Project colors"
-              checked={draft.projectColorsEnabled}
-              onChange={(checked) => update("projectColorsEnabled", checked)}
-            />
-          }
-        >
-          {draft.projectColorsEnabled ? (
-            <div className="border-l-2 border-border">
-              <SettingRow
-                title="Show stripes in"
-                description="Full mode includes cards and expanded groups. Grouped projects means combined blocks when sorting by Project."
-                control={
-                  <SettingsSelect
-                    aria-label="Show project stripes in"
-                    value={draft.projectColorDisplay}
-                    onChange={(event) => update("projectColorDisplay", event.target.value as ProjectColorDisplay)}
-                    className="w-52"
-                  >
-                    {PROJECT_COLOR_DISPLAYS.map((display) => (
-                      <option key={display} value={display}>
-                        {PROJECT_COLOR_DISPLAY_LABELS[display]}
-                      </option>
-                    ))}
-                  </SettingsSelect>
-                }
-              />
-            </div>
-          ) : null}
-        </SettingRow>
-        <SettingsGroup title="Customize a project">
-          <ProjectAppearanceSettings />
-        </SettingsGroup>
-      </SettingsSection>
+      <ThreadBehaviorSettings
+        draft={draft}
+        update={update}
+        status={statusFor("Thread behavior")}
+        autoSettleDaysValid={autoSettleDaysValid}
+        snoozePresetsError={snoozePresetsError}
+        snoozePreview={snoozePreview}
+      />
 
-      <SettingsSection title="Thread behavior" status={statusFor("Thread behavior")}>
-        <SettingsGroup title="Snooze">
-          <SettingRow
-            title="Snooze shortcuts"
-            description={
-              <>
-                Comma-separated. Durations like <Code>30m</Code> or <Code>2h</Code>, times like{" "}
-                <Code>evening@18:00</Code>, <Code>tomorrow@09:00</Code> or <Code>next-week@09:00</Code>. Rename one with{" "}
-                <Code>Label=value</Code>.
-              </>
-            }
-          >
-            <textarea
-              aria-label="Snooze shortcuts"
-              aria-invalid={snoozePresetsError !== null}
-              aria-describedby="snooze-shortcuts-feedback"
-              value={draft.snoozePresets}
-              onChange={(event) => update("snoozePresets", event.target.value)}
-              rows={2}
-              spellCheck={false}
-              className="w-full resize-y rounded-md border border-border bg-background px-2.5 py-2 font-mono text-xs leading-5 text-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring aria-[invalid=true]:border-destructive"
-            />
-            <div id="snooze-shortcuts-feedback" className="mt-1.5">
-              {snoozePresetsError ? (
-                <p className="text-2xs text-destructive">{snoozePresetsError}</p>
-              ) : (
-                <ul aria-label="Snooze menu preview" className="flex flex-wrap items-center gap-1">
-                  {snoozePreview.map((label, index) => (
-                    <li
-                      key={`${index}-${label}`}
-                      className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-2xs text-muted-foreground"
-                    >
-                      {label}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </SettingRow>
-        </SettingsGroup>
-        <SettingsGroup title="Automatic settle">
-          <SettingRow
-            title="Settle quiet threads"
-            description="Move threads to Settled after a longer quiet period."
-            control={
-              <Switch
-                label="Settle inactive threads"
-                checked={draft.autoSettleInactive}
-                onChange={(checked) => update("autoSettleInactive", checked)}
-              />
-            }
-          >
-            {draft.autoSettleInactive ? (
-              <InlineNumber
-                label="Days before auto-settle"
-                prefix="After"
-                suffix="days without activity"
-                value={draft.autoSettleAfterDays}
-                min={MIN_AUTO_SETTLE_AFTER_DAYS}
-                max={MAX_AUTO_SETTLE_AFTER_DAYS}
-                valid={autoSettleDaysValid}
-                errorId="auto-settle-days-error"
-                onChange={(value) => update("autoSettleAfterDays", value)}
-              />
-            ) : null}
-          </SettingRow>
-          <SettingRow
-            title="Settle merged pull requests"
-            description="Closed pull requests always count as finished."
-            control={
-              <Switch
-                label="Settle merged pull requests"
-                checked={draft.autoSettleOnMerge}
-                onChange={(checked) => update("autoSettleOnMerge", checked)}
-              />
-            }
-          />
-        </SettingsGroup>
-      </SettingsSection>
+      <ChildThreadSettings draft={draft} update={update} status={statusFor("Child threads")} />
 
-      <SettingsSection title="Child threads" status={statusFor("Child threads")}>
-        <SettingRow
-          title="Show children that need attention"
-          description="Keep children with a status visible while their list is collapsed."
-          control={
-            <Switch
-              label="Show children that need attention"
-              checked={draft.showRunningChildrenWhenCollapsed}
-              onChange={(checked) => update("showRunningChildrenWhenCollapsed", checked)}
-            />
-          }
-        />
-        <SettingRow
-          title="Order"
-          description="Also used in the thread header."
-          control={
-            <div className="flex flex-wrap items-center gap-2">
-              <SettingsSelect
-                aria-label="Child threads sort field"
-                value={draft.childSortField}
-                onChange={(event) => update("childSortField", event.target.value as ChildThreadSortField)}
-                className="w-36"
-              >
-                {CHILD_THREAD_SORT_FIELDS.map((field) => (
-                  <option key={field} value={field}>
-                    {CHILD_SORT_FIELD_LABELS[field]}
-                  </option>
-                ))}
-              </SettingsSelect>
-              <SettingsSelect
-                aria-label="Child threads sort direction"
-                value={draft.childSortDirection}
-                onChange={(event) => update("childSortDirection", event.target.value as ChildThreadSortDirection)}
-                className="w-32"
-              >
-                {CHILD_THREAD_SORT_DIRECTIONS.map((direction) => (
-                  <option key={direction} value={direction}>
-                    {CHILD_SORT_DIRECTION_LABELS[direction]}
-                  </option>
-                ))}
-              </SettingsSelect>
-            </div>
-          }
-        />
-        <SettingRow
-          title="Icon"
-          description="With provider icons, a parent's badge shows each agent once."
-          control={
-            <SettingsSelect
-              aria-label="Child thread icon"
-              value={draft.childIconStyle}
-              onChange={(event) => update("childIconStyle", event.target.value as ChildThreadIconStyle)}
-              className="w-36"
-            >
-              {CHILD_THREAD_ICON_STYLES.map((style) => (
-                <option key={style} value={style}>
-                  {CHILD_ICON_STYLE_LABELS[style]}
-                </option>
-              ))}
-            </SettingsSelect>
-          }
-        />
-      </SettingsSection>
-
-      <SettingsSection title="This device" status={statusFor("This device")}>
-        <PortLinkSettings onSaved={() => setSaveFeedback({ section: "This device", status: "saved" })} />
-      </SettingsSection>
+      <DeviceSettings
+        status={statusFor("This device")}
+        onSaved={() => setSaveFeedback({ section: "This device", status: "saved" })}
+      />
 
       <ProjectManagement />
     </div>
   );
-}
-
-function Code({ children }: { children: string }) {
-  return <code className="rounded bg-muted px-1 py-px font-mono text-2xs text-foreground/80">{children}</code>;
 }
