@@ -58,7 +58,7 @@ export function createInboxThreadRenderer(
           : threadReorderControls(thread, shelf)
       }
       compactWhenWorking={
-        compact || (sidebarSettings?.compactWorkingThreads ?? DEFAULT_SIDEBAR_SETTINGS.compactWorkingThreads)
+        compact || (sidebarSettings?.threadDisplay ?? DEFAULT_SIDEBAR_SETTINGS.threadDisplay) === "compact-working"
       }
     />
   );

@@ -234,6 +234,7 @@ describe("parking threads", () => {
           getSidebarSettings: () => ({
             ...defaultSidebarSettings,
             inactiveThreadsEnabled: false,
+            threadDisplay: compactWorkingThreads ? "compact-working" : "full",
             compactWorkingThreads,
           }),
           listLifecycle: () => ({ rows: [] }),
@@ -268,6 +269,7 @@ describe("parking threads", () => {
             ...defaultSidebarSettings,
             inactiveThreadsEnabled: false,
             showRunningChildrenWhenCollapsed: true,
+            threadDisplay: compactWorkingThreads ? "compact-working" : "full",
             compactWorkingThreads,
           }),
           listLifecycle: () => ({ rows: [] }),
@@ -307,6 +309,7 @@ describe("parking threads", () => {
         getSidebarSettings: () => ({
           ...defaultSidebarSettings,
           inactiveThreadsEnabled: false,
+          threadDisplay: "compact-working",
           compactWorkingThreads: true,
         }),
         listLifecycle: () => ({ rows: [] }),
@@ -352,7 +355,11 @@ describe("parking threads", () => {
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
       rpc: {
-        getSidebarSettings: () => ({ ...defaultSidebarSettings, compactWorkingThreads: true }),
+        getSidebarSettings: () => ({
+          ...defaultSidebarSettings,
+          threadDisplay: "compact-working",
+          compactWorkingThreads: true,
+        }),
         listLifecycle: () => ({ rows: [] }),
       },
     });

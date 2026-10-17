@@ -46,24 +46,24 @@ it.each([false, true])("drains an edit made during a pending save, unmounted=%s"
   );
   await screen.findByRole("switch", { name: "Working shelf" });
   vi.useFakeTimers();
-  fireEvent.click(screen.getByRole("switch", { name: "Compact working threads" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Dock shelves to the bottom" }));
   await act(async () => {
     await vi.advanceTimersByTimeAsync(500);
   });
-  expect(writes).toEqual([{ compactWorkingThreads: true }]);
+  expect(writes).toEqual([{ dockShelves: true }]);
   fireEvent.click(screen.getByRole("switch", { name: "Working shelf" }));
   if (unmount) slot.lifecycle.unmount();
   await act(async () => {
     pending.resolve();
   });
   if (!unmount) {
-    expect(writes).toEqual([{ compactWorkingThreads: true }]);
+    expect(writes).toEqual([{ dockShelves: true }]);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(500);
     });
   }
-  expect(writes).toEqual([{ compactWorkingThreads: true }, { workingShelf: true }]);
-  expect(stored).toMatchObject({ compactWorkingThreads: true, workingShelf: true });
+  expect(writes).toEqual([{ dockShelves: true }, { workingShelf: true }]);
+  expect(stored).toMatchObject({ dockShelves: true, workingShelf: true });
 });
 
 it("saves a reversal of the same field made while its first write is pending", async () => {
@@ -225,4 +225,33 @@ it("keeps the typing debounce when an earlier settings save finishes", async () 
     await vi.advanceTimersByTimeAsync(1);
   });
   expect(writes).toEqual([{ workingShelf: true }, { autoSettleAfterDays: 12 }]);
+});
+
+it("replaces the compact switch with a thread display choice", async () => {
+  let stored = { ...DEFAULT_SIDEBAR_SETTINGS };
+  const writes: Partial<SidebarSettingsValues>[] = [];
+  renderSlot(
+    { component: SidebarSettings },
+    {},
+    {
+      rpc: {
+        ...extraRpc,
+        getSidebarSettings: () => stored,
+        updateSidebarSettings: (input) => {
+          writes.push(input as Partial<SidebarSettingsValues>);
+          stored = { ...stored, ...(input as Partial<SidebarSettingsValues>) };
+          return stored;
+        },
+      },
+    },
+  );
+  const picker = await screen.findByRole("combobox", { name: "Thread display" });
+  expect(screen.queryByRole("switch", { name: "Compact working threads" })).toBeNull();
+  expect([...(picker as HTMLSelectElement).options].map((option) => option.textContent)).toEqual([
+    "Full cards",
+    "Compact working threads",
+  ]);
+  expect((picker as HTMLSelectElement).value).toBe("full");
+  fireEvent.change(picker, { target: { value: "compact-working" } });
+  await waitFor(() => expect(writes).toEqual([{ threadDisplay: "compact-working" }]));
 });

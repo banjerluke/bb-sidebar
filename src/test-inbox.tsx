@@ -110,6 +110,7 @@ export const defaultSidebarSettings = {
   childSortField: "created",
   childSortDirection: "ascending",
   childIconStyle: "disc",
+  threadDisplay: "full",
   compactWorkingThreads: false,
   workingShelf: false,
   dockShelves: false,

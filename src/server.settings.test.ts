@@ -55,6 +55,7 @@ describe("lifecycle RPC", () => {
       childSortField: "activity",
       childSortDirection: "descending",
       childIconStyle: "provider",
+      threadDisplay: "compact-working",
       compactWorkingThreads: true,
       workingShelf: true,
       dockShelves: true,
@@ -76,6 +77,7 @@ describe("lifecycle RPC", () => {
         childIconStyle: "provider",
       }),
     ).resolves.toMatchObject({
+      threadDisplay: "compact-working",
       compactWorkingThreads: true,
       workingShelf: true,
       dockShelves: true,
@@ -249,4 +251,35 @@ it.each(["", "{broken", "null", "[]", "42", '"settings"'])("defaults malformed J
       message: expect.stringMatching(/^Could not parse sidebar_settings\.settings_json; using defaults: .+/),
     }),
   );
+});
+
+it.each([
+  [{ compactWorkingThreads: true }, "compact-working"],
+  [{ compactWorkingThreads: false }, "full"],
+  // A newer version's choice this version doesn't know falls back to the switch it kept in step.
+  [{ threadDisplay: "compact-all", compactWorkingThreads: true }, "compact-working"],
+  [{ threadDisplay: "compact-all", compactWorkingThreads: false }, "full"],
+])("reads thread display %j from settings saved without a known value", async (stored, threadDisplay) => {
+  const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
+  await plugin(bb);
+  disposers.push(() => harness.lifecycle.dispose());
+  bb.storage
+    .database()
+    .prepare("UPDATE sidebar_settings SET settings_json = ? WHERE id = 1")
+    .run(JSON.stringify(stored));
+  await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toMatchObject({
+    threadDisplay,
+    compactWorkingThreads: threadDisplay !== "full",
+  });
+});
+
+it("keeps the legacy switch in step when thread display changes", async () => {
+  const harness = await loadPlugin();
+  await expect(
+    harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "compact-working" }),
+  ).resolves.toMatchObject({ threadDisplay: "compact-working", compactWorkingThreads: true });
+  await expect(harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "full" })).resolves.toMatchObject({
+    threadDisplay: "full",
+    compactWorkingThreads: false,
+  });
 });

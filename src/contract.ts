@@ -6,6 +6,7 @@ import {
   CHILD_THREAD_SORT_DIRECTIONS,
   CHILD_THREAD_ICON_STYLES,
   PROJECT_COLOR_DISPLAYS,
+  THREAD_DISPLAYS,
 } from "./sidebar-settings-values";
 import { configuredSnoozePresetError } from "./lifecycle";
 export {
@@ -144,6 +145,7 @@ export const sidebarSettingsSchema = z
     childSortField: z.enum(CHILD_THREAD_SORT_FIELDS),
     childSortDirection: z.enum(CHILD_THREAD_SORT_DIRECTIONS),
     childIconStyle: z.enum(CHILD_THREAD_ICON_STYLES),
+    threadDisplay: z.enum(THREAD_DISPLAYS),
     compactWorkingThreads: z.boolean(),
     workingShelf: z.boolean(),
     dockShelves: z.boolean(),

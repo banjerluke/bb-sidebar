@@ -60,6 +60,19 @@ describe("settings cache codec", () => {
   });
 });
 
+describe("settings cache thread display", () => {
+  it("derives thread display from a cache saved before it existed", () => {
+    expect(decodeSettingsCache({ ...oldSettings, compactWorkingThreads: true })).toMatchObject({
+      threadDisplay: "compact-working",
+      compactWorkingThreads: true,
+    });
+    expect(decodeSettingsCache({ ...oldSettings, threadDisplay: "full", compactWorkingThreads: true })).toMatchObject({
+      threadDisplay: "full",
+      compactWorkingThreads: false,
+    });
+  });
+});
+
 describe("lifecycle cache codec", () => {
   it("round trips valid rows and drops unknown fields", () => {
     expect(decodeLifecycleRows([row])).toEqual(new Map([["a", row]]));

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ServerContext } from "./server-context";
 import { sidebarSettingsSchema } from "./contract";
-import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-settings-values";
+import { DEFAULT_SIDEBAR_SETTINGS, threadDisplayOf, type SidebarSettingsValues } from "./sidebar-settings-values";
 
 // Derive each field's fallback from the shared defaults. Adding a setting
 // needs no repository change, and one invalid field cannot discard others.
@@ -26,7 +26,16 @@ export async function createServerSettings(ctx: ServerContext) {
         throw new Error("Expected a JSON object");
       }
       // Merge defaults before parsing so older JSON also covers new fields.
-      return sidebarSettingsSchema.parse(storedSettingsSchema.parse({ ...DEFAULT_SIDEBAR_SETTINGS, ...stored }));
+      // Thread display falls back to the old switch, not the default.
+      const threadDisplay = threadDisplayOf(stored);
+      return sidebarSettingsSchema.parse(
+        storedSettingsSchema.parse({
+          ...DEFAULT_SIDEBAR_SETTINGS,
+          ...stored,
+          threadDisplay,
+          compactWorkingThreads: threadDisplay !== "full",
+        }),
+      );
     } catch (error) {
       ctx.bb.log.warn(
         `Could not parse sidebar_settings.settings_json; using defaults: ${error instanceof Error ? error.message : String(error)}`,

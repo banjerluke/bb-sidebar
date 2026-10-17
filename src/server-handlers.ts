@@ -136,6 +136,10 @@ export function createServerHandlers(
     async updateSidebarSettings(values) {
       const stored = readSidebarSettings();
       const next = { ...stored, ...values };
+      // Keep the legacy switch in step with thread display, both ways.
+      if (values.threadDisplay !== undefined) next.compactWorkingThreads = values.threadDisplay !== "full";
+      else if (values.compactWorkingThreads !== undefined)
+        next.threadDisplay = values.compactWorkingThreads ? "compact-working" : "full";
       writeSidebarSettings(next);
       ctx.bb.realtime.publish(SIDEBAR_SETTINGS_CHANNEL, {});
       if (

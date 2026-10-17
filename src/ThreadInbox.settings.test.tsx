@@ -103,6 +103,7 @@ describe("sidebar settings", () => {
       ...defaultSidebarSettings,
       projectColorsEnabled: true,
       inactiveThreadsEnabled: false,
+      threadDisplay: "compact-working" as const,
       compactWorkingThreads: true,
     };
     const rendered = renderSlot(inbox, listProps, {

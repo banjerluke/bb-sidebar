@@ -33,12 +33,15 @@ const releaseSettings = {
   workingShelf: true,
   dockShelves: true,
 };
+// Releases before Thread display saved only the switch, which now decides it.
+const migratedThreadDisplay = { threadDisplay: "compact-working" } as const;
 const snapshots = [
   {
     version: "v0.2.34",
     settings: {
       ...DEFAULT_SIDEBAR_SETTINGS,
       ...releaseSettings,
+      ...migratedThreadDisplay,
       projectColorsEnabled: false,
       projectColorDisplay: "all",
     },
@@ -48,6 +51,7 @@ const snapshots = [
     settings: {
       ...DEFAULT_SIDEBAR_SETTINGS,
       ...releaseSettings,
+      ...migratedThreadDisplay,
       projectColorsEnabled: true,
       projectColorDisplay: "full",
     },
@@ -60,6 +64,7 @@ const databaseSnapshots = [
     settings: {
       ...DEFAULT_SIDEBAR_SETTINGS,
       ...releaseSettings,
+      ...migratedThreadDisplay,
       projectColorsEnabled: true,
       projectColorDisplay: "full",
     },
@@ -192,7 +197,6 @@ it.each(databaseSnapshots)(
 function assertSettingsControls(container: HTMLElement, settings: (typeof snapshots)[number]["settings"]) {
   const ui = within(container);
   for (const [label, field] of [
-    ["Compact working threads", "compactWorkingThreads"],
     ["Working shelf", "workingShelf"],
     ["Inactive shelf", "inactiveThreadsEnabled"],
     ["Dock shelves to the bottom", "dockShelves"],
@@ -205,6 +209,7 @@ function assertSettingsControls(container: HTMLElement, settings: (typeof snapsh
   }
   expect(ui.getByRole("textbox", { name: "Snooze shortcuts" })).toHaveProperty("value", settings.snoozePresets);
   for (const [label, field] of [
+    ["Thread display", "threadDisplay"],
     ["Child threads sort field", "childSortField"],
     ["Child threads sort direction", "childSortDirection"],
     ["Child thread icon", "childIconStyle"],

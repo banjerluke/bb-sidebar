@@ -3,6 +3,7 @@ import {
   childThreadSettingsOf,
   DEFAULT_SIDEBAR_SETTINGS,
   projectColorDisplayOf,
+  threadDisplayOf,
   type SidebarSettingsValues,
 } from "../sidebar-settings-values";
 
@@ -37,7 +38,8 @@ export function decodeSettingsCache(input: unknown): SidebarSettingsValues | nul
   return currentSettingsOnly({
     ...value,
     ...childThreadSettingsOf(value),
-    compactWorkingThreads: value.compactWorkingThreads === true,
+    threadDisplay: threadDisplayOf(value),
+    compactWorkingThreads: threadDisplayOf(value) !== "full",
     workingShelf: value.workingShelf === true,
     dockShelves: value.dockShelves === true,
     projectColorsEnabled: value.projectColorsEnabled === true,

@@ -13,6 +13,7 @@
 
 ### Changed
 
+- The Compact working threads switch in Sidebar layout is now a Thread display choice: Full cards or Compact working threads. Your current choice carries over.
 - The Active sort picker is now a menu with a check beside the current mode, so it can hold the Group by worktree option. Arrow keys move between modes, and Enter or a click closes it.
 - On phones and tablets, sidebar lists no longer animate rows into place. The animation kept measuring every row even when nothing moved.
 - Thread, project, and parent context menus use bb's menu text size and spacing.
