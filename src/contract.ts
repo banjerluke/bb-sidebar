@@ -200,6 +200,7 @@ export const bbSidebarRpcContract = defineRpcContract({
       .object({
         model: z.string(),
         modelDisplayName: z.string().optional(),
+        reasoningLabel: z.string().optional(),
         reasoningLevel: z.string(),
       })
       .strict()

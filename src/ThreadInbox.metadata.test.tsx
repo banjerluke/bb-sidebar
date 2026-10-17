@@ -9,20 +9,22 @@ vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 await loadInboxApp();
 
 describe("card metadata", () => {
+  // Labels come from the model catalog (last column), then the provider's levels, then the raw ID.
   it.each([
-    [undefined, "gpt-6.1-sol", true, "medium", "Medium"],
-    ["GPT 6.1 Sol", "GPT 6.1 Sol", true, "medium", "Medium"],
-    ["GPT 6.1 Sol Medium", "GPT 6.1 Sol Medium", false, "medium", "Medium"],
-    ["GPT 6.1 Sol (Medium)", "GPT 6.1 Sol (Medium)", false, "medium", "Medium"],
-    ["My Custom Model", "My Custom Model", true, "xhigh", "Extra High"],
-    ["My Custom Model (Extra High)", "My Custom Model (Extra High)", false, "xhigh", "Extra High"],
-    ["My Custom Model Extra High", "My Custom Model Extra High", false, "xhigh", "Extra High"],
-    ["My Custom Model (xhigh)", "My Custom Model (xhigh)", false, "xhigh", "Extra High"],
-    ["My Custom Model", "My Custom Model", true, "custom", "Deep Thinking"],
-    ["My Custom Model (Deep Thinking)", "My Custom Model (Deep Thinking)", false, "custom", "Deep Thinking"],
+    [undefined, "gpt-6.1-sol", true, "medium", "Medium", "Medium"],
+    ["GPT 6.1 Sol", "GPT 6.1 Sol", true, "medium", "Medium", "Medium"],
+    ["GPT 6.1 Sol Medium", "GPT 6.1 Sol Medium", false, "medium", "Medium", "Medium"],
+    ["GPT 6.1 Sol (Medium)", "GPT 6.1 Sol (Medium)", false, "medium", "Medium", "Medium"],
+    ["My Custom Model", "My Custom Model", true, "xhigh", "Extra High", "Extra High"],
+    ["My Custom Model (Extra High)", "My Custom Model (Extra High)", false, "xhigh", "Extra High", "Extra High"],
+    ["My Custom Model Extra High", "My Custom Model Extra High", false, "xhigh", "Extra High", "Extra High"],
+    ["My Custom Model (xhigh)", "My Custom Model (xhigh)", false, "xhigh", "Extra High", "Extra High"],
+    ["My Custom Model", "My Custom Model", true, "custom", "Deep Thinking", undefined],
+    ["My Custom Model (Deep Thinking)", "My Custom Model (Deep Thinking)", false, "custom", "Deep Thinking", undefined],
+    ["My Custom Model", "My Custom Model", true, "xhigh", "xhigh", undefined],
   ])(
     "shows model display name %s with a raw ID fallback",
-    async (modelDisplayName, label, showReasoning, effort, effortLabel) => {
+    async (modelDisplayName, label, showReasoning, effort, effortLabel, reasoningLabel) => {
       renderSlot(inbox, listProps, {
         sidebarThreads: {
           status: "ready",
@@ -40,6 +42,7 @@ describe("card metadata", () => {
           getThreadExecutionDetails: () => ({
             model: "gpt-6.1-sol",
             ...(modelDisplayName ? { modelDisplayName } : {}),
+            ...(reasoningLabel ? { reasoningLabel } : {}),
             reasoningLevel: effort,
           }),
         },

@@ -16,18 +16,6 @@ import { ThreadPullRequestDetails } from "./ThreadPullRequests";
 import { compareChildThreads, useChildThreadDisplay } from "./ChildThreadDisplay";
 import { cn } from "./lib/utils";
 
-// Match the composer's built-in labels; provider-specific labels take precedence.
-const REASONING_LABELS: Readonly<Record<string, string>> = {
-  none: "None",
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  xhigh: "Extra High",
-  ultracode: "Ultracode",
-  max: "Max",
-  ultra: "Ultra",
-};
-
 export function ThreadDetailsTooltip({
   thread,
   disabled,
@@ -49,15 +37,18 @@ export function ThreadDetailsTooltip({
   const [open, setOpen] = useState(false);
   const [subthreadsExpanded, setSubthreadsExpanded] = useState(false);
   const subthreadsId = useId();
-  const [execution, setExecution] = useState<{ model: string; modelDisplayName?: string; reasoningLevel: string }>({
-    model: "Loading…",
-    reasoningLevel: "",
-  });
+  const [execution, setExecution] = useState<{
+    model: string;
+    modelDisplayName?: string;
+    reasoningLabel?: string;
+    reasoningLevel: string;
+  }>({ model: "Loading…", reasoningLevel: "" });
   const visible = open && !disabled;
   const modelLabel = execution.modelDisplayName || execution.model;
+  // Labels come from bb: the model's catalog entry, then the provider's levels.
   const effortLabel =
-    provider?.reasoningLevels?.find((level) => level.id === execution.reasoningLevel)?.label ??
-    REASONING_LABELS[execution.reasoningLevel] ??
+    execution.reasoningLabel ||
+    provider?.reasoningLevels?.find((level) => level.id === execution.reasoningLevel)?.label ||
     execution.reasoningLevel;
   const modelIncludesReasoning = [execution.reasoningLevel, effortLabel].some(
     (label) =>

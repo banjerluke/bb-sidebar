@@ -130,7 +130,7 @@ describe("SubagentsChip", () => {
             expect(input).toEqual({ threadId: "child" });
             requests++;
             if (fail) throw new Error("Offline");
-            return { model: "gpt-6", reasoningLevel: "high" };
+            return { model: "gpt-6", reasoningLabel: "High", reasoningLevel: "high" };
           },
         },
       },

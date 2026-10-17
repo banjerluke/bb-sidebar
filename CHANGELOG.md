@@ -9,6 +9,7 @@
 
 ### Changed
 
+- Thread hover cards show the model and reasoning effort on one line with bb's names, such as GPT 6.1 Sol Medium, instead of the raw model ID. Thanks @dillonzq.
 - Built against bb 0.46.1 and plugin SDK 0.6.49. bb 0.46.0 remains supported.
 
 ## [0.3.1] - 2026-10-14

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import { loadPlugin } from "./test-server";
 
@@ -83,5 +83,66 @@ describe("lifecycle RPC", () => {
       model: "unknown-model",
       reasoningLevel: "high",
     });
+  });
+
+  it("labels the effort from the model catalog", async () => {
+    const harness = await loadPlugin();
+    harness.inspection.sdk.stub("threads.defaultExecutionOptions", async () => ({
+      model: "gpt-6.1-sol",
+      reasoningLevel: "xhigh",
+    }));
+    harness.inspection.sdk.stub("threads.get", async () => makeThreadResponse({ environmentId: "env_1" }));
+    harness.inspection.sdk.stub("providers.models", async () => ({
+      models: [
+        {
+          id: "gpt-6.1-sol",
+          model: "gpt-6.1-sol",
+          displayName: "GPT 6.1 Sol",
+          supportedReasoningEfforts: [
+            { reasoningEffort: "medium", description: "", label: "Medium" },
+            { reasoningEffort: "xhigh", description: "", label: "Extra High" },
+          ],
+        },
+      ],
+      selectedOnlyModels: [],
+    }));
+    await expect(harness.behavior.callRpc("getThreadExecutionDetails", { threadId: "thr_1" })).resolves.toEqual({
+      model: "gpt-6.1-sol",
+      modelDisplayName: "GPT 6.1 Sol",
+      reasoningLabel: "Extra High",
+      reasoningLevel: "xhigh",
+    });
+  });
+
+  it("shares one catalog request per environment and provider, retrying failures", async () => {
+    const harness = await loadPlugin();
+    harness.inspection.sdk.stub("threads.defaultExecutionOptions", async () => ({
+      model: "gpt-6",
+      reasoningLevel: "high",
+    }));
+    harness.inspection.sdk.stub("threads.get", async (args: { threadId: string }) =>
+      makeThreadResponse({ id: args.threadId, environmentId: args.threadId === "thr_3" ? "env_2" : "env_1" }),
+    );
+    let calls = 0;
+    let fail = true;
+    harness.inspection.sdk.stub("providers.models", async () => {
+      calls += 1;
+      if (fail) throw new Error("Host offline");
+      return { models: [{ id: "gpt-6", model: "gpt-6", displayName: "GPT 6" }], selectedOnlyModels: [] };
+    });
+    const details = (threadId: string) => harness.behavior.callRpc("getThreadExecutionDetails", { threadId });
+    await expect(details("thr_1")).resolves.toEqual({ model: "gpt-6", reasoningLevel: "high" });
+    fail = false;
+    const named = { model: "gpt-6", modelDisplayName: "GPT 6", reasoningLevel: "high" };
+    await expect(Promise.all([details("thr_1"), details("thr_2")])).resolves.toEqual([named, named]);
+    await expect(details("thr_1")).resolves.toEqual(named);
+    expect(calls).toBe(2);
+    await expect(details("thr_3")).resolves.toEqual(named);
+    expect(calls).toBe(3);
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now + 5 * 60_000 + 1);
+    onTestFinished(() => clock.mockRestore());
+    await expect(details("thr_1")).resolves.toEqual(named);
+    expect(calls).toBe(4);
   });
 });

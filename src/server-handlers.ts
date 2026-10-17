@@ -14,6 +14,8 @@ import type { createTitleRegenerator } from "./regenerate-title";
 import { SIDEBAR_SETTINGS_CHANNEL, INBOX_ORDER_CHANNEL } from "./contract";
 import { runThreadTasks } from "./thread-tasks";
 
+const CATALOG_TTL_MS = 5 * 60_000;
+
 export function createServerHandlers(
   ctx: ServerContext,
   lifecycle: ReturnType<typeof createServerLifecycle>,
@@ -35,6 +37,24 @@ export function createServerHandlers(
   const { evaluatePolicies } = policy;
   const { reclaimThreadResources } = cleanup;
   const { readOne, readAll, withPinParentChange, write, clear, readInboxOrder, replaceInboxOrder } = lifecycle;
+
+  // Hover cards resolve model names on every open. Share one catalog request
+  // per environment and provider for a few minutes instead of refetching.
+  const catalogs = new Map<string, { expiresAt: number; catalog: ReturnType<typeof ctx.bb.sdk.providers.models> }>();
+  const providerCatalog = (environmentId: string, providerId: string) => {
+    const now = Date.now();
+    for (const [key, entry] of catalogs) if (entry.expiresAt <= now) catalogs.delete(key);
+    const key = JSON.stringify([environmentId, providerId]);
+    const cached = catalogs.get(key);
+    if (cached) return cached.catalog;
+    const catalog = ctx.bb.sdk.providers.models({ environmentId, providerId });
+    catalogs.set(key, { expiresAt: now + CATALOG_TTL_MS, catalog });
+    // A failed lookup is retried on the next hover rather than cached.
+    catalog.catch(() => {
+      if (catalogs.get(key)?.catalog === catalog) catalogs.delete(key);
+    });
+    return catalog;
+  };
 
   const handlers = {
     getOpenPorts,
@@ -64,15 +84,20 @@ export function createServerHandlers(
       try {
         const thread = await ctx.bb.sdk.threads.get({ threadId });
         if (!thread.environmentId) return details;
-        const catalog = await ctx.bb.sdk.providers.models({
-          environmentId: thread.environmentId,
-          providerId: thread.providerId,
-        });
+        const catalog = await providerCatalog(thread.environmentId, thread.providerId);
         const models = [...catalog.models, ...catalog.selectedOnlyModels];
         const model =
           models.find((entry) => entry.id === options.model) ?? models.find((entry) => entry.model === options.model);
         const modelDisplayName = model?.displayName.trim();
-        return modelDisplayName ? { ...details, modelDisplayName } : details;
+        // Effort labels arrived in SDK 0.6.49; older hosts leave them out.
+        const reasoningLabel = model?.supportedReasoningEfforts
+          ?.find((effort) => effort.reasoningEffort === options.reasoningLevel)
+          ?.label?.trim();
+        return {
+          ...details,
+          ...(modelDisplayName ? { modelDisplayName } : {}),
+          ...(reasoningLabel ? { reasoningLabel } : {}),
+        };
       } catch {
         // Offline hosts and unavailable provider catalogs must still show execution details.
         return details;
