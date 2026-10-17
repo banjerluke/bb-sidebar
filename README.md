@@ -52,11 +52,3 @@ bb plugin install path:. --yes
 This project includes code adapted from [bb-plugin-t3sidebar](https://github.com/SawyerHood/bb-plugin-t3sidebar). Its MIT copyright notice remains in [LICENSE](LICENSE).
 
 The sidebar design and interactions are directly inspired by [T3 Code](https://github.com/pingdotgg/t3code), which is also released under the MIT License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
-
-### Contributors
-
-- [@a-kras](https://github.com/a-kras)
-- [@amrtawfik160](https://github.com/amrtawfik160)
-- [@banjerluke](https://github.com/banjerluke)
-- [@elianiva](https://github.com/elianiva)
-- [@synco101](https://github.com/synco101)
