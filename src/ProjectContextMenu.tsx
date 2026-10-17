@@ -7,7 +7,7 @@ import type { bbSidebarRpcContract } from "./contract";
 import { usePortalScopeProps } from "./lib/portal-scope";
 
 const itemClass =
-  "cursor-pointer rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[disabled]:opacity-50";
+  "cursor-pointer rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[highlighted]:bg-accent data-[disabled]:opacity-50";
 const fieldClass =
   "h-9 w-full min-w-0 rounded-md border border-border bg-background px-2.5 text-sm text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50";
 type Action = "rename" | "path" | "remove";

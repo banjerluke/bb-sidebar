@@ -82,7 +82,7 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
     >
       <ContextMenu.SubTrigger
         disabled={saving}
-        className="flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[disabled]:opacity-50"
+        className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[disabled]:opacity-50"
       >
         Parent
         <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
@@ -116,7 +116,7 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
                   item?.focus();
                 }
               }}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
             />
           </div>
           <ContextMenu.Label className="px-2 py-1 text-xs text-muted-foreground">
@@ -138,7 +138,7 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
                 value={candidate.id}
                 disabled={saving}
                 textValue={candidate.title}
-                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[disabled]:opacity-50"
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[highlighted]:bg-accent data-[disabled]:opacity-50"
               >
                 {candidate.isPinned ? (
                   <Icon name="Pin" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />

@@ -144,7 +144,7 @@ export function RowContextMenu({
                 <ParentThreadMenu thread={thread} />
                 {projectItems ? (
                   <ContextMenu.Sub onOpenChange={onOpenChange}>
-                    <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+                    <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
                       Project
                       <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
                     </ContextMenu.SubTrigger>
@@ -257,7 +257,7 @@ function CopySubmenu({ thread }: { thread: PluginSidebarThread }) {
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger
         className={cn(
-          "flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm outline-none",
+          "flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none",
           "data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
         )}
       >
@@ -294,7 +294,7 @@ function SnoozeSubmenu({
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger
         className={cn(
-          "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none",
+          "flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none",
           "data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
         )}
       >
@@ -356,7 +356,7 @@ function Item({
       title={title}
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none",
+        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none",
         "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
         "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
         destructive && "text-destructive-text",
