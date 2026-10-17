@@ -27,6 +27,7 @@ import { useChildThreadDisplayValue } from "./ChildThreadDisplay";
 import { useLifecycle } from "./useLifecycle";
 import type { createDragPreview } from "./drag-preview";
 import { usePinnedReorder } from "./usePinnedReorder";
+import { useCollapseChildrenOnSettle } from "./useCollapseChildrenOnSettle";
 import { useInboxReorder } from "./useInboxReorder";
 import { useInboxProjectGroups } from "./useInboxProjectGroups";
 import { environmentUnitKey } from "./environment-groups";
@@ -135,6 +136,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     threads,
     workingShelfEnabled,
   });
+  useCollapseChildrenOnSettle(settled, lifecycle, setExpandedChildParentIds);
 
   const pinnedReorder = usePinnedReorder(allPinnedBase);
   const inboxReorder = useInboxReorder(allInboxBase);
@@ -458,6 +460,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         isSearching={isSearching}
         searchResults={searchResults}
         wokeThreadIds={wokeThreadIds}
+        expandedChildParentIds={expandedChildParentIds}
         dockShelvesEnabled={dockShelvesEnabled}
         attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
         attachDockAutoAnimateRef={attachDockAutoAnimateRef}

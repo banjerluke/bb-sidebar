@@ -46,7 +46,7 @@ describe("scoped active representative regressions", () => {
       fireEvent.click(screen.getByRole("option", { name: scope }));
     }
     const shelf = await screen.findByRole("region", { name: "Settled" });
-    expect(within(shelf).getByRole("button", { expanded: false })).toBeDefined();
+    expect(within(shelf).getByRole("button", { name: /^Settled/, expanded: false })).toBeDefined();
     expect(within(shelf).getByText(expected === "parent" ? "Parent A" : "Child B")).toBeDefined();
     expect(within(shelf).getAllByRole("link")).toHaveLength(1);
     expect(rendered.rpcCalls.filter((call) => /Parent|reorder|Pinned/.test(call.method))).toEqual([]);

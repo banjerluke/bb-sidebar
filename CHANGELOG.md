@@ -5,6 +5,7 @@
 ### Added
 
 - Group by worktree, an option under the Project sort in the Active sort picker, off by default. Inside each project, root threads that share a bb worktree are grouped under its branch. Groups can be collapsed and reordered by drag or Alt+Arrow keys. Threads alone in their worktree, threads in the project checkout, and child threads stay as before. Thanks @s-KaiNet (#9).
+- Snoozed, Parked, and Settled rows show the child-thread chip, and the chip expands their children, as on compact working rows. Settling a thread folds its children; expanding them again in Settled sticks.
 
 ### Fixed
 

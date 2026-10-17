@@ -45,6 +45,7 @@ interface ThreadInboxViewProps {
   isSearching: boolean;
   searchResults: readonly PluginSidebarThread[];
   wokeThreadIds: ReadonlySet<string>;
+  expandedChildParentIds: ReadonlySet<string>;
   dockShelvesEnabled: boolean;
   attachShelvesAutoAnimateRef: (node: HTMLDivElement | null) => void;
   attachDockAutoAnimateRef: (node: HTMLDivElement | null) => void;
@@ -79,6 +80,7 @@ export function ThreadInboxView({
   isSearching,
   searchResults,
   wokeThreadIds,
+  expandedChildParentIds,
   dockShelvesEnabled,
   attachShelvesAutoAnimateRef,
   attachDockAutoAnimateRef,
@@ -273,6 +275,7 @@ export function ThreadInboxView({
                     }))
                   }
                   shelf="snoozed"
+                  expandedChildParentIds={expandedChildParentIds}
                   visibleThreads={snoozed.visibleThreads}
                 />
                 <CompactShelf
@@ -287,6 +290,7 @@ export function ThreadInboxView({
                     }))
                   }
                   shelf="parked"
+                  expandedChildParentIds={expandedChildParentIds}
                   visibleThreads={parked.visibleThreads}
                 />
                 <CompactShelf
@@ -301,6 +305,7 @@ export function ThreadInboxView({
                     }))
                   }
                   shelf="settled"
+                  expandedChildParentIds={expandedChildParentIds}
                   visibleThreads={settled.visibleThreads}
                   settledLimit={settledLimit}
                   onLoadMore={() => setSettledLimit((limit) => limit + SETTLED_PAGE_SIZE)}

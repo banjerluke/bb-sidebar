@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
+import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { CompactRow } from "./CompactRow";
 import { RowContextMenu } from "./RowContextMenu";
 import { StatusOrTime } from "./StatusSlot";
@@ -10,11 +11,12 @@ import { snoozeWakeLabel } from "./lifecycle";
 import { useProjectColor } from "./ProjectColors";
 import { OpenPortsIndicator } from "./OpenPorts";
 import { JumpHint, useJumpHint } from "./JumpHints";
-import { useInboxEnvironment, useInboxActions } from "./InboxContext";
+import { useInboxActivity, useInboxEnvironment, useInboxActions } from "./InboxContext";
 import { projectIconUrl as iconUrl } from "./project-icons";
 
 /**
- * A parked thread: one line instead of a card. Density comes from the user
+ * A parked, snoozed, or settled thread: one line instead of a card, with its
+ * children behind the same chip as a compact card. Density comes from the user
  * actually parking work, never from the sidebar guessing what still matters.
  *
  * Same structure as the card — a full-bleed anchor under the restore button,
@@ -27,6 +29,7 @@ export function SlimRow({
   parkedAt,
   wakeAt,
   now,
+  childrenExpanded,
 }: {
   thread: PluginSidebarThread;
   isActive: boolean;
@@ -34,9 +37,18 @@ export function SlimRow({
   parkedAt?: number | null;
   wakeAt: number | null;
   now: number;
+  childrenExpanded: boolean;
 }) {
-  const { projectNameById, projectIconRevision, snoozePresets, lifecycle } = useInboxEnvironment();
-  const { navigate, onNavigate, parkThread, settleThread, snoozeThread } = useInboxActions();
+  const { projectNameById, projectIconRevision, snoozePresets, lifecycle, childrenByParentId } = useInboxEnvironment();
+  const { navigate, onNavigate, parkThread, settleThread, snoozeThread, toggleChildExpansion } = useInboxActions();
+  const { activeThreadId } = useInboxActivity();
+  const childThreads = childrenByParentId.get(thread.id) ?? [];
+  const childListId = useId();
+  // Shelved rows stay one line: children show only when expanded, or on the
+  // way to the open thread, never because one needs attention.
+  const showChildren =
+    childThreads.length > 0 &&
+    (childrenExpanded || collapsedChildThreads(childThreads, childrenByParentId, activeThreadId, false).length > 0);
   const projectName = projectNameById.get(thread.projectId) ?? null;
   const projectIconUrl = iconUrl(thread.projectId, projectIconRevision);
   const onPark = () => parkThread(thread);
@@ -85,6 +97,15 @@ export function SlimRow({
           trailing={
             <>
               <OpenPortsIndicator thread={thread} />
+              {childThreads.length > 0 ? (
+                <ChildThreadBadge
+                  threads={childThreads}
+                  childrenByParent={childrenByParentId}
+                  expanded={childrenExpanded}
+                  controls={childListId}
+                  onToggle={() => toggleChildExpansion(thread.id)}
+                />
+              ) : null}
               {/* Size to the label so the port icon stays beside it. Keep enough
               room for the restore button, which replaces the label on hover.
               On touch devices, show both side by side. */}
@@ -136,6 +157,16 @@ export function SlimRow({
             </>
           }
         />
+        {showChildren ? (
+          <ChildThreadList
+            id={childListId}
+            threads={childThreads}
+            expanded={childrenExpanded}
+            showRunningChildrenWhenCollapsed={false}
+            parentProjectId={thread.projectId}
+            variant="sidebar"
+          />
+        ) : null}
       </li>
     </RowContextMenu>
   );

@@ -142,7 +142,7 @@ describe("ThreadInbox", () => {
     );
 
     const settled = await screen.findByRole("region", { name: "Settled" });
-    expect(within(settled).getByRole("button", { expanded: false })).toBeDefined();
+    expect(within(settled).getByRole("button", { name: /^Settled/, expanded: false })).toBeDefined();
     expect(within(settled).getByText("Parked parent")).toBeDefined();
   });
 

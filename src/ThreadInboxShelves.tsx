@@ -31,6 +31,7 @@ export function CompactShelf({
   visibleThreads,
   settledLimit,
   onLoadMore,
+  expandedChildParentIds,
 }: {
   label: string;
   icon: IconName;
@@ -41,6 +42,7 @@ export function CompactShelf({
   visibleThreads: readonly PluginSidebarThread[];
   settledLimit?: number;
   onLoadMore?: () => void;
+  expandedChildParentIds: ReadonlySet<string>;
 }) {
   const { lifecycle } = useInboxEnvironment();
   const { activeThreadId } = useInboxActivity();
@@ -74,6 +76,7 @@ export function CompactShelf({
             parkedAt={lifecycle.parkedAtFor(thread)}
             wakeAt={lifecycle.wakeAtFor(thread)}
             now={now}
+            childrenExpanded={expandedChildParentIds.has(thread.id)}
           />
         ))}
       </ul>

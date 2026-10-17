@@ -306,7 +306,10 @@ it.each(snapshots)(
       expect(within(screen.getByRole("region", { name })).getByText(`Golden ${id}`)).toBeDefined();
     }
     expect(screen.getByText("Golden expanded-child")).toBeDefined();
-    expect(screen.getByRole("list", { name: "Child threads" })).toBeDefined();
+    // Both stored expansions now show: the Active override's, and the Settled
+    // parent's, which releases before shelf children kept but never drew.
+    expect(screen.getAllByRole("list", { name: "Child threads" })).toHaveLength(2);
+    expect(within(screen.getByRole("region", { name: "Settled" })).getByText("Golden child")).toBeDefined();
     const active = screen.getByRole("region", { name: "Active" });
     expect(
       within(active)
