@@ -287,11 +287,7 @@ describe("sidebar settings", () => {
       "This device",
       "Project management",
     ]);
-    const navigation = screen.getByRole("navigation", { name: "Settings sections" });
-    for (const link of within(navigation).getAllByRole("link")) {
-      const target = document.querySelector(link.getAttribute("href")!);
-      expect(target?.getAttribute("aria-labelledby")).toBe(`${target?.id}-heading`);
-    }
+    expect(screen.queryByRole("navigation", { name: "Settings sections" })).toBeNull();
     const layout = screen.getByRole("region", { name: "Sidebar layout" });
     expect(within(layout).getAllByText("Experimental")).toHaveLength(3);
     expect(within(layout).getByRole("switch", { name: "Working shelf" })).toBeDefined();
@@ -303,8 +299,6 @@ describe("sidebar settings", () => {
     expect(within(appearance).queryByRole("button", { name: "Remove…" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Archiving" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Archive all settled threads" })).toBeNull();
-    fireEvent.click(within(navigation).getByRole("link", { name: "Project appearance" }));
-    expect(document.activeElement).toBe(within(appearance).getByRole("heading", { level: 2 }));
     expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
     expect(screen.getByRole("switch", { name: "Inactive shelf" }).querySelector("span")?.className).toContain(
       "left-0.5",

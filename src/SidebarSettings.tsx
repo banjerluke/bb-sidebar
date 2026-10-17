@@ -28,7 +28,6 @@ import {
   SettingRow,
   SettingsSection,
   SettingsGroup,
-  SettingsNavigation,
   SettingsSelect,
   Switch,
   type SaveStatus,
@@ -52,15 +51,6 @@ const PROJECT_COLOR_DISPLAY_LABELS: Record<ProjectColorDisplay, string> = {
   full: "Full mode only",
   grouped: "Grouped projects only",
 };
-
-const SETTINGS_SECTIONS = [
-  "Sidebar layout",
-  "Project appearance",
-  "Thread behavior",
-  "Child threads",
-  "This device",
-  "Project management",
-] as const;
 
 /** Long enough to finish typing a shortcut, short enough to feel instant. */
 const SAVE_DELAY_MS = 500;
@@ -271,7 +261,6 @@ export function SidebarSettings() {
 
   return (
     <div className="max-w-3xl space-y-8 pb-4">
-      <SettingsNavigation sections={SETTINGS_SECTIONS} />
       <SettingsSection title="Sidebar layout" status={statusFor("Sidebar layout")}>
         <SettingRow
           title="Compact working threads"

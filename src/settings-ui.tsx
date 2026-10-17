@@ -6,29 +6,6 @@ function settingsSectionId(title: string): string {
   return `settings-${title.toLowerCase().replaceAll(" ", "-")}`;
 }
 
-export function SettingsNavigation({ sections }: { sections: readonly string[] }) {
-  return (
-    <nav aria-label="Settings sections" className="flex flex-wrap gap-x-4 gap-y-2 border-b border-border pb-4 text-xs">
-      {sections.map((title) => (
-        <a
-          key={title}
-          href={`#${settingsSectionId(title)}`}
-          className="rounded-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={(event) => {
-            const section = document.getElementById(settingsSectionId(title));
-            if (!section) return;
-            event.preventDefault();
-            section.scrollIntoView({ block: "start" });
-            section.querySelector("h2")?.focus({ preventScroll: true });
-          }}
-        >
-          {title}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
 /**
  * The settings page's building blocks, drawn after bb's own settings: a short
  * section title over a bordered card, and undivided rows with the label on
@@ -46,9 +23,9 @@ export function SettingsSection({
 }) {
   const id = settingsSectionId(title);
   return (
-    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-4">
+    <section id={id} aria-labelledby={`${id}-heading`}>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 id={`${id}-heading`} tabIndex={-1} className="text-sm font-medium text-foreground focus:outline-none">
+        <h2 id={`${id}-heading`} className="text-sm font-medium text-foreground">
           {title}
         </h2>
         <SaveIndicator status={status} />
