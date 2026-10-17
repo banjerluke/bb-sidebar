@@ -66,7 +66,7 @@ type ActiveShelfKind = "pinned" | "inbox";
  * The host owns New thread and search. This list applies searchQuery and adds
  * the plugin's project scope picker.
  */
-export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginThreadListProps) {
+export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompactViewport }: PluginThreadListProps) {
   const { status, threads, projects } = useSidebarThreads();
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
@@ -74,7 +74,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery }: PluginT
   const sidebarSettings = useSidebarSettings();
   const lifecycle = useLifecycle(threads);
   const projectIconRevision = useProjectIconRevision();
-  const [listAnimationController] = useState(createListAnimationController);
+  const listAnimationController = useMemo(() => createListAnimationController(!isCompactViewport), [isCompactViewport]);
   const attachShelvesAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
   const attachDockAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
   const attachScrollFadeRef = useScrollFade<HTMLDivElement>();

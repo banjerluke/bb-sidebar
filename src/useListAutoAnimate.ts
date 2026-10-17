@@ -3,10 +3,11 @@ import { autoAnimate, type AnimationController } from "@formkit/auto-animate";
 
 // Each inbox owns its lists: a drag holds their geometry still while it reads
 // insertion slots, without disabling another mounted inbox's animations.
-export function createListAnimationController() {
+export function createListAnimationController(enabled = true) {
   const animations = new Set<AnimationController>();
   let holds = 0;
   return {
+    enabled,
     suspend() {
       holds += 1;
       if (holds > 1) return;
@@ -39,7 +40,8 @@ export function useListAutoAnimate<T extends HTMLElement>(owner?: ListAnimationC
   if (!controller) throw new Error("List animations require an inbox controller");
   return useCallback(
     (node: T | null) => {
-      if (!node || typeof window.matchMedia !== "function") return;
+      // Skip initialization on mobile: even idle lists poll every row's geometry.
+      if (!node || !controller.enabled || typeof window.matchMedia !== "function") return;
       const animation = autoAnimate(node, {
         duration: 150,
         easing: "ease-out",
