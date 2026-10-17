@@ -13,7 +13,7 @@ export function createDragReorderHandler({
   listAnimationController,
   suppressDragClick,
   reorderScopeRef,
-  storedProjectUnitsRef,
+  storedOrderUnitsRef,
   setDragOrder,
   commitReorder,
 }: DragReorderOptions): ThreadReorderControls["onPointerDown"] {
@@ -45,7 +45,7 @@ export function createDragReorderHandler({
     let pointerY = startY;
     const position = { resolvedY: startY, reorderDirection: 0 };
     const reorderAt = createDragReorderGeometry(
-      { shelf, key, dragOrderRef, reorderScopeRef, storedProjectUnitsRef, dragPreviewRef, setDragOrder },
+      { shelf, key, dragOrderRef, reorderScopeRef, storedOrderUnitsRef, dragPreviewRef, setDragOrder },
       () => ({ scrollContainer, listElement }),
       position,
     );
@@ -137,7 +137,7 @@ export function createDragReorderHandler({
 
       dragOrderRef.current = null;
       setDragOrder(null);
-      commitReorder(shelf, current.mode, current.ids, current.movingId);
+      commitReorder(shelf, current.mode, current.ids, current.movingId, current.parentKey);
     }
 
     function onPointerCancel(cancelEvent: PointerEvent) {

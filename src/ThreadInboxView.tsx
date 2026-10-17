@@ -10,15 +10,15 @@ import {
   Shelf,
   SETTLED_PAGE_SIZE,
 } from "./ThreadInboxShelves";
-import { ACTIVE_SORT_MODES, isActiveSortMode, type ActiveSortMode, type ProjectViewUnit } from "./inbox-layout";
-import { Icon } from "./components/Icon";
+import type { ActiveSortMode, ProjectViewUnit } from "./inbox-layout";
 import { cn } from "./lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "./components/Select";
+import { ActiveSortPicker } from "./ActiveSortPicker";
 import { ProjectScopeSelect } from "./ProjectScopeSelect";
 import type { ThreadReorderControls } from "./ThreadCard";
 import { SearchResults } from "./SearchResults";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
+import type { useInboxProjectGroups } from "./useInboxProjectGroups";
 
 export interface ShelfExpansionState {
   active: boolean;
@@ -29,13 +29,6 @@ export interface ShelfExpansionState {
   snoozed: boolean;
   settled: boolean;
 }
-
-const ACTIVE_SORT_LABELS: Record<ActiveSortMode, string> = {
-  manual: "Manual order",
-  activity: "Recent activity",
-  created: "Date created",
-  project: "Project",
-};
 
 interface ShelfThreads {
   threads: readonly PluginSidebarThread[];
@@ -63,9 +56,14 @@ interface ThreadInboxViewProps {
     showProject?: boolean,
     compact?: boolean,
     renameShelf?: "active" | "working" | "inactive",
+    showEnvironment?: boolean,
   ) => ReactNode;
   activeSortMode: ActiveSortMode;
   inboxProjectView: readonly ProjectViewUnit[];
+  environmentGrouping: Pick<
+    ReturnType<typeof useInboxProjectGroups>,
+    "groupEnvironments" | "setGroupEnvironments" | "toggleEnvironmentCollapse"
+  >;
   reorderControls: (key: string, shelf: "pinned" | "inbox", title: string) => ThreadReorderControls;
   sortedVisibleInbox: readonly PluginSidebarThread[];
   settledLimit: number;
@@ -88,6 +86,7 @@ export function ThreadInboxView({
   renderActiveThread,
   activeSortMode,
   inboxProjectView,
+  environmentGrouping,
   reorderControls,
   sortedVisibleInbox,
   settledLimit,
@@ -178,37 +177,24 @@ export function ThreadInboxView({
                       }))
                     }
                     action={
-                      <Select
-                        value={activeSortMode}
-                        onValueChange={(value) => {
-                          if (isActiveSortMode(value)) setActiveSortMode(value);
-                        }}
-                      >
-                        <SelectTrigger
-                          aria-label={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                          title={`Sort active threads: ${ACTIVE_SORT_LABELS[activeSortMode]}`}
-                          className={cn(
-                            "absolute bottom-1 right-[1.875rem] z-10 size-4 h-4 w-4 border-0 p-0 text-muted-foreground/40 shadow-none hover:bg-sidebar-accent hover:text-muted-foreground focus:ring-0 focus-visible:ring-1 focus-visible:ring-ring [&>svg:last-child]:hidden",
-                            activeSortMode !== "manual" && "bg-sidebar-accent/60 text-muted-foreground/80",
-                          )}
-                        >
-                          <Icon name="ArrowUpDown" className="size-3" />
-                        </SelectTrigger>
-                        <SelectContent align="end" className="min-w-40">
-                          {ACTIVE_SORT_MODES.map((mode) => (
-                            <SelectItem key={mode} value={mode} className="text-xs">
-                              {ACTIVE_SORT_LABELS[mode]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <ActiveSortPicker
+                        mode={activeSortMode}
+                        onModeChange={setActiveSortMode}
+                        groupEnvironments={environmentGrouping.groupEnvironments}
+                        onGroupEnvironmentsChange={environmentGrouping.setGroupEnvironments}
+                      />
                     }
                   >
                     {activeSortMode === "project" ? (
                       <ProjectGroups
                         units={inboxProjectView}
-                        reorderControls={(unit, name) => reorderControls(unit.key, "inbox", `${name} project`)}
-                        renderThread={(thread, grouped) => renderActiveThread(thread, "inbox", true, !grouped)}
+                        onToggleEnvironment={environmentGrouping.toggleEnvironmentCollapse}
+                        reorderControls={(unit, name) =>
+                          reorderControls(unit.key, "inbox", `${name} ${unit.environment ? "environment" : "project"}`)
+                        }
+                        renderThread={(thread, grouped, environmentGrouped) =>
+                          renderActiveThread(thread, "inbox", true, !grouped, false, "active", !environmentGrouped)
+                        }
                       />
                     ) : inbox.visibleThreads.length > 0 ? (
                       <Shelf label={null}>

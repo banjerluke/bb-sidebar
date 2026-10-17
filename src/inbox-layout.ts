@@ -6,6 +6,11 @@ export const ACTIVE_SORT_MODES = ["manual", "activity", "created", "project"] as
 export type ActiveSortMode = (typeof ACTIVE_SORT_MODES)[number];
 
 export type ReorderMode = "thread" | "unit";
+export interface ReorderScope {
+  mode: ReorderMode;
+  ids: string[];
+  parentKey?: string | null;
+}
 
 export function isActiveSortMode(value: string): value is ActiveSortMode {
   return ACTIVE_SORT_MODES.some((mode) => mode === value);
@@ -18,9 +23,10 @@ const MIN_PROJECT_GROUP_SIZE = 2;
 
 export type ProjectViewUnit =
   | Extract<ProjectUnit, { kind: "thread" }>
-  | (Extract<ProjectUnit, { kind: "group" }> & {
+  | (Omit<Extract<ProjectUnit, { kind: "group" }>, "children"> & {
       expanded: boolean;
       threadCount: number;
+      children?: ProjectViewUnit[];
     });
 
 export type ProjectUnit =
@@ -30,10 +36,12 @@ export type ProjectUnit =
       key: string;
       projectId: string;
       threads: PluginSidebarThread[];
+      children?: ProjectUnit[];
+      environment?: NonNullable<PluginSidebarThread["environment"]>;
     };
 
 // Thread ids never take this form, so a project key cannot collide with one.
-export const PROJECT_UNIT_KEY_PREFIX = "project:";
+const PROJECT_UNIT_KEY_PREFIX = "project:";
 
 export function projectUnitKey(projectId: string): string {
   return `${PROJECT_UNIT_KEY_PREFIX}${projectId}`;

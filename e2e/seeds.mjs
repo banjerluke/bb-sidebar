@@ -48,6 +48,29 @@ async function seed(title, { projectId = fixture.projectId, root } = {}) {
 
 // Extra seeds exist only while their flow runs, including when an assertion fails.
 export const seededTest = test.extend({
+  worktrees: async ({}, use) => {
+    const threads = [];
+    const paths = [];
+    const git = promisify(execFile);
+    const repo = join(fixture.env.BB_DATA_DIR, "repo");
+    try {
+      for (const [branch, titles] of [
+        ["feature/search", ["Implement search", "Review search changes"]],
+        ["fix/menus", ["Fix keyboard navigation", "Add regression coverage"]],
+      ]) {
+        const root = join(fixture.env.BB_DATA_DIR, branch.replace("/", "-"));
+        await git("git", ["-C", repo, "worktree", "add", "-b", branch, root], { env: fixture.env });
+        paths.push(root);
+        for (const title of titles) threads.push(await seed(title, { root }));
+      }
+      await use(threads);
+    } finally {
+      for (const { id } of threads) await cli(["thread", "delete", id, "--yes"]);
+      for (const root of paths) await git("git", ["-C", repo, "worktree", "remove", root], { env: fixture.env });
+      for (const branch of ["feature/search", "fix/menus"])
+        await git("git", ["-C", repo, "branch", "-D", branch], { env: fixture.env });
+    }
+  },
   secondProject: async ({}, use) => {
     const root = join(fixture.env.BB_DATA_DIR, "filter-repo");
     const git = promisify(execFile);

@@ -194,7 +194,7 @@ describe("ThreadInbox", () => {
     );
 
     const activeShelf = screen.getByRole("region", { name: "Active" });
-    const sortMenu = within(activeShelf).getByRole("combobox", {
+    const sortMenu = within(activeShelf).getByRole("button", {
       name: "Sort active threads: Manual order",
     });
     expect(sortMenu.querySelector('[data-icon="ArrowUpDown"]')).not.toBeNull();
@@ -213,11 +213,11 @@ describe("ThreadInbox", () => {
     ]);
 
     fireEvent.keyDown(sortMenu, { key: "Enter" });
-    expect(screen.getByRole("option", { name: "Manual order" })).toBeDefined();
-    expect(screen.getByRole("option", { name: "Recent activity" })).toBeDefined();
-    expect(screen.getByRole("option", { name: "Date created" })).toBeDefined();
-    expect(screen.getByRole("option", { name: "Project" })).toBeDefined();
-    fireEvent.click(screen.getByRole("option", { name: "Recent activity" }));
+    expect(screen.getByRole("radio", { name: "Manual order" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Recent activity" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Date created" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Project" })).toBeDefined();
+    fireEvent.click(screen.getByRole("radio", { name: "Recent activity" }));
 
     expect(
       within(activeShelf)
@@ -236,12 +236,12 @@ describe("ThreadInbox", () => {
     ).toBe(true);
 
     fireEvent.keyDown(
-      within(activeShelf).getByRole("combobox", {
+      within(activeShelf).getByRole("button", {
         name: "Sort active threads: Recent activity",
       }),
       { key: "Enter" },
     );
-    fireEvent.click(screen.getByRole("option", { name: "Date created" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Date created" }));
     expect(
       within(activeShelf)
         .getAllByRole("listitem")
@@ -254,12 +254,12 @@ describe("ThreadInbox", () => {
     ]);
 
     fireEvent.keyDown(
-      within(activeShelf).getByRole("combobox", {
+      within(activeShelf).getByRole("button", {
         name: "Sort active threads: Date created",
       }),
       { key: "Enter" },
     );
-    fireEvent.click(screen.getByRole("option", { name: "Project" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Project" }));
     // Projects sit where their first thread is in manual order.
     expect(
       within(activeShelf)
@@ -291,7 +291,7 @@ describe("ThreadInbox", () => {
     render([thread({ id: "saved", title: "Saved grouping" })]);
 
     expect(
-      screen.getByRole("combobox", {
+      screen.getByRole("button", {
         name: "Sort active threads: Project",
       }),
     ).toBeDefined();

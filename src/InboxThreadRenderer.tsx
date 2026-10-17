@@ -30,11 +30,13 @@ export function createInboxThreadRenderer(
     showProject = true,
     compact = false,
     renameShelf: "active" | "working" | "inactive" = "active",
+    showEnvironment = true,
   ) => (
     <ThreadCard
       key={thread.id}
       thread={thread}
       showProject={showProject}
+      showEnvironment={showEnvironment}
       isActive={thread.id === activeThreadId}
       isWoke={wokeThreadIds.has(thread.id)}
       canPark={lifecycle.canPark(thread)}

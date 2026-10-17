@@ -1,0 +1,233 @@
+// @vitest-environment jsdom
+import { expect, it, vi } from "vitest";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { renderSlot } from "./test-slot";
+import { inbox, thread, listProps, loadInboxApp } from "./test-inbox";
+
+vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
+await loadInboxApp();
+
+function worktree(id: string, branchName = id): NonNullable<PluginSidebarThread["environment"]> {
+  return {
+    id,
+    branchName,
+    name: id,
+    path: `/repo/${id}`,
+    isWorktree: true,
+    providerId: "git-worktree",
+    workspaceDisplayKind: "managed-worktree",
+  };
+}
+
+function setup({
+  rows = [
+    thread({ id: "a", title: "Search implementation", environment: worktree("search") }),
+    thread({ id: "b", title: "Search review", environment: worktree("search") }),
+    thread({ id: "c", title: "Menu implementation", environment: worktree("menus") }),
+    thread({ id: "d", title: "Menu review", environment: worktree("menus") }),
+  ],
+  enabled = true,
+  activeThreadId = null,
+}: {
+  rows?: PluginSidebarThread[];
+  enabled?: boolean;
+  activeThreadId?: string | null;
+} = {}) {
+  localStorage.setItem("bb-sidebar:active-sort:v1", "project");
+  if (enabled) localStorage.setItem("bb-sidebar:environment-grouping:v1", "true");
+  let order = rows.filter((row) => !row.parentThreadId).map((row) => row.id);
+  const save = vi.fn((input: unknown) => {
+    order = (input as { inboxThreadIds: string[] }).inboxThreadIds;
+    return { inboxThreadIds: order };
+  });
+  const rendered = renderSlot(
+    inbox,
+    { ...listProps, activeThreadId },
+    {
+      sidebarThreads: {
+        status: "ready",
+        threads: rows,
+        projects: [
+          { id: "proj_1", name: "Sidebar", isPersonal: false, href: "", settingsHref: "" },
+          { id: "other", name: "Other", isPersonal: false, href: "", settingsHref: "" },
+        ],
+      },
+      rpc: {
+        listLifecycle: () => ({ rows: [] }),
+        listInboxOrder: () => ({ inboxThreadIds: order }),
+        reorderInbox: save,
+      },
+    },
+  );
+  return {
+    ...rendered,
+    save,
+    pushOrder: async (ids: string[]) => {
+      order = ids;
+      await rendered.emitRealtime("inbox-order", {});
+    },
+  };
+}
+
+it("shows environment grouping only inside the Project sort picker and remembers it across modes", async () => {
+  const rendered = setup({ enabled: false });
+  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Project" }), { key: "Enter" });
+  const picker = screen.getByRole("dialog", { name: "Sort active threads" });
+  const toggle = within(picker).getByRole("checkbox", { name: "Group by environment" });
+  expect((toggle as HTMLInputElement).checked).toBe(false);
+  expect(screen.queryByRole("region", { name: "search environment" })).toBeNull();
+  fireEvent.click(toggle);
+  expect(screen.getByRole("region", { name: "search environment" })).toBeDefined();
+  expect(localStorage.getItem("bb-sidebar:environment-grouping:v1")).toBe("true");
+  fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }));
+  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "search environment" })).toBeNull();
+  expect(screen.getAllByRole("link")).toHaveLength(4);
+  fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Manual order" }), { key: "ArrowDown" });
+  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  fireEvent.click(screen.getByRole("radio", { name: "Project" }));
+  const restored = await screen.findByRole("checkbox", { name: "Group by environment" });
+  expect((restored as HTMLInputElement).checked).toBe(true);
+  fireEvent.keyDown(restored, { key: "Escape" });
+  expect(screen.queryByRole("checkbox", { name: "Group by environment" })).toBeNull();
+  expect(screen.getByRole("region", { name: "search environment" })).toBeDefined();
+  expect(rendered.save).not.toHaveBeenCalled();
+});
+
+it("uses environment identity, excludes ordinary checkouts and singletons, and leaves Pinned flat", () => {
+  setup({
+    rows: [
+      ...["one", "two"].flatMap((id) =>
+        [1, 2].map((n) => thread({ id: `${id}${n}`, title: `${id}${n}`, environment: worktree(id, "same-branch") })),
+      ),
+      thread({ id: "single", title: "Singleton", environment: worktree("single") }),
+      ...[1, 2].map((n) =>
+        thread({
+          id: `checkout${n}`,
+          title: `Checkout ${n}`,
+          environment: { ...worktree("checkout"), isWorktree: false },
+        }),
+      ),
+      ...[1, 2].map((n) =>
+        thread({
+          id: `pin${n}`,
+          title: `Pinned ${n}`,
+          isPinned: true,
+          pinnedAt: 1,
+          pinSortKey: `a${n}`,
+          environment: worktree("pinned"),
+        }),
+      ),
+    ],
+  });
+  const groups = screen.getAllByRole("region", { name: "same-branch environment" });
+  expect(groups).toHaveLength(2);
+  expect(
+    within(groups[0]!)
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("aria-label")),
+  ).toEqual(["one1", "one2"]);
+  expect(
+    within(groups[1]!)
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("aria-label")),
+  ).toEqual(["two1", "two2"]);
+  expect(screen.queryByRole("region", { name: "single environment" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "checkout environment" })).toBeNull();
+  expect(within(screen.getByRole("region", { name: "Pinned" })).queryAllByRole("region")).toHaveLength(0);
+});
+
+it("keeps an open child's ancestor visible through environment, project, and shelf collapse", () => {
+  setup({
+    activeThreadId: "child",
+    rows: [
+      thread({ id: "a", title: "Parent", environment: worktree("search") }),
+      thread({ id: "b", title: "Other root", environment: worktree("search") }),
+      thread({ id: "child", title: "Open child", parentThreadId: "a", environment: worktree("different") }),
+    ],
+  });
+  fireEvent.click(screen.getByRole("button", { name: "search (2)" }));
+  expect(screen.queryByRole("link", { name: "Other root" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Parent" })).toBeDefined();
+  expect(screen.getByRole("button", { name: "Open child thread: Open child" })).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Sidebar (2)" }));
+  expect(screen.queryByRole("button", { name: "search (2)" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Parent" })).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Active" }));
+  expect(screen.queryByRole("button", { name: "Sidebar (2)" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Open child thread: Open child" })).toBeDefined();
+});
+
+it("keeps a running child's parent visible in a collapsed environment", () => {
+  setup({
+    rows: [
+      thread({ id: "a", title: "Parent", environment: worktree("search") }),
+      thread({ id: "b", title: "Other root", environment: worktree("search") }),
+      thread({
+        id: "child",
+        title: "Working child",
+        parentThreadId: "a",
+        indicator: "runtime",
+      }),
+    ],
+  });
+  fireEvent.click(screen.getByRole("button", { name: "search (2)" }));
+  expect(screen.getByRole("link", { name: "Parent" })).toBeDefined();
+  expect(screen.queryByRole("link", { name: "Other root" })).toBeNull();
+});
+
+it("reorders threads only within their environment and moves whole environments within the project", async () => {
+  const rendered = setup();
+  await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "listInboxOrder")).toBe(true));
+  fireEvent.keyDown(screen.getByRole("link", { name: "Search review" }), { key: "ArrowUp", altKey: true });
+  await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["b", "a", "c", "d"] }));
+  fireEvent.keyDown(screen.getByRole("button", { name: "search (2)" }), { key: "ArrowDown", altKey: true });
+  await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["c", "d", "b", "a"] }));
+  expect(
+    within(screen.getByRole("region", { name: "search environment" }))
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("aria-label")),
+  ).toEqual(["Search review", "Search implementation"]);
+});
+
+it("rebases an environment drag on host updates while preserving another project's slot", async () => {
+  const rendered = setup({
+    rows: [
+      thread({ id: "a", title: "A", environment: worktree("search") }),
+      thread({ id: "x", title: "Other project", projectId: "other" }),
+      thread({ id: "b", title: "B", environment: worktree("search") }),
+      thread({ id: "c", title: "C", environment: worktree("menus") }),
+      thread({ id: "d", title: "D", environment: worktree("menus") }),
+    ],
+  });
+  const header = await screen.findByRole("button", { name: "search (2)" });
+  vi.mocked(document.elementFromPoint).mockReturnValue(screen.getByRole("link", { name: "C" }));
+  fireEvent.pointerDown(header, { button: 0, clientX: 20, clientY: 0, pointerId: 1 });
+  fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 40, pointerId: 1 });
+  await rendered.pushOrder(["x", "b", "a", "c", "d"]);
+  fireEvent.pointerUp(window, { clientX: 20, clientY: 40, pointerId: 1 });
+  await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["x", "c", "d", "b", "a"] }));
+});
+
+it("targets the containing project when dragging a project over a nested environment", async () => {
+  const rendered = setup({
+    rows: [
+      thread({ id: "a", title: "A" }),
+      thread({ id: "b", title: "B" }),
+      thread({ id: "c", title: "C", projectId: "other", environment: worktree("menus") }),
+      thread({ id: "d", title: "D", projectId: "other", environment: worktree("menus") }),
+    ],
+  });
+  vi.mocked(document.elementFromPoint).mockReturnValue(screen.getByRole("link", { name: "C" }));
+  fireEvent.pointerDown(screen.getByRole("button", { name: "Sidebar (2)" }), {
+    button: 0,
+    clientX: 20,
+    clientY: 0,
+    pointerId: 1,
+  });
+  fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 40, pointerId: 1 });
+  fireEvent.pointerUp(window, { clientX: 20, clientY: 40, pointerId: 1 });
+  await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["c", "d", "a", "b"] }));
+});

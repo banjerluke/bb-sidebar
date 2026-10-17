@@ -10,6 +10,8 @@ import { CleanSettledDialog } from "./CleanSettledDialog";
 import { TRAILING_GLYPH_BOX_CLASS } from "./StatusSlot";
 import { projectIconUrl } from "./project-icons";
 import type { ProjectViewUnit } from "./inbox-layout";
+import { EnvironmentGroup } from "./EnvironmentGroup";
+import { environmentLabel } from "./environment-groups";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 
 export const SETTLED_PAGE_SIZE = 25;
@@ -280,10 +282,12 @@ export function ProjectGroups({
   units,
   reorderControls,
   renderThread,
+  onToggleEnvironment,
 }: {
   units: readonly ProjectViewUnit[];
   reorderControls: (unit: Extract<ProjectViewUnit, { kind: "group" }>, projectName: string) => ThreadReorderControls;
-  renderThread: (thread: PluginSidebarThread, grouped: boolean) => React.ReactNode;
+  renderThread: (thread: PluginSidebarThread, grouped: boolean, environmentGrouped?: boolean) => React.ReactNode;
+  onToggleEnvironment: (key: string) => void;
 }) {
   const { projectNameById, projectIconRevision } = useInboxEnvironment();
   const { toggleProjectCollapse: onToggle } = useInboxActions();
@@ -306,7 +310,22 @@ export function ProjectGroups({
             onToggle={() => onToggle(unit.projectId)}
             reorder={reorderControls(unit, projectName)}
           >
-            {unit.threads.map((thread) => renderThread(thread, true))}
+            {unit.children
+              ? unit.children.map((child) =>
+                  child.kind === "thread" ? (
+                    renderThread(child.thread, true)
+                  ) : (
+                    <EnvironmentGroup
+                      key={child.key}
+                      unit={child}
+                      onToggle={() => onToggleEnvironment(child.key)}
+                      reorder={reorderControls(child, environmentLabel(child.environment!))}
+                    >
+                      {child.threads.map((thread) => renderThread(thread, true, true))}
+                    </EnvironmentGroup>
+                  ),
+                )
+              : unit.threads.map((thread) => renderThread(thread, true))}
           </ActiveProjectGroup>
         );
       })}

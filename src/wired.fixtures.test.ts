@@ -334,8 +334,8 @@ it.each(snapshots)(
     expect(settingsSlot.rpcReplies).toEqual([]);
     // The bridge is still blocked: no server read or policy reply can replace cache state.
     expect(wired.db.prepare("SELECT COUNT(*) AS n FROM thread_lifecycle").get()).toEqual({ n: 0 });
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "Sort active threads: Manual order" }), { key: "Enter" });
-    fireEvent.click(screen.getByRole("option", { name: "Project" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Manual order" }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("radio", { name: "Project" }));
     const project = screen.getByRole("region", { name: "Sidebar project" });
     expect(
       within(project)
@@ -359,7 +359,7 @@ it.each(snapshots)("reads $version legacy grouping when active-sort is absent", 
     rpcGate: deferred<void>().promise,
   });
   wired.mount();
-  expect(screen.getByRole("combobox", { name: "Sort active threads: Project" })).toBeDefined();
+  expect(screen.getByRole("button", { name: "Sort active threads: Project" })).toBeDefined();
   expect(screen.getByRole("region", { name: "Sidebar project" })).toBeDefined();
 });
 

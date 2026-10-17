@@ -18,6 +18,12 @@ export const projectScopeCodec: PreferenceCodec<string[]> = {
   encode: JSON.stringify,
 };
 
+export const environmentGroupingCodec: PreferenceCodec<boolean> = {
+  fallback: () => false,
+  decode: (stored) => (stored === "true" ? true : stored === "false" ? false : null),
+  encode: String,
+};
+
 export const projectCollapseCodec: PreferenceCodec<Set<string>> = {
   fallback: () => new Set(),
   decode: (stored) => {

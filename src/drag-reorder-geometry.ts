@@ -1,6 +1,6 @@
-import { movePinnedId } from "./pinned-order";
+import { type OrderUnit, movePinnedId } from "./pinned-order";
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import { sameOrder, type ProjectUnit } from "./inbox-layout";
+import { sameOrder, type ReorderScope } from "./inbox-layout";
 import type { createDragPreview } from "./drag-preview";
 import type { ListAnimationController } from "./useListAutoAnimate";
 
@@ -8,6 +8,7 @@ export interface InboxDragOrder {
   shelf: "pinned" | "inbox";
   mode: "thread" | "unit";
   movingId: string;
+  parentKey?: string | null;
   ids: string[];
 }
 
@@ -20,10 +21,16 @@ export interface DragReorderOptions {
   dragPreviewRef: RefObject<ReturnType<typeof createDragPreview> | null>;
   listAnimationController: ListAnimationController;
   suppressDragClick: (key: string) => void;
-  reorderScopeRef: RefObject<(key: string, shelf: "pinned" | "inbox") => { mode: "thread" | "unit"; ids: string[] }>;
-  storedProjectUnitsRef: RefObject<ProjectUnit[]>;
+  reorderScopeRef: RefObject<(key: string, shelf: "pinned" | "inbox") => ReorderScope>;
+  storedOrderUnitsRef: RefObject<OrderUnit[]>;
   setDragOrder: Dispatch<SetStateAction<InboxDragOrder | null>>;
-  commitReorder: (shelf: "pinned" | "inbox", mode: "thread" | "unit", ids: readonly string[], key: string) => void;
+  commitReorder: (
+    shelf: "pinned" | "inbox",
+    mode: "thread" | "unit",
+    ids: readonly string[],
+    key: string,
+    parentKey?: string | null,
+  ) => void;
 }
 
 export function createDragReorderGeometry(
@@ -32,12 +39,12 @@ export function createDragReorderGeometry(
     key,
     dragOrderRef,
     reorderScopeRef,
-    storedProjectUnitsRef,
+    storedOrderUnitsRef,
     dragPreviewRef,
     setDragOrder,
   }: Pick<
     DragReorderOptions,
-    "shelf" | "key" | "dragOrderRef" | "reorderScopeRef" | "storedProjectUnitsRef" | "dragPreviewRef" | "setDragOrder"
+    "shelf" | "key" | "dragOrderRef" | "reorderScopeRef" | "storedOrderUnitsRef" | "dragPreviewRef" | "setDragOrder"
   >,
   readState: () => { scrollContainer: HTMLElement | null; listElement: HTMLElement | null },
   position: { resolvedY: number; reorderDirection: number },
@@ -57,7 +64,10 @@ export function createDragReorderGeometry(
     const hitRow = hit instanceof Element ? hit.closest("li") : null;
     // A whole project is one target among the top-level units; inside
     // a project's own drag, its header is not a row at all.
-    const unitRow = hit instanceof Element ? hit.closest<HTMLElement>("[data-reorder-unit]") : null;
+    let unitRow = hit instanceof Element ? hit.closest<HTMLElement>("[data-reorder-unit]") : null;
+    while (unitRow && !visibleIds.includes(unitRow.dataset.reorderUnit ?? "")) {
+      unitRow = unitRow.parentElement?.closest<HTMLElement>("[data-reorder-unit]") ?? null;
+    }
     const row =
       current.mode === "unit" ? (unitRow ?? hitRow) : hitRow?.hasAttribute("data-reorder-unit") ? null : hitRow;
     const targetThreadId = row
@@ -67,10 +77,8 @@ export function createDragReorderGeometry(
       current.mode === "unit" && unitRow
         ? unitRow.getAttribute("data-reorder-unit")
         : current.mode === "unit"
-          ? storedProjectUnitsRef.current.find((unit) =>
-              unit.kind === "thread"
-                ? unit.thread.id === targetThreadId
-                : unit.threads.some((thread) => thread.id === targetThreadId),
+          ? storedOrderUnitsRef.current.find(
+              (unit) => visibleIds.includes(unit.key) && !!targetThreadId && unit.ids.includes(targetThreadId),
             )?.key
           : targetThreadId;
 

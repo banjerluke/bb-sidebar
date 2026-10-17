@@ -1,4 +1,5 @@
-import { useSidebarThreadPullRequest, useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
+import { ThreadLocation, ThreadPullRequest } from "./ThreadMetadata";
+import { useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
 import {
   useId,
   useLayoutEffect,
@@ -15,7 +16,6 @@ import { Tooltip } from "./components/Tooltip";
 import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
 import { SnoozeSelect } from "./SnoozeSelect";
 import { cn } from "./lib/utils";
-import { pullRequestStatusLabel, pullRequestToneClass } from "./pull-request-display";
 import { RowContextMenu } from "./RowContextMenu";
 import { ProviderGlyph } from "./ProviderGlyph";
 import { STATUS_SLOT_CLASS, StatusOrTime, threadShortStatus } from "./StatusSlot";
@@ -59,6 +59,7 @@ export interface ThreadReorderControls {
 export function ThreadCard({
   thread,
   showProject = true,
+  showEnvironment = true,
   isActive,
   isWoke,
   canPark,
@@ -71,6 +72,7 @@ export function ThreadCard({
   thread: PluginSidebarThread;
   /** False when a group header already names the project. */
   showProject?: boolean;
+  showEnvironment?: boolean;
   isActive: boolean;
   /** A snooze ended and has not yet been acknowledged. */
   isWoke: boolean;
@@ -263,6 +265,7 @@ export function ThreadCard({
             className={cn(
               "group/card relative rounded-md px-2.5 transition-colors duration-150 ease-out motion-reduce:transition-none",
               compact ? "flex h-8 items-center gap-2 text-xs" : "py-2",
+              !compact && !showEnvironment && "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 py-1.5",
               isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60",
               // A thread open in another pane gets a weaker tint than the active
               // row, so the two states stay distinguishable.
@@ -381,7 +384,7 @@ export function ThreadCard({
               </>
             ) : (
               <>
-                <div className="pointer-events-none relative flex h-5 items-center gap-1.5">
+                <div className="pointer-events-none relative flex h-5 min-w-0 items-center gap-1.5">
                   {showProject ? (
                     <span
                       data-settle-fade=""
@@ -483,12 +486,15 @@ export function ThreadCard({
                 {showProject ? titleLine : null}
                 <div
                   data-settle-fade=""
-                  className="pointer-events-none relative mt-0.5 flex h-4 items-center gap-1.5 text-2xs text-muted-foreground"
+                  className={cn(
+                    "pointer-events-none relative flex items-center gap-1.5 text-2xs text-muted-foreground",
+                    showEnvironment ? "mt-0.5 h-4" : "h-5",
+                  )}
                 >
                   {/* A thread without a worktree still runs somewhere, so the
                   machine takes the branch's place rather than leaving the line
                   blank. */}
-                  <ThreadLocation thread={thread} />
+                  {showEnvironment ? <ThreadLocation thread={thread} /> : null}
                   <OpenPortsIndicator thread={thread} />
                   {childThreads.length > 0 ? (
                     <ChildThreadBadge
@@ -534,55 +540,6 @@ export function ThreadCard({
         </div>
       </li>
     </RowContextMenu>
-  );
-}
-
-function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
-  const branchName = thread.environment?.branchName;
-  if (branchName) {
-    const isWorktree =
-      thread.environment?.workspaceDisplayKind === "managed-worktree" ||
-      thread.environment?.workspaceDisplayKind === "unmanaged-worktree";
-    return (
-      <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-        <Icon
-          name={isWorktree ? "FolderGit" : "GitBranch"}
-          aria-label={isWorktree ? "Worktree branch" : "Branch"}
-          className="size-3 shrink-0 text-muted-foreground/60"
-        />
-        <span className="truncate font-mono">{branchName}</span>
-      </span>
-    );
-  }
-  if (thread.host) {
-    return (
-      <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-        <Icon name="Computer" aria-hidden className="size-3 shrink-0 text-muted-foreground/60" />
-        <span className="truncate">{thread.host.name}</span>
-      </span>
-    );
-  }
-  return <span className="flex-1" />;
-}
-
-function ThreadPullRequest({ threadId }: { threadId: string }) {
-  const { pullRequest } = useSidebarThreadPullRequest(threadId);
-  if (!pullRequest) return null;
-  return (
-    <Tooltip label={`${pullRequest.title}\n${pullRequestStatusLabel(pullRequest)}`} className="whitespace-pre-line">
-      <a
-        href={pullRequest.url}
-        target="_blank"
-        rel="noreferrer"
-        onClick={(event) => event.stopPropagation()}
-        className={cn(
-          "pointer-events-auto relative shrink-0 font-mono hover:underline",
-          pullRequestToneClass(pullRequest),
-        )}
-      >
-        #{pullRequest.number}
-      </a>
-    </Tooltip>
   );
 }
 

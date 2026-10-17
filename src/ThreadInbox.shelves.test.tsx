@@ -104,7 +104,7 @@ describe("parking threads", () => {
     inactiveShelf = screen.getByRole("region", { name: "Inactive" });
     settledShelf = await screen.findByRole("region", { name: "Settled" });
     snoozedShelf = await screen.findByRole("region", { name: "Snoozed" });
-    expect(within(activeShelf).getByRole("button", { expanded: false })).toBeDefined();
+    expect(within(activeShelf).getByRole("button", { name: /^Active/, expanded: false })).toBeDefined();
     expect(within(inactiveShelf).getByRole("button", { expanded: true })).toBeDefined();
     expect(within(settledShelf).getByRole("button", { expanded: true })).toBeDefined();
     expect(within(snoozedShelf).getByRole("button", { expanded: true })).toBeDefined();
