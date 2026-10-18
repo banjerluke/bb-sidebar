@@ -57,6 +57,10 @@ describe("Compact all threads", () => {
     expect(within(card("Asking work")).getByText(/Needs you|Waiting/)).toBeDefined();
     expect(within(card("Unread work")).getByText("Unread work").className).toContain("font-medium");
     expect(within(card("Parent work")).getByRole("button", { name: /^1 child thread/ })).toBeDefined();
+    // The unpin control waits for hover on a one-line row, as on full cards.
+    const unpin = within(card("Pinned work")).getByRole("button", { name: "Unpin Pinned work" });
+    expect(unpin.className).toContain("opacity-0");
+    expect(unpin.className).toContain("group-hover/card:opacity-100");
     expect(screen.queryByText("Child work")).toBeNull();
   });
 

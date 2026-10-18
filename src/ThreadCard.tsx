@@ -218,8 +218,8 @@ export function ThreadCard({
         className={cn(
           "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground",
           "pointer-events-auto",
-          !showParkActions &&
-            "opacity-0 transition-opacity duration-150 ease-out focus-visible:opacity-100 group-hover/card:opacity-100 motion-reduce:transition-none",
+          (compact || !showParkActions) &&
+            "opacity-0 transition-opacity duration-150 ease-out focus-visible:opacity-100 group-hover/card:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100",
         )}
       >
         <Icon name="PinOff" className="size-3.5" />
