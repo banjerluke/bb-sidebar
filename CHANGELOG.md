@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Thread rows show statuses that other plugins set, such as a sandbox or drafts marker, the same way bb's own list does: bb's icon and color in place of a quieter status, with the thread's age beside it and the label in the hover card. Working, failed, needs-you, and send-failed statuses still take priority. Thanks @skillet07 (#20).
+
 ## [0.3.2] - 2026-10-17
 
 ### Added

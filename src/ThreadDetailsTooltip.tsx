@@ -8,7 +8,8 @@ import { threadDisplayTitle } from "./inbox";
 import { Icon, type IconName } from "./components/Icon";
 import { ProviderGlyph } from "./ProviderGlyph";
 import { StatusGlyph } from "./StatusGlyph";
-import { useThreadWithDraft } from "./StatusSlot";
+import { useThreadRowStatus, useThreadWithDraft } from "./StatusSlot";
+import { ThreadStatusGlyph } from "./bb-sdk";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { projectIconUrl } from "./project-icons";
 import { OpenPortDetails } from "./OpenPorts";
@@ -81,6 +82,7 @@ export function ThreadDetailsTooltip({
 
   const { sort: childSort } = useChildThreadDisplay();
   const statusThread = useThreadWithDraft(thread);
+  const rowStatus = useThreadRowStatus(thread);
   const project = projects.find((entry) => entry.id === thread.projectId);
   const isWorktree =
     thread.environment?.workspaceDisplayKind === "managed-worktree" ||
@@ -140,6 +142,15 @@ export function ThreadDetailsTooltip({
           </span>
         </div>
         <span className="sr-only">Status: {status}</span>
+        {rowStatus ? (
+          // Another plugin's row status, spelled out: the row only has room for its glyph.
+          <div className="flex items-center gap-2">
+            <span className="flex size-3.5 shrink-0 items-center justify-center">
+              <ThreadStatusGlyph indicator="none" rowStatus={rowStatus} size="compact" />
+            </span>
+            <span className="min-w-0 flex-1 truncate">{rowStatus.label}</span>
+          </div>
+        ) : null}
         {subthreads.length > 0 ? (
           <div className="flex min-w-0 flex-col gap-1.5">
             <button

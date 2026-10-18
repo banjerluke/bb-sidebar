@@ -1,8 +1,11 @@
 import {
   useSidebarThreadDraft,
+  useSidebarThreadRowStatus,
   type PluginSidebarThread,
   type PluginSidebarThreadIndicator,
+  type PluginSidebarThreadRowStatus,
 } from "@get-bb/plugin-sdk/app";
+import { ThreadStatusGlyph } from "./bb-sdk";
 import { useMemo } from "react";
 import { isWorkingIndicator } from "./child-status";
 import { cn } from "./lib/utils";
@@ -47,6 +50,16 @@ export function StatusOrTime({
 }) {
   const thread = useThreadWithDraft(listedThread);
   const workingSince = useWorkingSinceContext();
+  const rowStatus = useThreadRowStatus(listedThread);
+  if (rowStatus) {
+    // bb's glyph for another plugin's status, in place of the label; the age stays.
+    return (
+      <span className="flex items-center gap-1">
+        <ThreadStatusGlyph indicator="none" rowStatus={rowStatus} size="compact" />
+        <span className="tabular-nums text-2xs text-muted-foreground">{relativeTimeLabel(thread.updatedAt, now)}</span>
+      </span>
+    );
+  }
   const status = threadShortStatus(thread);
   if (status !== null) {
     const label = shortStatusLabel(status, workingSince.get(thread.id), now);
@@ -66,6 +79,25 @@ export function StatusOrTime({
   return (
     <span className="tabular-nums text-2xs text-muted-foreground">{relativeTimeLabel(thread.updatedAt, now)}</span>
   );
+}
+
+const ROW_STATUS_YIELDS_TO = new Set<PluginSidebarThreadIndicator>(["runtime", "unread-error", "waiting-for-input"]);
+
+/**
+ * A status another plugin set on the row, such as a drafts or sandbox marker.
+ * As on bb's own row, it replaces every status except live work, a failure,
+ * or a raised hand, including this plugin's failed-send warning.
+ */
+export function useThreadRowStatus(thread: PluginSidebarThread): PluginSidebarThreadRowStatus | null {
+  const rowStatus = useSidebarThreadRowStatus(thread.id);
+  if (
+    !rowStatus ||
+    thread.hasPendingInteraction ||
+    thread.queuedWork === "failed" ||
+    ROW_STATUS_YIELDS_TO.has(thread.indicator)
+  )
+    return null;
+  return rowStatus;
 }
 
 /**

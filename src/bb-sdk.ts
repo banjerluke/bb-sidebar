@@ -6,6 +6,7 @@ export {
   experimental_useProviders as useProviders,
   experimental_useSidebarThreadSplit as useSidebarThreadSplit,
   experimental_useSidebarThreadPullRequest as useSidebarThreadPullRequest,
+  experimental_ThreadStatusGlyph as ThreadStatusGlyph,
 } from "@get-bb/plugin-sdk/app";
 
 export function useThreadActions(thread: PluginSidebarThread, options?: PluginThreadActionsOptions) {
