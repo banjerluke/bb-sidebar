@@ -12,13 +12,14 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 
 - Manual ordering plus Recent activity, Date created, and Project sort modes
 - Subtle project grouping for projects with multiple active threads
-- Optional worktree grouping in Active’s Project view (Group by worktree): shared worktrees get collapsible groups; single threads and ordinary checkouts stay flat
+- Optional worktree grouping in Project sort: threads that share a worktree get collapsible groups
 - Pinned, Active, Inactive, Snoozed, Parked, and Settled shelves
+- Full cards, compact working threads, or compact all threads, with options to keep pinned or woken threads full
 - Searchable multi-project filtering, remembered per window across reloads
 - Optional project colors with per-project color selection. Names stay colored in every mode; show stripes in full and collapsed mode, full mode only, or grouped projects only
 - Automatic project icons with custom overrides
-- Expandable child-thread indicators with running and attention states
-- Live status, branch, pull request, and provider details
+- Expandable child-thread indicators with running and attention states, on shelf rows too
+- Live status, branch, pull request, and provider details, plus statuses set by other plugins
 - Workspace port discovery, hover-card details, and optional browser links
 - A Clean button in Settled that previews and closes live terminals and verified thread-owned listening ports, while protecting Active and Working threads
 - Configurable inactive-thread and automatic cleanup rules
