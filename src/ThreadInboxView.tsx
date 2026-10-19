@@ -119,7 +119,11 @@ export function ThreadInboxView({
         {reorderAnnouncement}
       </p>
 
-      <div ref={attachScrollFadeRef} className={cn("min-h-0 flex-1 overflow-y-auto px-1.5 pb-2", SCROLL_FADE_CLASS)}>
+      <div
+        data-list-motion-scroller=""
+        ref={attachScrollFadeRef}
+        className={cn("min-h-0 flex-1 overflow-y-auto px-1.5 pb-2", SCROLL_FADE_CLASS)}
+      >
         {status === "loading" ? (
           <ThreadListLoading />
         ) : status === "error" ? (

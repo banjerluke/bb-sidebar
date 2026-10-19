@@ -5,15 +5,31 @@ import { cleanup, render } from "@testing-library/react";
 import { createListAnimationController, useListMotion } from "./useListMotion";
 
 const frames = new Map<number, FrameRequestCallback>();
-const effects: Array<{ cancel: ReturnType<typeof vi.fn>; finish: () => void }> = [];
-const animate = vi.fn(function (this: HTMLElement) {
-  const effect = { cancel: vi.fn(), finish: () => {} };
+const effects: Array<{
+  node: HTMLElement;
+  top: number;
+  left: number;
+  active: boolean;
+  cancel: ReturnType<typeof vi.fn>;
+  finish: () => void;
+}> = [];
+const animate = vi.fn(function (this: HTMLElement, keyframes: Keyframe[]) {
+  const [left, top] = String(keyframes[0]?.transform)
+    .match(/-?[\d.]+/g)!
+    .map(Number);
+  const effect = { node: this, top: top! / 2, left: left! / 2, active: true, cancel: vi.fn(), finish: () => {} };
+  effect.cancel.mockImplementation(() => {
+    effect.active = false;
+  });
   effects.push(effect);
   return {
     cancel: effect.cancel,
     effect: { getComputedTiming: () => ({ progress: 0.5 }) },
     addEventListener: (_name: string, callback: () => void) => {
-      effect.finish = callback;
+      effect.finish = () => {
+        effect.active = false;
+        callback();
+      };
     },
   };
 });
@@ -60,11 +76,22 @@ function list(count = 0) {
   document.body.append(parent);
   return parent;
 }
+function geometry(node: HTMLElement, top: () => number, left = () => 0) {
+  return vi.spyOn(node, "getBoundingClientRect").mockImplementation(() => {
+    let y = top();
+    let x = left();
+    for (const effect of effects) {
+      if (effect.active && effect.node.contains(node)) {
+        y += effect.top;
+        x += effect.left;
+      }
+    }
+    return { top: y, left: x } as DOMRect;
+  });
+}
 function row() {
   const node = document.createElement("li");
-  Object.defineProperty(node, "offsetTop", {
-    get: () => Array.from(node.parentElement?.children ?? []).indexOf(node) * 32,
-  });
+  geometry(node, () => Array.from(node.parentElement?.children ?? []).indexOf(node) * 32);
   return node;
 }
 
@@ -140,6 +167,89 @@ describe("inbox list motion", () => {
     // Half of the first 32px move remains when another row arrives.
     expect((calls.at(-1) as unknown as [Keyframe[]])[0][0]?.transform).toBe("translate(0px, -48px)");
     detach();
+  });
+
+  it("keeps stationary shelves still when the dock grows upward, including scroll changes", async () => {
+    const controller = createListAnimationController();
+    const scroller = document.createElement("div");
+    scroller.dataset.listMotionScroller = "";
+    geometry(
+      scroller,
+      () => 100,
+      () => 50,
+    );
+    document.body.append(scroller);
+    const dock = document.createElement("div");
+    const snoozed = document.createElement("section");
+    const settled = document.createElement("section");
+    const rows = list();
+    snoozed.append(rows);
+    dock.append(snoozed, settled);
+    scroller.append(dock);
+    let height = 0;
+    Object.defineProperty(settled, "offsetTop", { get: () => 50 + height });
+    geometry(dock, () => 500 - height - scroller.scrollTop);
+    geometry(snoozed, () => 500 - height - scroller.scrollTop);
+    geometry(
+      settled,
+      () => 550 - scroller.scrollTop,
+      () => 50 - scroller.scrollLeft,
+    );
+    const detachDock = controller.register(dock);
+    const detachRows = controller.register(rows);
+    for (const expanded of [true, false]) {
+      // Settled's offset within the dock changes, but its content position does not.
+      height = expanded ? 64 : 0;
+      scroller.scrollTop += 10;
+      scroller.scrollLeft += 5;
+      rows.replaceChildren(...(expanded ? [row(), row()] : []));
+      await flush();
+      expect(animate.mock.contexts).not.toContain(settled);
+    }
+    expect(dock.style.position).toBe("");
+    detachRows();
+    detachDock();
+  });
+
+  it("measures every list before writes and avoids doubling nested interrupted moves", async () => {
+    const controller = createListAnimationController();
+    const outer = list();
+    const section = document.createElement("section");
+    const inner = list(1);
+    const child = inner.firstElementChild as HTMLElement;
+    section.append(inner);
+    outer.append(section);
+    let top = 100;
+    const reads: string[] = [];
+    geometry(section, () => {
+      reads.push("read");
+      return top;
+    });
+    geometry(child, () => {
+      reads.push("read");
+      return top + 20;
+    });
+    // Child refs may register before their ancestor ref.
+    const detachInner = controller.register(inner);
+    const detachOuter = controller.register(outer);
+    const originalAnimate = animate.getMockImplementation()!;
+    animate.mockImplementation(function (this: HTMLElement, keyframes) {
+      reads.push("write");
+      return originalAnimate.call(this, keyframes);
+    });
+    for (const nextTop of [140, 180]) {
+      reads.length = 0;
+      top = nextTop;
+      inner.append(document.createElement("li"));
+      await flush();
+      expect(reads.lastIndexOf("read")).toBeLessThan(reads.indexOf("write"));
+      expect(animate.mock.contexts).not.toContain(child);
+    }
+    const calls = animate.mock.calls.filter((_, index) => animate.mock.contexts[index] === section);
+    expect(calls.at(-1)?.[0][0]?.transform).toBe("translate(0px, -60px)");
+    detachInner();
+    detachOuter();
+    animate.mockImplementation(originalAnimate);
   });
 
   it("isolates nested drag holds between inboxes and registers new lists while suspended", async () => {

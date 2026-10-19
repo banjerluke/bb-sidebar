@@ -4,6 +4,56 @@ import { seed } from "./seeds.mjs";
 
 test.use({ reducedMotion: "no-preference" });
 
+test("docked Snoozed toggles do not animate stationary shelves below it", async ({ page, request }) => {
+  await reset(request);
+  await rpc(request, "updateSidebarSettings", { ...fixture.defaultSettings, dockShelves: true });
+  await rpc(request, "snooze", { threadId: fixture.threads[1].id, snoozedUntil: Date.now() + 86_400_000 });
+  await rpc(request, "settle", { threadId: fixture.threads[2].id });
+  await open(page);
+  const snoozed = shelf(page, "Snoozed");
+  const settled = shelf(page, "Settled");
+  await expect(page.locator("[data-shelf-dock]")).toHaveCount(1);
+  for (const section of [snoozed, settled]) {
+    const toggle = section.getByRole("button", { expanded: true }).first();
+    if (await toggle.count()) await toggle.click();
+  }
+  // Let initial entrance and collapse animations finish before recording.
+  await page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
+  });
+  for (const expanding of [true, false]) {
+    const sample = await snoozed.evaluate(async (section) => {
+      const below = [...section.parentElement.children]
+        .slice([...section.parentElement.children].indexOf(section) + 1)
+        .filter((node) => node.tagName === "SECTION");
+      const before = below.map((node) => node.getBoundingClientRect().top);
+      const root = section.closest("[data-bb-sidebar-root]");
+      let sectionAnimations = 0;
+      let rowAnimations = 0;
+      const started = performance.now();
+      section.querySelector("button[aria-expanded]").click();
+      await new Promise((resolve) => {
+        function frame() {
+          for (const animation of root.getAnimations({ subtree: true })) {
+            if (below.includes(animation.effect?.target)) sectionAnimations++;
+            if (animation.effect?.target?.tagName === "LI") rowAnimations++;
+          }
+          if (performance.now() - started < 250) requestAnimationFrame(frame);
+          else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
+      return { sectionAnimations, rowAnimations, before, after: below.map((node) => node.getBoundingClientRect().top) };
+    });
+    expect(sample.before.length).toBeGreaterThan(0);
+    expect(sample.after).toEqual(sample.before);
+    expect(sample.sectionAnimations).toBe(0);
+    if (expanding) expect(sample.rowAnimations).toBeGreaterThan(0);
+    await expect(snoozed.getByRole("link")).toHaveCount(expanding ? 1 : 0);
+  }
+});
+
 // Real rows on the runner's scratch server. Timing is saved with the report;
 // structural assertions catch animation regressions without a machine-specific FPS gate.
 test("large settled shelves toggle without bulk or height animations", async ({ page, request }, testInfo) => {
@@ -54,6 +104,7 @@ test("large settled shelves toggle without bulk or height animations", async ({ 
           let previous = started;
           const gaps = [];
           let rowAnimations = 0;
+          let sectionAnimations = 0;
           let heightAnimations = 0;
           button.click();
           await new Promise((resolve) => {
@@ -64,6 +115,7 @@ test("large settled shelves toggle without bulk or height animations", async ({ 
               for (const animation of root.getAnimations({ subtree: true })) {
                 const effect = animation.effect;
                 if (effect.target?.tagName === "LI") rowAnimations++;
+                if (effect.target?.tagName === "SECTION") sectionAnimations++;
                 if (effect.getKeyframes().some((keyframe) => "height" in keyframe || "width" in keyframe))
                   heightAnimations++;
               }
@@ -79,6 +131,7 @@ test("large settled shelves toggle without bulk or height animations", async ({ 
             maxFrameGapMs: Math.max(...gaps),
             longTasks,
             rowAnimations,
+            sectionAnimations,
             heightAnimations,
             rows: section.querySelectorAll("a[data-sidebar-thread-id]").length,
           };
@@ -86,6 +139,7 @@ test("large settled shelves toggle without bulk or height animations", async ({ 
         samples.push({ docked, ...sample });
         expect(sample.rows).toBe(sample.expanding ? 60 : 0);
         expect(sample.rowAnimations).toBe(0);
+        expect(sample.sectionAnimations).toBe(0);
         expect(sample.heightAnimations).toBe(0);
       }
     }

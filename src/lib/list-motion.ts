@@ -2,7 +2,7 @@ const timing = { duration: 150, easing: "ease-out" };
 const MAX_CHANGED_ROWS = 40;
 
 type Position = { top: number; left: number };
-type List = { positions: Map<HTMLElement, Position> };
+type List = { scroller: HTMLElement; positions: Map<HTMLElement, Position> };
 
 /** One geometry pass per inbox commit, followed by transform/opacity writes.
  * Removed rows stay removed: no detached React trees are put back into the DOM.
@@ -15,20 +15,53 @@ export function createListAnimationController(enabled = true) {
   let holds = 0;
   let animateNext = true;
 
-  const read = (parent: HTMLElement) =>
+  const translations = () =>
+    new Map(
+      [...running].map(([node, { animation, top, left }]) => {
+        const progress = Number(animation.effect?.getComputedTiming().progress ?? 1);
+        return [node, { top: top * (1 - progress), left: left * (1 - progress) }];
+      }),
+    );
+  const inheritedTranslation = (node: HTMLElement, scroller: HTMLElement, offsets: Map<HTMLElement, Position>) => {
+    const total = { top: 0, left: 0 };
+    for (let current: HTMLElement | null = node; current && current !== scroller; current = current.parentElement) {
+      const offset = offsets.get(current);
+      total.top += offset?.top ?? 0;
+      total.left += offset?.left ?? 0;
+    }
+    return total;
+  };
+  const read = (parent: HTMLElement, scroller: HTMLElement, origin: Position, offsets: Map<HTMLElement, Position>) =>
     new Map(
       Array.from(parent.children)
         .filter((node): node is HTMLElement => node instanceof HTMLElement)
-        .map((node) => [node, { top: node.offsetTop, left: node.offsetLeft }]),
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          const offset = inheritedTranslation(node, scroller, offsets);
+          return [node, { top: rect.top - origin.top - offset.top, left: rect.left - origin.left - offset.left }];
+        }),
     );
+  const origin = (scroller: HTMLElement) => {
+    const rect = scroller.getBoundingClientRect();
+    return { top: rect.top - scroller.scrollTop, left: rect.left - scroller.scrollLeft };
+  };
   const cancel = () => {
     for (const { animation } of running.values()) animation.cancel();
     running.clear();
   };
   const update = () => {
     frame = undefined;
-    // Read all lists before starting any animation. Offsets exclude our transforms.
-    const snapshots = [...lists].map(([parent, list]) => ({ list, next: read(parent) }));
+    // Rectangles share the scroll container's coordinates. Compensate our active
+    // translations (including ancestors) without cancelling them between reads.
+    const offsets = translations();
+    const origins = new Map<HTMLElement, Position>();
+    for (const { scroller } of lists.values()) {
+      if (!origins.has(scroller)) origins.set(scroller, origin(scroller));
+    }
+    const snapshots = [...lists].map(([parent, list]) => ({
+      list,
+      next: read(parent, list.scroller, origins.get(list.scroller)!, offsets),
+    }));
     let changed = 0;
     for (const { list, next } of snapshots) {
       for (const node of list.positions.keys()) if (!next.has(node)) changed++;
@@ -40,22 +73,45 @@ export function createListAnimationController(enabled = true) {
       changed <= MAX_CHANGED_ROWS &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     animateNext = true;
-    // Carry a running translation forward when a second toggle interrupts it.
-    const offsets = new Map<HTMLElement, Position>();
+    // Plan global displacements first, then subtract the nearest animated
+    // ancestor's displacement so nested rows do not receive the same move twice.
+    const moves = new Map<HTMLElement, Position | null>();
     if (animate) {
-      for (const [node, { animation, top, left }] of running) {
-        const progress = Number(animation.effect?.getComputedTiming().progress ?? 1);
-        offsets.set(node, { top: top * (1 - progress), left: left * (1 - progress) });
+      for (const { list, next } of snapshots) {
+        for (const [node, position] of next) {
+          const previous = list.positions.get(node);
+          const offset = inheritedTranslation(node, list.scroller, offsets);
+          moves.set(
+            node,
+            previous
+              ? {
+                  top: previous.top - position.top + offset.top,
+                  left: previous.left - position.left + offset.left,
+                }
+              : null,
+          );
+        }
       }
     }
+    const ancestorMove = (node: HTMLElement): Position => {
+      for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+        if (!moves.has(parent)) continue;
+        const move = moves.get(parent);
+        if (move) return move;
+        const inherited = ancestorMove(parent);
+        return { top: inherited.top - 4, left: inherited.left };
+      }
+      return { top: 0, left: 0 };
+    };
     cancel();
     for (const { list, next } of snapshots) {
       if (animate) {
-        for (const [node, position] of next) {
+        for (const node of next.keys()) {
           const previous = list.positions.get(node);
-          const offset = offsets.get(node);
-          const top = previous ? previous.top - position.top + (offset?.top ?? 0) : -4;
-          const left = previous ? previous.left - position.left + (offset?.left ?? 0) : 0;
+          const move = moves.get(node);
+          const ancestor = ancestorMove(node);
+          const top = move ? move.top - ancestor.top : -4;
+          const left = move ? move.left - ancestor.left : 0;
           if (previous && top === 0 && left === 0) continue;
           const animation = node.animate(
             [
@@ -94,16 +150,14 @@ export function createListAnimationController(enabled = true) {
       if (--holds === 0 && lists.size > 0) schedule(false);
     },
     register(parent: HTMLElement) {
-      const positionStyle = parent.style.position;
-      if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
-      lists.set(parent, { positions: read(parent) });
+      const scroller = parent.closest<HTMLElement>("[data-list-motion-scroller]") ?? document.documentElement;
+      lists.set(parent, { scroller, positions: read(parent, scroller, origin(scroller), translations()) });
       observer ??= new MutationObserver(() => {
         if (holds === 0) schedule(true);
       });
       observer.observe(parent, { childList: true });
       return () => {
         lists.delete(parent);
-        parent.style.position = positionStyle;
         for (const [node, { animation }] of running) {
           if (parent.contains(node) || !node.isConnected) {
             animation.cancel();
