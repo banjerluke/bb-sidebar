@@ -139,12 +139,22 @@ export function useInboxSections({
     return { mode: "thread", ids: block.map((thread) => thread.id) };
   };
 
+  const sectionIds = new Set(sections.map((section) => section.id));
+  /** Rows a flat view (Active folded) can move among: those in the same section. */
+  const scopeAmong = (key: string, rows: readonly PluginSidebarThread[]): ReorderScope => {
+    const own = rows.find((thread) => thread.id === key);
+    const sectionId = own ? threadSectionId(own, sectionIds) : null;
+    return {
+      mode: "thread",
+      ids: rows.filter((thread) => threadSectionId(thread, sectionIds) === sectionId).map((thread) => thread.id),
+    };
+  };
+
   const commitSectionOrder = (previewKeys: readonly string[], movingKey: string) => {
     const keys = rebaseMovedId(sectionOrder.ids.map(sectionUnitKey), previewKeys, movingKey);
     void sectionOrder.reorder(keys.map(sectionIdFromKey));
   };
 
-  const sectionIds = new Set(sections.map((section) => section.id));
   const sectionDrop: SectionDrop = {
     targetAt(element, movingId) {
       const target = element?.closest<HTMLElement>("[data-section-drop]");
@@ -166,6 +176,7 @@ export function useInboxSections({
     orderedThreads: view.orderedThreads,
     orderUnits,
     reorderScope,
+    scopeAmong,
     commitSectionOrder,
     isReordering: sectionOrder.isReordering,
     toggleSectionCollapse,

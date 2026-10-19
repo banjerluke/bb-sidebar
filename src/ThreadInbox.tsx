@@ -294,6 +294,7 @@ function ThreadInboxContent({
       if (shelf === "sections" || (shelf === "inbox" && sectionsShown)) return sectionGroups.reorderScope(key);
       // Sorted rows have no manual slot; a drag can at most file them.
       if (shelf === "inbox" && activeView.order !== "manual") return { mode: "thread", ids: [key] };
+      if (shelf === "inbox" && activeView.group === "section") return sectionGroups.scopeAmong(key, visibleInbox);
       if (shelf === "inbox" && activeView.group === "project") {
         return projectGroups.reorderScope(key);
       }
