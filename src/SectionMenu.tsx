@@ -7,6 +7,7 @@ import type { bbSidebarRpcContract } from "./contract";
 import { Icon } from "./components/Icon";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import { useSectionOrderIds } from "./useSectionOrder";
+import { threadSectionId } from "./section-groups";
 
 const UNSECTIONED = "";
 
@@ -31,7 +32,7 @@ export function SectionMenu({ thread }: { thread: PluginSidebarThread }) {
     return () => window.clearTimeout(timer);
   }, [open]);
   const sectionById = new Map(sections.map((section) => [section.id, section]));
-  const current = thread.sectionId && sectionById.has(thread.sectionId) ? thread.sectionId : UNSECTIONED;
+  const current = threadSectionId(thread, new Set(sectionById.keys())) ?? UNSECTIONED;
 
   const run = async (move: () => Promise<string | null>, failure: string) => {
     if (inFlight.current) return;

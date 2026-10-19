@@ -165,3 +165,18 @@ it("removes a section after naming how many threads go back to Threads", async (
   fireEvent.click(within(dialog).getByRole("button", { name: "Remove section" }));
   await waitFor(() => expect(sdkCalls).toContainEqual({ method: "threadSections.delete", args: [{ id: "later" }] }));
 });
+
+it("keeps keyboard moves inside a section while Active is collapsed", async () => {
+  localStorage.setItem("bb-sidebar:shelf-expansion:v1", JSON.stringify({ active: false }));
+  const { active, calls } = setup({
+    rows: [
+      thread({ id: "b", title: "Later B", sectionId: "later" }),
+      thread({ id: "c", title: "Review C", sectionId: "review" }),
+      thread({ id: "cb", parentThreadId: "b", title: "Child B", hasPendingInteraction: true }),
+      thread({ id: "cc", parentThreadId: "c", title: "Child C", hasPendingInteraction: true }),
+    ],
+  });
+  fireEvent.keyDown(await within(active).findByRole("link", { name: "Review C" }), { key: "ArrowUp", altKey: true });
+  expect(screen.getByRole("status").textContent).toBe("Review C is already first in Active");
+  expect(calls("reorderInbox")).toEqual([]);
+});
