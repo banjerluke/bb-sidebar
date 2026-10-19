@@ -4,7 +4,8 @@ import { idleSidebarThreadFields } from "./test-fixtures";
 import {
   projectOrderUnits,
   expandProjectUnits,
-  isActiveSortMode,
+  isActiveGrouping,
+  isActiveOrder,
   sameOrder,
   projectUnitKey,
   type ProjectUnit,
@@ -57,10 +58,10 @@ describe("layoutActiveThreadsByProject", () => {
     const c = thread({ id: "c", projectId: "p" });
     expect(layoutActiveThreadsByProject([a, b, c])).toEqual([
       { kind: "group", key: "project:p", projectId: "p", threads: [a, c] },
-      { kind: "thread", key: "b", thread: b },
+      { kind: "group", key: "project:q", projectId: "q", threads: [b] },
     ]);
   });
-  it("keeps two interleaved project groups and singleton rows at their first slots", () => {
+  it("keeps interleaved project groups, including single-thread ones, at their first slots", () => {
     const a = thread({ id: "a", projectId: "p" });
     const b = thread({ id: "b", projectId: "s" });
     const c = thread({ id: "c", projectId: "q" });
@@ -70,15 +71,17 @@ describe("layoutActiveThreadsByProject", () => {
     const g = thread({ id: "g", projectId: "r" });
     expect(layoutActiveThreadsByProject([a, b, c, d, e, f, g])).toEqual([
       { kind: "group", key: "project:p", projectId: "p", threads: [a, d] },
-      { kind: "thread", key: "b", thread: b },
+      { kind: "group", key: "project:s", projectId: "s", threads: [b] },
       { kind: "group", key: "project:q", projectId: "q", threads: [c, f] },
-      { kind: "thread", key: "e", thread: e },
-      { kind: "thread", key: "g", thread: g },
+      { kind: "group", key: "project:t", projectId: "t", threads: [e] },
+      { kind: "group", key: "project:r", projectId: "r", threads: [g] },
     ]);
   });
-  it("keeps singleton projects as ordinary rows", () => {
-    const a = thread({ id: "a" });
-    expect(layoutActiveThreadsByProject([a])).toEqual([{ kind: "thread", key: "a", thread: a }]);
+  it("gives a single-thread project its own header", () => {
+    const a = thread({ id: "a", projectId: "p" });
+    expect(layoutActiveThreadsByProject([a])).toEqual([
+      { kind: "group", key: "project:p", projectId: "p", threads: [a] },
+    ]);
     expect(layoutActiveThreadsByProject([])).toEqual([]);
   });
   it("places projects by the saved order, whichever of their threads leads", () => {
@@ -86,16 +89,22 @@ describe("layoutActiveThreadsByProject", () => {
     const b = thread({ id: "b", projectId: "q" });
     const c = thread({ id: "c", projectId: "p" });
     const d = thread({ id: "d", projectId: "r" });
+    const group = (projectId: string, threads: ReturnType<typeof thread>[]) => ({
+      kind: "group",
+      key: `project:${projectId}`,
+      projectId,
+      threads,
+    });
     expect(layoutActiveThreadsByProject([b, d, c, a], ["r", "p", "q"])).toEqual([
-      { kind: "thread", key: "d", thread: d },
-      { kind: "group", key: "project:p", projectId: "p", threads: [c, a] },
-      { kind: "thread", key: "b", thread: b },
+      group("r", [d]),
+      group("p", [c, a]),
+      group("q", [b]),
     ]);
-    // A project down to one thread keeps its slot as a plain row.
+    // A project down to one thread keeps its slot.
     expect(layoutActiveThreadsByProject([b, d, c], ["r", "p", "q"])).toEqual([
-      { kind: "thread", key: "d", thread: d },
-      { kind: "thread", key: "c", thread: c },
-      { kind: "thread", key: "b", thread: b },
+      group("r", [d]),
+      group("p", [c]),
+      group("q", [b]),
     ]);
   });
   it("puts projects the saved order has not seen first, in thread order", () => {
@@ -103,10 +112,10 @@ describe("layoutActiveThreadsByProject", () => {
     const b = thread({ id: "b", projectId: "new2" });
     const c = thread({ id: "c", projectId: "new1" });
     const d = thread({ id: "d", projectId: "new2" });
-    expect(layoutActiveThreadsByProject([a, b, c, d], ["p"])).toEqual([
-      { kind: "group", key: "project:new2", projectId: "new2", threads: [b, d] },
-      { kind: "thread", key: "c", thread: c },
-      { kind: "thread", key: "a", thread: a },
+    expect(layoutActiveThreadsByProject([a, b, c, d], ["p"]).map((unit) => unit.key)).toEqual([
+      "project:new2",
+      "project:new1",
+      "project:p",
     ]);
   });
 });
@@ -130,8 +139,8 @@ describe("sortActiveThreads", () => {
     const tied = [...rows, thread({ id: "d", createdAt: 3, updatedAt: 5 })];
     expect(sortActiveThreads(tied, "created").map((row) => row.id)).toEqual(["d", "a", "b", "c"]);
   });
-  it.each(["manual", "project"] as const)("copies %s order unchanged", (mode) => {
-    const result = sortActiveThreads(rows, mode);
+  it("copies manual order unchanged", () => {
+    const result = sortActiveThreads(rows, "manual");
     expect(result).toEqual(rows);
     expect(result).not.toBe(rows);
   });
@@ -208,12 +217,18 @@ describe("expandProjectUnits", () => {
   });
 });
 
-describe("isActiveSortMode", () => {
-  it.each(["manual", "activity", "created", "project"])("accepts %s", (mode) => {
-    expect(isActiveSortMode(mode)).toBe(true);
+describe("active view parts", () => {
+  it.each(["none", "project", "section"])("accepts grouping %s", (group) => {
+    expect(isActiveGrouping(group)).toBe(true);
   });
-  it.each(["", "Manual", "activity ", "updated"])("rejects %j", (mode) => {
-    expect(isActiveSortMode(mode)).toBe(false);
+  it.each(["manual", "activity", "created"])("accepts order %s", (order) => {
+    expect(isActiveOrder(order)).toBe(true);
+  });
+  it.each(["", "Manual", "activity ", "updated", "project", null])("rejects order %j", (order) => {
+    expect(isActiveOrder(order)).toBe(false);
+  });
+  it.each(["", "manual", "Project", undefined])("rejects grouping %j", (group) => {
+    expect(isActiveGrouping(group)).toBe(false);
   });
 });
 

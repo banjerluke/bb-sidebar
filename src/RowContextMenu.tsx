@@ -6,6 +6,7 @@ import { toast } from "./lib/toast";
 import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
 import { notifiesParent, ParentNotificationsMenu } from "./ParentNotificationsMenu";
+import { SectionMenu } from "./SectionMenu";
 import { DeleteThreadDialog } from "./DeleteThreadDialog";
 import { SnoozePickerDialog } from "./SnoozePickerDialog";
 import { Icon, type IconName } from "./components/Icon";
@@ -77,6 +78,11 @@ function RowMenuContents({
   };
   const { projects, threads } = useSidebarThreads();
   const project = projects.find((project) => project.id === thread.projectId);
+  // A child follows its parent's section; it files alone only once the parent is gone.
+  const parent = thread.parentThreadId
+    ? threads.find((candidate) => candidate.id === thread.parentThreadId)
+    : undefined;
+  const canMoveToSection = !parent || parent.isArchived;
   const portalScope = usePortalScopeProps();
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const regenerating = useTitleGenerating(thread.id);
@@ -161,6 +167,7 @@ function RowMenuContents({
               {notifiesParent(thread) ? (
                 <ParentNotificationsMenu thread={thread} pendingSave={pendingNotificationSave} />
               ) : null}
+              {canMoveToSection ? <SectionMenu thread={thread} /> : null}
               {projectItems ? (
                 <ContextMenu.Sub onOpenChange={onOpenChange}>
                   <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">

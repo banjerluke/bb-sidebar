@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
 import {
-  activeSortCodec,
+  activeViewCodec,
   childExpansionCodec,
   projectCollapseCodec,
   projectScopeCodec,
@@ -57,15 +57,26 @@ it("fills older shelf shapes and drops unknown keys without stricter primitive r
   expect(decodeStoredValue("null", shelfExpansionCodec)).toBeNull();
 });
 
-it("uses legacy grouping only for missing or invalid sort modes without rewriting it", () => {
+it("migrates the older sort mode and grouping without rewriting them", () => {
   localStorage.setItem(STORAGE_KEYS.activeGrouping.key, "true");
-  expect(activeSortCodec.decode(null)).toBe("project");
-  expect(activeSortCodec.decode("invalid")).toBe("project");
-  for (const mode of ["manual", "project", "created", "activity"] as const) {
-    expect(activeSortCodec.decode(mode)).toBe(mode);
-    expect(activeSortCodec.encode(mode)).toBe(mode);
-  }
+  expect(activeViewCodec.decode(null)).toEqual({ group: "project", order: "manual" });
+  localStorage.setItem(STORAGE_KEYS.activeSort.key, "activity");
+  expect(activeViewCodec.decode(null)).toEqual({ group: "none", order: "activity" });
+  localStorage.setItem(STORAGE_KEYS.activeSort.key, "project");
+  expect(activeViewCodec.decode(null)).toEqual({ group: "project", order: "manual" });
+  expect(localStorage.getItem(STORAGE_KEYS.activeSort.key)).toBe("project");
   expect(localStorage.getItem(STORAGE_KEYS.activeGrouping.key)).toBe("true");
+  localStorage.removeItem(STORAGE_KEYS.activeSort.key);
   localStorage.setItem(STORAGE_KEYS.activeGrouping.key, "false");
-  expect(activeSortCodec.decode(null)).toBe("manual");
+  expect(activeViewCodec.decode(null)).toEqual({ group: "none", order: "manual" });
+});
+
+it("round-trips every grouping and order and rejects invalid views", () => {
+  for (const group of ["none", "project", "section"] as const) {
+    for (const order of ["manual", "activity", "created"] as const) {
+      expect(activeViewCodec.decode(activeViewCodec.encode({ group, order }))).toEqual({ group, order });
+    }
+  }
+  expect(activeViewCodec.decode('{"group":"folder","order":"manual"}')).toBeNull();
+  expect(activeViewCodec.decode('"project"')).toBeNull();
 });

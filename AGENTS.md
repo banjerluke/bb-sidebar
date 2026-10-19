@@ -6,7 +6,8 @@ meaning intact.
 Contributor lists are for people only. Do not list AI tools, models, or agents
 as contributors or add `Co-authored-by` commit trailers crediting them.
 
-Inbox layout: `src/inbox-layout.ts`; shelves: `ThreadInboxShelves.tsx`.
+Inbox layout: `src/inbox-layout.ts`; sections: `src/section-groups.ts` and
+`SectionGroups.tsx`; shelves: `ThreadInboxShelves.tsx`.
 Inbox hooks use `src/use*.ts`; gesture helpers use `src/drag-*.ts`.
 Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
 Inbox context: `src/InboxContext.tsx` shares environment, actions, and activity.
@@ -80,6 +81,7 @@ port contract lives in `src/port-scan-contract.ts`.
 - `server-project-management`: project names, paths, and removal.
 - `server-settle-cleanup`: cleanup previews, cleanup, and runtime reclaim.
 - `server-settle-actions`: tree settle, return to Active, and Undo snapshots.
+- `server-sections`: section header order and moving a thread tree to a section.
 - `server-policy`: automatic settle evaluation and settings revisions.
 - `server-rate-limits`: provider-limit reads and scheduled Continue queue actions.
 - `server-rate-limit-details`: failed-turn classification and provider reset times.

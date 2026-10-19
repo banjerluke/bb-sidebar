@@ -16,6 +16,7 @@ export {
   PROJECT_COLORS_CHANNEL,
   PROJECT_ICONS_CHANNEL,
   RATE_LIMITS_CHANNEL,
+  SECTION_ORDER_CHANNEL,
 } from "./realtime-channels";
 
 export const openPortSchema = z.object({
@@ -332,6 +333,18 @@ export const bbSidebarRpcContract = defineRpcContract({
   reorderInbox: {
     input: z.object({ inboxThreadIds: orderedThreadIdsSchema }).strict(),
     output: z.object({ inboxThreadIds: z.array(z.string()) }).strict(),
+  },
+  listSectionOrder: {
+    input: z.object({}).strict(),
+    output: z.object({ sectionIds: z.array(z.string()) }).strict(),
+  },
+  reorderSections: {
+    input: z.object({ sectionIds: orderedThreadIdsSchema }).strict(),
+    output: z.object({ sectionIds: z.array(z.string()) }).strict(),
+  },
+  moveThreadToSection: {
+    input: z.object({ threadId: z.string().trim().min(1), sectionId: z.string().trim().min(1).nullable() }).strict(),
+    output: z.object({ movedThreadIds: z.array(z.string()) }).strict(),
   },
   evaluateAutoSettle: {
     input: z.object({}).strict(),
