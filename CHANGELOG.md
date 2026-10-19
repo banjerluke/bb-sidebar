@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.5] - 2026-10-19
+
+### Fixed
+
+- Toggling a shelf no longer makes other shelves jump and slide back. With shelves docked to the bottom, opening Snoozed left Settled in place instead of flickering it. In either layout, opening or closing Active, or a row changing height, no longer leaves the shelves below it to jump on the next toggle.
+
 ## [0.3.4] - 2026-10-19
 
 ### Fixed
