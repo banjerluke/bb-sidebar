@@ -367,7 +367,7 @@ it.each(snapshots)("reads $version legacy grouping when active-sort is absent", 
     rpcGate: deferred<void>().promise,
   });
   wired.mount();
-  expect(screen.getByRole("button", { name: "Sort active threads: Project" })).toBeDefined();
+  expect(screen.getByRole("button", { name: "Sort active threads: Project, Manual order" })).toBeDefined();
   expect(screen.getByRole("region", { name: "Sidebar project" })).toBeDefined();
 });
 
