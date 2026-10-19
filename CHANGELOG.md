@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4] - 2026-10-19
+
+### Fixed
+
+- Expanding and collapsing shelves is faster, especially with many loaded Settled threads. Large changes skip per-row animations, list motion no longer animates height or polls idle rows, and toggling a shelf leaves unchanged rows alone.
+- Thread menus build their actions and dialogs on first opening, reducing the work needed to expand a shelf. Existing actions, pagination, and selected-thread visibility are preserved.
+
 ## [0.3.3] - 2026-10-18
 
 ### Added

@@ -47,8 +47,8 @@ interface ThreadInboxViewProps {
   wokeThreadIds: ReadonlySet<string>;
   expandedChildParentIds: ReadonlySet<string>;
   dockShelvesEnabled: boolean;
-  attachShelvesAutoAnimateRef: (node: HTMLDivElement | null) => void;
-  attachDockAutoAnimateRef: (node: HTMLDivElement | null) => void;
+  attachShelvesMotionRef: (node: HTMLDivElement | null) => void;
+  attachDockMotionRef: (node: HTMLDivElement | null) => void;
   expandedShelves: ShelfExpansionState;
   renderActiveThread: (
     thread: PluginSidebarThread,
@@ -82,8 +82,8 @@ export function ThreadInboxView({
   wokeThreadIds,
   expandedChildParentIds,
   dockShelvesEnabled,
-  attachShelvesAutoAnimateRef,
-  attachDockAutoAnimateRef,
+  attachShelvesMotionRef,
+  attachDockMotionRef,
   expandedShelves,
   renderActiveThread,
   activeSortMode,
@@ -144,8 +144,8 @@ export function ThreadInboxView({
         ) : (
           <DockableShelves
             docked={dockShelvesEnabled}
-            attachUpperRef={attachShelvesAutoAnimateRef}
-            attachLowerRef={attachDockAutoAnimateRef}
+            attachUpperRef={attachShelvesMotionRef}
+            attachLowerRef={attachDockMotionRef}
             upper={
               <>
                 {pinned.threads.length > 0 ? (

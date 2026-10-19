@@ -14,7 +14,7 @@ import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-
 import type { ConfiguredSnoozePreset } from "./lifecycle";
 import type { LifecycleApi } from "./useLifecycle";
 import type { ShelfExpansionState } from "./ThreadInboxView";
-import { ListAnimationContext, type ListAnimationController } from "./useListAutoAnimate";
+import { ListAnimationContext, type ListAnimationController } from "./useListMotion";
 import { ProjectColorsProvider } from "./ProjectColors";
 import { WorkingSinceContext } from "./useWorkingSince";
 import type { WorkingSince } from "./working-since";
@@ -157,12 +157,13 @@ export function InboxProvider({
   children: ReactNode;
 }) {
   const { sidebarSettings, projects } = value.environment;
+  const projectIds = useMemo(() => projects.map((project) => project.id), [projects]);
   return (
     <ListAnimationContext.Provider value={listAnimationController}>
       <ProjectColorsProvider
         enabled={sidebarSettings?.projectColorsEnabled === true}
         display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
-        projectIds={projects.map((project) => project.id)}
+        projectIds={projectIds}
       >
         <WorkingSinceContext.Provider value={workingSince}>
           <ChildThreadDisplayContext.Provider value={childDisplay}>

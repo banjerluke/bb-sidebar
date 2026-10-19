@@ -4,7 +4,7 @@ import type { ThreadReorderControls } from "./ThreadCard";
 import { environmentLabel } from "./environment-groups";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
-import { useListAutoAnimate } from "./useListAutoAnimate";
+import { useListMotion } from "./useListMotion";
 
 export function EnvironmentGroup({
   unit,
@@ -17,7 +17,7 @@ export function EnvironmentGroup({
   reorder: ThreadReorderControls;
   children: ReactNode;
 }) {
-  const attachListRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListRef = useListMotion<HTMLUListElement>();
   const environment = unit.environment!;
   const label = environmentLabel(environment);
   const host = unit.threads.find((thread) => thread.host)?.host;

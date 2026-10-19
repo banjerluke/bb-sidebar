@@ -19,21 +19,7 @@ import {
 } from "./lifecycle";
 import { beginTitleGeneration, finishTitleGeneration, useTitleGenerating } from "./title-generation-state";
 
-/** The sidebar owns its menu and named delete confirmation; bb owns bound actions. */
-export function RowContextMenu({
-  thread,
-  children,
-  canSnooze = false,
-  canArchive = true,
-  snoozePresets = [],
-  onSnooze,
-  onPark,
-  onResume,
-  onSettle,
-  onUnsettle,
-  onWake,
-  onRename,
-}: {
+type RowContextMenuProps = {
   thread: PluginSidebarThread;
   children: ReactNode;
   canSnooze?: boolean;
@@ -46,7 +32,36 @@ export function RowContextMenu({
   onUnsettle?: () => void;
   onWake?: () => void;
   onRename?: () => void;
-}) {
+};
+
+/** Keep the plugin's menus, but build their actions and dialogs only on first open. */
+export function RowContextMenu({ children, ...props }: RowContextMenuProps) {
+  const [activated, setActivated] = useState(false);
+  return (
+    <ContextMenu.Root
+      onOpenChange={(open) => {
+        if (open) setActivated(true);
+      }}
+    >
+      <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
+      {activated ? <RowMenuContents {...props} /> : null}
+    </ContextMenu.Root>
+  );
+}
+
+function RowMenuContents({
+  thread,
+  canSnooze = false,
+  canArchive = true,
+  snoozePresets = [],
+  onSnooze,
+  onPark,
+  onResume,
+  onSettle,
+  onUnsettle,
+  onWake,
+  onRename,
+}: Omit<RowContextMenuProps, "children">) {
   const actions = useThreadActions(thread, {
     keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename", "bb--core/archive"],
     requestRename: () => onRename?.(),
@@ -122,107 +137,104 @@ export function RowContextMenu({
     <>
       <ProjectActions project={project}>
         {({ items: projectItems, onOpenChange, onCloseAutoFocus }) => (
-          <ContextMenu.Root>
-            <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
-            <ContextMenu.Portal>
-              <ContextMenu.Content
-                {...portalScope}
-                aria-label="Thread actions"
-                onCloseAutoFocus={(event) => {
-                  onCloseAutoFocus?.(event);
-                  // A dialog takes focus next; do not pull it back to the row.
-                  if (confirmingDelete || pickingSnooze) event.preventDefault();
-                  if (!renameAfterClose.current) return;
-                  renameAfterClose.current = false;
-                  // Hand focus to the editor after the menu releases its focus scope.
-                  event.preventDefault();
-                  void run("rename");
-                }}
-                className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
-              >
-                <Item onSelect={() => void run("split")}>Open in split</Item>
-                <ParentThreadMenu thread={thread} />
-                {projectItems ? (
-                  <ContextMenu.Sub onOpenChange={onOpenChange}>
-                    <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
-                      Project
-                      <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
-                    </ContextMenu.SubTrigger>
-                    <ContextMenu.Portal>
-                      <ContextMenu.SubContent
-                        {...portalScope}
-                        aria-label="Project actions"
-                        sideOffset={4}
-                        className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
-                      >
-                        <ContextMenu.Label className="max-w-64 truncate px-2 py-1 text-xs text-muted-foreground">
-                          {project?.name}
-                        </ContextMenu.Label>
-                        {projectItems}
-                      </ContextMenu.SubContent>
-                    </ContextMenu.Portal>
-                  </ContextMenu.Sub>
-                ) : null}
-                {hasPinLifecycleItems ? <Separator /> : null}
-                {thread.isPinned || thread.parentThreadId == null ? (
-                  <Item icon={thread.isPinned ? "PinOff" : "Pin"} onSelect={() => void togglePin()}>
-                    {thread.isPinned ? "Unpin" : "Pin"}
-                  </Item>
-                ) : null}
-                {canSnooze && onSnooze && snoozePresets.length > 0 ? (
-                  <SnoozeSubmenu presets={snoozePresets} onSnooze={onSnooze} onPick={() => setPickingSnooze(true)} />
-                ) : null}
-                {onWake ? (
-                  <Item icon="Pulse" onSelect={onWake}>
-                    Wake now
-                  </Item>
-                ) : null}
-                {onPark ? (
-                  <Item icon="Car" onSelect={onPark}>
-                    Park thread
-                  </Item>
-                ) : null}
-                {onResume ? (
-                  <Item icon="Pulse" onSelect={onResume}>
-                    Resume
-                  </Item>
-                ) : null}
-                {onSettle ? (
-                  <Item icon="Meditation" onSelect={onSettle}>
-                    Settle
-                  </Item>
-                ) : null}
-                {onUnsettle ? (
-                  <Item icon="Pulse" onSelect={onUnsettle}>
-                    Un-settle
-                  </Item>
-                ) : null}
-                <Separator />
-                {onRename ? (
-                  <Item
-                    onSelect={() => {
-                      renameAfterClose.current = true;
-                    }}
-                  >
-                    Rename
-                  </Item>
-                ) : null}
-                <Item disabled={regenerating} onSelect={() => void regenerate()}>
-                  {regenerating ? "Regenerating title…" : "Regenerate title"}
+          <ContextMenu.Portal>
+            <ContextMenu.Content
+              {...portalScope}
+              aria-label="Thread actions"
+              onCloseAutoFocus={(event) => {
+                onCloseAutoFocus?.(event);
+                // A dialog takes focus next; do not pull it back to the row.
+                if (confirmingDelete || pickingSnooze) event.preventDefault();
+                if (!renameAfterClose.current) return;
+                renameAfterClose.current = false;
+                // Hand focus to the editor after the menu releases its focus scope.
+                event.preventDefault();
+                void run("rename");
+              }}
+              className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            >
+              <Item onSelect={() => void run("split")}>Open in split</Item>
+              <ParentThreadMenu thread={thread} />
+              {projectItems ? (
+                <ContextMenu.Sub onOpenChange={onOpenChange}>
+                  <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+                    Project
+                    <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
+                  </ContextMenu.SubTrigger>
+                  <ContextMenu.Portal>
+                    <ContextMenu.SubContent
+                      {...portalScope}
+                      aria-label="Project actions"
+                      sideOffset={4}
+                      className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                    >
+                      <ContextMenu.Label className="max-w-64 truncate px-2 py-1 text-xs text-muted-foreground">
+                        {project?.name}
+                      </ContextMenu.Label>
+                      {projectItems}
+                    </ContextMenu.SubContent>
+                  </ContextMenu.Portal>
+                </ContextMenu.Sub>
+              ) : null}
+              {hasPinLifecycleItems ? <Separator /> : null}
+              {thread.isPinned || thread.parentThreadId == null ? (
+                <Item icon={thread.isPinned ? "PinOff" : "Pin"} onSelect={() => void togglePin()}>
+                  {thread.isPinned ? "Unpin" : "Pin"}
                 </Item>
-                <Item onSelect={() => void run("read")}>{thread.isUnread ? "Mark read" : "Mark unread"}</Item>
-                <Separator />
-                <CopySubmenu thread={thread} />
-                <Separator />
-                <Item disabled={!canArchive} onSelect={archive}>
-                  Archive
+              ) : null}
+              {canSnooze && onSnooze && snoozePresets.length > 0 ? (
+                <SnoozeSubmenu presets={snoozePresets} onSnooze={onSnooze} onPick={() => setPickingSnooze(true)} />
+              ) : null}
+              {onWake ? (
+                <Item icon="Pulse" onSelect={onWake}>
+                  Wake now
                 </Item>
-                <Item destructive onSelect={() => setConfirmingDelete(true)}>
-                  Delete
+              ) : null}
+              {onPark ? (
+                <Item icon="Car" onSelect={onPark}>
+                  Park thread
                 </Item>
-              </ContextMenu.Content>
-            </ContextMenu.Portal>
-          </ContextMenu.Root>
+              ) : null}
+              {onResume ? (
+                <Item icon="Pulse" onSelect={onResume}>
+                  Resume
+                </Item>
+              ) : null}
+              {onSettle ? (
+                <Item icon="Meditation" onSelect={onSettle}>
+                  Settle
+                </Item>
+              ) : null}
+              {onUnsettle ? (
+                <Item icon="Pulse" onSelect={onUnsettle}>
+                  Un-settle
+                </Item>
+              ) : null}
+              <Separator />
+              {onRename ? (
+                <Item
+                  onSelect={() => {
+                    renameAfterClose.current = true;
+                  }}
+                >
+                  Rename
+                </Item>
+              ) : null}
+              <Item disabled={regenerating} onSelect={() => void regenerate()}>
+                {regenerating ? "Regenerating title…" : "Regenerate title"}
+              </Item>
+              <Item onSelect={() => void run("read")}>{thread.isUnread ? "Mark read" : "Mark unread"}</Item>
+              <Separator />
+              <CopySubmenu thread={thread} />
+              <Separator />
+              <Item disabled={!canArchive} onSelect={archive}>
+                Archive
+              </Item>
+              <Item destructive onSelect={() => setConfirmingDelete(true)}>
+                Delete
+              </Item>
+            </ContextMenu.Content>
+          </ContextMenu.Portal>
         )}
       </ProjectActions>
       <DeleteThreadDialog thread={thread} open={confirmingDelete} onOpenChange={setConfirmingDelete} />

@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-bb-sidebar",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "type": "module",
   "description": "A bb thread sidebar with manual and automatic sorting, snooze, and settle actions.",
   "license": "MIT",
@@ -57,7 +57,6 @@
     "e2e": "node scripts/e2e/run.mjs"
   },
   "dependencies": {
-    "@formkit/auto-animate": "^0.9.0",
     "@hugeicons/core-free-icons": "^4.1.3",
     "@hugeicons/react": "^1.1.6",
     "react-day-picker": "^9.14.0",

@@ -12,6 +12,8 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e
 env -i PATH="$PATH" HOME="$HOME" npm run e2e:smoke
 # Run a focused flow through the same scratch launcher:
 env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'settle moves'
+# Exercise motion with 60 loaded settled rows, with timing attached to the report:
+env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'large settled shelves'
 ```
 
 `@playwright/test` supplies role locators, retrying assertions, PNG comparisons,
@@ -88,6 +90,14 @@ active provider session to clone. Empty-prompt creation and cancellation worked
 without completed agent output. The fixtures exercise idle threads.
 Working/attention/woke states stay outside this suite. Those stay in the wired tests.
 There is no direct database mutation or mocked browser RPC response.
+
+The shelf-motion flow creates 60 additional idle threads and settles them through
+the plugin RPC. It loads all pages and repeatedly expands and collapses Settled
+with normal motion enabled, in docked and undocked layouts. It checks that bulk
+toggles use no row or height animations and that the selected thread remains
+visible when collapsed. Frame gaps and long tasks are attached to the report;
+they are measurements, not a hardware-dependent FPS assertion. Extra threads
+are deleted during teardown.
 
 Each behavior test resets pin/read/lifecycle/order state through the scratch
 CLI and plugin RPC, then gets a new browser context. The fourteen flows assert
