@@ -217,6 +217,7 @@ describe("ThreadInbox", () => {
     expect(screen.getByRole("radio", { name: "Recent activity" })).toBeDefined();
     expect(screen.getByRole("radio", { name: "Date created" })).toBeDefined();
     expect(screen.getByRole("radio", { name: "Project" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Section" })).toBeDefined();
     fireEvent.click(screen.getByRole("radio", { name: "Recent activity" }), { detail: 1 });
 
     expect(
@@ -260,6 +261,14 @@ describe("ThreadInbox", () => {
       { key: "Enter" },
     );
     fireEvent.click(screen.getByRole("radio", { name: "Project" }), { detail: 1 });
+    // Grouping keeps the order; the project with the newest thread leads.
+    expect(within(activeShelf).getByRole("button", { name: "Beta (2)", expanded: true })).toBeDefined();
+    expect(
+      within(activeShelf)
+        .getAllByRole("link")
+        .every((link) => link.getAttribute("aria-keyshortcuts") === null),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: "Manual order" }), { detail: 1 });
     // Projects sit where their first thread is in manual order.
     expect(
       within(activeShelf)
@@ -283,7 +292,9 @@ describe("ThreadInbox", () => {
         .getAllByRole("link")
         .every((link) => link.getAttribute("aria-keyshortcuts") === "Alt+ArrowUp Alt+ArrowDown"),
     ).toBe(true);
-    await waitFor(() => expect(window.localStorage.getItem("bb-sidebar:active-sort:v1")).toBe("project"));
+    await waitFor(() =>
+      expect(window.localStorage.getItem("bb-sidebar:active-view:v1")).toBe('{"group":"project","order":"manual"}'),
+    );
   });
 
   it("migrates the previous project grouping preference", async () => {
@@ -292,13 +303,15 @@ describe("ThreadInbox", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "Sort active threads: Project",
+        name: "Sort active threads: Project, Manual order",
       }),
     ).toBeDefined();
-    await waitFor(() => expect(window.localStorage.getItem("bb-sidebar:active-sort:v1")).toBe("project"));
+    await waitFor(() =>
+      expect(window.localStorage.getItem("bb-sidebar:active-view:v1")).toBe('{"group":"project","order":"manual"}'),
+    );
   });
 
-  it("names a project once in a header when it has two or more threads", () => {
+  it("names every project once in a header, even with one thread", () => {
     window.localStorage.setItem("bb-sidebar:active-sort:v1", "project");
     window.localStorage.setItem(
       "bb-sidebar:inbox-order-cache:v1",
@@ -319,19 +332,18 @@ describe("ThreadInbox", () => {
     );
 
     const headers = screen.getAllByRole("button", { name: /\(\d+\)$/ });
-    expect(headers.map((header) => header.getAttribute("aria-label"))).toEqual(["Web (2)"]);
-    // One-thread projects stay ordinary cards. Everything keeps manual
-    // order, with a project drawn where its first thread is.
+    // Everything keeps manual order, with a project drawn where its first thread is.
+    expect(headers.map((header) => header.getAttribute("aria-label"))).toEqual(["Web (2)", "Zed (1)", "Api (1)"]);
     expect(
       screen
         .getAllByRole("listitem")
         .filter((row) => !row.hasAttribute("data-reorder-unit"))
         .map((row) => row.textContent),
     ).toEqual([
-      expect.not.stringContaining("Web"),
-      expect.not.stringContaining("Web"),
-      expect.stringMatching(/^Zed.*Loose Z/),
-      expect.stringMatching(/^Api.*Loose A/),
+      expect.stringContaining("First"),
+      expect.stringContaining("Second"),
+      expect.not.stringContaining("Zed"),
+      expect.not.stringContaining("Api"),
     ]);
   });
 
@@ -362,26 +374,6 @@ describe("ThreadInbox", () => {
         .getAllByRole("listitem")
         .map((row) => row.textContent),
     ).toEqual([expect.stringMatching(/^Web.*Second/)]);
-  });
-
-  it("looks like manual order when no project has a second thread", () => {
-    window.localStorage.setItem("bb-sidebar:active-sort:v1", "project");
-    render(
-      [
-        thread({ id: "zed-1", projectId: "zed", title: "Zed thread", createdAt: 2 }),
-        thread({ id: "api-1", projectId: "api", title: "Api thread", createdAt: 1 }),
-      ],
-      [
-        { id: "api", name: "Api", isPersonal: false, href: "", settingsHref: "" },
-        { id: "zed", name: "Zed", isPersonal: false, href: "", settingsHref: "" },
-      ],
-    );
-
-    expect(screen.queryAllByRole("button", { name: /\(\d+\)$/ })).toEqual([]);
-    expect(screen.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
-      expect.stringMatching(/^Zed.*Zed thread/),
-      expect.stringMatching(/^Api.*Api thread/),
-    ]);
   });
 
   it("collapses a project, keeping the open thread and the choice", async () => {

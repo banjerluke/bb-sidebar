@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Section grouping for Active, using the sections bb's own thread list creates. Choose Section under Group by in the Active sort picker. Sections come first in an order you set by dragging their headers or with Alt+Arrow keys, then unfiled threads under Threads. Sections with no Active threads fold into one "empty sections" row that says where their threads went, such as 2 parked. Rename or remove a section from its header's context menu.
+- Move to section in a thread's context menu files the thread and all of its child threads, archived ones included, into a section, back to Threads, or into a new section named right in the menu. In Section grouping, dragging a row onto another section's header or onto Threads files it too.
+
+### Changed
+
+- The Active sort picker now has two parts: Group by (No grouping, Project, or Section) and Order (Manual order, Recent activity, or Date created), so Project and Section grouping can sort by activity or creation date. Your current choice carries over. With a sorted order, rows and project headers do not drag, and the project with the newest thread comes first.
+- Project grouping gives every project a header, including projects with one Active thread.
+
 ## [0.3.3] - 2026-10-18
 
 ### Added

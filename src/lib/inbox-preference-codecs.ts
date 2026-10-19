@@ -1,5 +1,5 @@
-import { isActiveSortMode } from "../inbox-layout";
-import type { ActiveSortMode } from "../inbox-layout";
+import { isActiveGrouping, isActiveOrder } from "../inbox-layout";
+import type { ActiveView } from "../inbox-layout";
 import type { ShelfExpansionState } from "../ThreadInboxView";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion } from "./safe-storage";
 import { readStorageRaw } from "./storage-codec";
@@ -75,12 +75,28 @@ export const shelfExpansionCodec: PreferenceCodec<ShelfExpansionState> = {
   encode: JSON.stringify,
 };
 
-export const activeSortCodec: PreferenceCodec<ActiveSortMode> = {
-  fallback: () => "manual",
+export const emptySectionsExpandedCodec: PreferenceCodec<boolean> = { ...environmentGroupingCodec };
+
+/** Reads the older single sort mode, where Project meant manual order by project. */
+function legacyActiveView(): ActiveView {
+  const stored = readStorageRaw(STORAGE_KEYS.activeSort.key);
+  if (stored === "project") return { group: "project", order: "manual" };
+  if (stored === "manual" || stored === "activity" || stored === "created") return { group: "none", order: stored };
+  // Read-only migration from the fifth inbox preference. Never write this key.
+  return {
+    group: readStorageRaw(STORAGE_KEYS.activeGrouping.key) === "true" ? "project" : "none",
+    order: "manual",
+  };
+}
+
+export const activeViewCodec: PreferenceCodec<ActiveView> = {
+  fallback: () => ({ group: "none", order: "manual" }),
   decode: (stored) => {
-    if (stored && isActiveSortMode(stored)) return stored;
-    // Read-only migration from the fifth inbox preference. Never write this key.
-    return readStorageRaw(STORAGE_KEYS.activeGrouping.key) === "true" ? "project" : "manual";
+    if (!stored) return legacyActiveView();
+    const parsed: unknown = JSON.parse(stored);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const { group, order } = parsed as Record<string, unknown>;
+    return isActiveGrouping(group) && isActiveOrder(order) ? { group, order } : null;
   },
-  encode: (value) => value,
+  encode: JSON.stringify,
 };

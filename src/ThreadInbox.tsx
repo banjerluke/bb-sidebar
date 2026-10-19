@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useBbNavigate, type PluginSidebarThread, type PluginThreadListProps } from "@get-bb/plugin-sdk/app";
 import { useInboxShelfThreads } from "./useInboxShelfThreads";
 import { createDragReorderHandler } from "./drag-reorder";
-import type { InboxDragOrder } from "./drag-reorder-geometry";
+import type { DragShelf, InboxDragOrder, SectionDrop } from "./drag-reorder-geometry";
 import { ThreadInboxView } from "./ThreadInboxView";
 import { useQuantizedNow } from "./useQuantizedNow";
 import { useProjectIconRevision } from "./useProjectIconRevision";
@@ -30,6 +30,9 @@ import { usePinnedReorder } from "./usePinnedReorder";
 import { useCollapseChildrenOnSettle } from "./useCollapseChildrenOnSettle";
 import { useInboxReorder } from "./useInboxReorder";
 import { useInboxProjectGroups } from "./useInboxProjectGroups";
+import { useInboxSections } from "./useInboxSections";
+import { sectionIdFromKey } from "./section-groups";
+import { useLeaveActiveThread } from "./useLeaveActiveThread";
 import { environmentUnitKey } from "./environment-groups";
 import { useWorkingSince } from "./useWorkingSince";
 import { useJumpHints } from "./JumpHints";
@@ -42,7 +45,7 @@ import { parseInactiveAfterHours } from "./inactive";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
-import { activeSortCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
+import { activeViewCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
 const SETTLED_INITIAL_LIMIT = 10;
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -55,7 +58,7 @@ type ActiveShelfKind = "pinned" | "inbox";
  * the plugin's project scope picker.
  */
 export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompactViewport }: PluginThreadListProps) {
-  const { status, threads, projects } = useSidebarThreads();
+  const { status, threads, projects, sections } = useSidebarThreads();
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
   const navigate = useBbNavigate();
@@ -90,7 +93,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     STORAGE_KEYS.shelfExpansion.key,
     shelfExpansionCodec,
   );
-  const [activeSortMode, setActiveSortMode] = usePersistedPreference(STORAGE_KEYS.activeSort.key, activeSortCodec);
+  const [activeView, setActiveView] = usePersistedPreference(STORAGE_KEYS.activeView.key, activeViewCodec);
   const [settledLimit, setSettledLimit] = useState(SETTLED_INITIAL_LIMIT);
   const [renamingShelfLocks, setRenamingShelfLocks] = useRenamingShelfLocks(threads, lifecycle);
   const providerById = useMemo(() => new Map(providers.map((provider) => [provider.id, provider])), [providers]);
@@ -159,6 +162,12 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
   // running until the drop rebases it.
   useEffect(() => {
     if (!dragOrder) return;
+    if (dragOrder.shelf === "sections") {
+      if (!sections.some((section) => section.id === sectionIdFromKey(dragOrder.movingId))) {
+        activeReorderCancelRef.current?.();
+      }
+      return;
+    }
     const survives = threads.some(
       (thread) =>
         thread.id === dragOrder.movingId ||
@@ -166,12 +175,16 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         (thread.environment?.id && environmentUnitKey(thread.projectId, thread.environment.id) === dragOrder.movingId),
     );
     if (!survives) activeReorderCancelRef.current?.();
-  }, [dragOrder, threads]);
+  }, [dragOrder, sections, threads]);
   const pinned = useMemo(() => {
     const ordered = orderPinnedThreads(pinnedBase, pinnedReorder.ids);
     return orderPinnedThreads(ordered, dragOrder?.shelf === "pinned" ? dragOrder.ids : null);
   }, [dragOrder, pinnedBase, pinnedReorder.ids]);
-  const orderedInbox = useMemo(() => orderPinnedThreads(inboxBase, inboxReorder.ids), [inboxBase, inboxReorder.ids]);
+  // A sorted order replaces manual order before grouping, so projects follow their newest row.
+  const orderedInbox = useMemo(
+    () => sortActiveThreads(orderPinnedThreads(inboxBase, inboxReorder.ids), activeView.order),
+    [inboxBase, inboxReorder.ids, activeView.order],
+  );
   // Working and Inactive keep Active's manual order, so a thread that leaves
   // for either comes back to the slot it left.
   const working = useMemo(() => orderPinnedThreads(workingBase, inboxReorder.ids), [workingBase, inboxReorder.ids]);
@@ -220,20 +233,34 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     () => visibleShelfThreads(inactive, expandedShelves.inactive, activeListThreadId, undefined, attentionParentIds),
     [attentionParentIds, activeListThreadId, expandedShelves.inactive, inactive],
   );
-  const sortedVisibleInbox = useMemo(
-    () => sortActiveThreads(visibleInbox, activeSortMode),
-    [activeSortMode, visibleInbox],
-  );
+  const sectionGroups = useInboxSections({
+    inbox,
+    sections,
+    dragOrder,
+    manual: activeView.order === "manual",
+    activeThreadId: activeListThreadId,
+    attentionIds: attentionParentIds,
+    elsewhere: { pinned, working, inactive, snoozed, parked, settled },
+    threads,
+    scope,
+  });
+  const sectionGroupsRef = useRef(sectionGroups);
+  sectionGroupsRef.current = sectionGroups;
+  const sectionsShown = activeView.group === "section" && expandedShelves.active;
+  const sectionDropRef = useRef<SectionDrop | null>(null);
+  sectionDropRef.current = sectionsShown ? sectionGroups.sectionDrop : null;
   // Leaving a thread follows Pinned, then Active, including collapsed rows.
   const nextThreadCandidates = useMemo(
     () => [
       ...pinned,
-      ...(activeSortMode === "project"
+      ...(activeView.group === "project"
         ? inboxProjectUnits.flatMap((unit) => (unit.kind === "thread" ? [unit.thread] : unit.threads))
-        : sortActiveThreads(inbox, activeSortMode)),
+        : activeView.group === "section"
+          ? sectionGroups.orderedThreads
+          : inbox),
       ...working,
     ],
-    [activeSortMode, inbox, inboxProjectUnits, pinned, working],
+    [activeView.group, inbox, inboxProjectUnits, pinned, working, sectionGroups.orderedThreads],
   );
   const nextThreadCandidatesRef = useRef(nextThreadCandidates);
   nextThreadCandidatesRef.current = nextThreadCandidates;
@@ -249,18 +276,22 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     inbox: inboxReorder,
   });
   reorderTargetsRef.current = { pinned: pinnedReorder, inbox: inboxReorder };
-  const storedOrderUnitsRef = useRef(projectGroups.orderUnits);
-  storedOrderUnitsRef.current = projectGroups.orderUnits;
-  const activeSortModeRef = useRef(activeSortMode);
-  activeSortModeRef.current = activeSortMode;
+  const storedOrderUnits = sectionsShown ? sectionGroups.orderUnits : projectGroups.orderUnits;
+  const storedOrderUnitsRef = useRef(storedOrderUnits);
+  storedOrderUnitsRef.current = storedOrderUnits;
+  const activeViewRef = useRef(activeView);
+  activeViewRef.current = activeView;
   /**
    * What a row or header reorders among. In the project view a thread inside
    * a group moves within its project; a lone thread or a group header moves
    * among the top-level units.
    */
   const reorderScope = useCallback(
-    (key: string, shelf: "pinned" | "inbox"): ReorderScope => {
-      if (shelf === "inbox" && activeSortMode === "project") {
+    (key: string, shelf: DragShelf): ReorderScope => {
+      if (shelf === "sections" || (shelf === "inbox" && sectionsShown)) return sectionGroups.reorderScope(key);
+      // Sorted rows have no manual slot; a drag can at most file them.
+      if (shelf === "inbox" && activeView.order !== "manual") return { mode: "thread", ids: [key] };
+      if (shelf === "inbox" && activeView.group === "project") {
         return projectGroups.reorderScope(key);
       }
       return {
@@ -268,17 +299,21 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         ids: (shelf === "pinned" ? visiblePinned : visibleInbox).map((candidate) => candidate.id),
       };
     },
-    [activeSortMode, projectGroups, visibleInbox, visiblePinned],
+    [activeView.group, activeView.order, projectGroups, sectionGroups, sectionsShown, visibleInbox, visiblePinned],
   );
   const reorderScopeRef = useRef(reorderScope);
   reorderScopeRef.current = reorderScope;
   const commitReorder = (
-    shelf: "pinned" | "inbox",
+    shelf: DragShelf,
     mode: ReorderMode,
     previewIds: readonly string[],
     movingId: string,
     parentKey: string | null = null,
   ) => {
+    if (shelf === "sections") {
+      sectionGroupsRef.current.commitSectionOrder(previewIds, movingId);
+      return;
+    }
     if (shelf === "pinned") {
       const live = reorderTargetsRef.current.pinned;
       void live.reorder(rebaseMovedId(live.ids, previewIds, movingId), movingId);
@@ -286,7 +321,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     }
     const live = reorderTargetsRef.current.inbox;
     const ids =
-      activeSortModeRef.current === "project" || mode === "unit"
+      activeViewRef.current.group === "project" || mode === "unit"
         ? projectGroupsRef.current.rebaseOrder(live.ids, previewIds, movingId, parentKey)
         : rebaseMovedId(live.ids, previewIds, movingId);
     if (ids) void live.reorder(ids);
@@ -302,8 +337,13 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
    * Pointer and keyboard reordering for one row or project header. `key` is a
    * thread id, or a project unit key for a header.
    */
-  const reorderControls = (key: string, shelf: "pinned" | "inbox", title: string): ThreadReorderControls => {
-    const target = shelf === "pinned" ? pinnedReorder : inboxReorder;
+  const reorderControls = (key: string, shelf: DragShelf, title: string): ThreadReorderControls => {
+    const target =
+      shelf === "pinned"
+        ? pinnedReorder
+        : shelf === "sections"
+          ? { isReordering: sectionGroups.isReordering }
+          : inboxReorder;
     return {
       disabled: target.isReordering,
       isDragging: dragOrder?.shelf === shelf && dragOrder.movingId === key,
@@ -317,6 +357,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         listAnimationController,
         suppressDragClick,
         reorderScopeRef,
+        sectionDropRef,
         storedOrderUnitsRef,
         setDragOrder,
         commitReorder,
@@ -325,11 +366,13 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         if (!event.altKey || target.isReordering || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
           return;
         }
+        // Sorted rows have no manual slot to move to.
+        if (shelf === "inbox" && activeView.order !== "manual") return;
         event.preventDefault();
         event.stopPropagation();
         const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
         const ids = movePinnedIdByOffset(currentIds, key, event.key === "ArrowUp" ? -1 : 1);
-        const shelfName = shelf === "pinned" ? "Pinned" : "Active";
+        const shelfName = shelf === "pinned" ? "Pinned" : shelf === "sections" ? "sections" : "Active";
         setReorderAnnouncement(
           sameOrder(ids, currentIds)
             ? `${title} is already ${event.key === "ArrowUp" ? "first" : "last"} in ${shelfName}`
@@ -368,40 +411,13 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     [inactive, inbox, lifecycle, pinned, working],
   );
 
-  const parkActiveThread = useCallback(
-    async (thread: PluginSidebarThread, mutation: () => Promise<boolean>) => {
-      const parked = await mutation();
-      if (!parked || activeThreadIdRef.current !== thread.id) return;
-
-      // Read the latest list after the request, since another client may
-      // have moved or reordered the first candidate while it was pending.
-      const nextThread = nextThreadCandidatesRef.current.find((candidate) => candidate.id !== thread.id);
-      if (nextThread) {
-        navigate.toThread(nextThread.id);
-      } else {
-        navigate.toCompose({
-          projectId: thread.projectId,
-          focusPrompt: true,
-        });
-      }
-      onNavigate();
-    },
-    [navigate, onNavigate],
-  );
-
-  const parkThread = useCallback(
-    (thread: PluginSidebarThread) => void parkActiveThread(thread, () => lifecycle.park(thread.id)),
-    [parkActiveThread, lifecycle],
-  );
-  const settleThread = useCallback(
-    (thread: PluginSidebarThread) => void parkActiveThread(thread, () => lifecycle.settle(thread.id)),
-    [parkActiveThread, lifecycle],
-  );
-  const snoozeThread = useCallback(
-    (thread: PluginSidebarThread, until: number) =>
-      void parkActiveThread(thread, () => lifecycle.snooze(thread.id, until)),
-    [parkActiveThread, lifecycle],
-  );
+  const { parkThread, settleThread, snoozeThread } = useLeaveActiveThread({
+    lifecycle,
+    navigate,
+    onNavigate,
+    activeThreadIdRef,
+    nextThreadCandidatesRef,
+  });
 
   const inboxContext = useInboxContextValues({
     providerById,
@@ -423,7 +439,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     setRenamingShelfLocks,
     setScope,
     setExpandedShelves,
-    setActiveSortMode,
+    setActiveView,
     setSettledLimit,
     toggleProjectCollapse,
   });
@@ -431,7 +447,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     wokeThreadIds,
     expandedChildParentIds,
     threadReorderControls,
-    activeSortMode,
+    activeView,
   });
 
   return (
@@ -466,11 +482,11 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         attachDockAutoAnimateRef={attachDockAutoAnimateRef}
         expandedShelves={expandedShelves}
         renderActiveThread={renderActiveThread}
-        activeSortMode={activeSortMode}
+        activeView={activeView}
         inboxProjectView={inboxProjectView}
+        sections={sectionGroups}
         environmentGrouping={projectGroups}
         reorderControls={reorderControls}
-        sortedVisibleInbox={sortedVisibleInbox}
         settledLimit={settledLimit}
       />
     </InboxProvider>

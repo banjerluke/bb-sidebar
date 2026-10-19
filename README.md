@@ -10,9 +10,9 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 
 ## Features
 
-- Manual ordering plus Recent activity, Date created, and Project sort modes
-- Subtle project grouping for projects with multiple active threads
-- Optional worktree grouping in Project sort: threads that share a worktree get collapsible groups
+- Manual ordering plus Recent activity and Date created sorts, with optional grouping by project or section
+- Section grouping with bb's thread sections: draggable section order, Move to section with children following, drag-to-file onto section headers, and a folded row for empty sections
+- Optional worktree grouping in Project grouping: threads that share a worktree get collapsible groups
 - Pinned, Active, Inactive, Snoozed, Parked, and Settled shelves
 - Full cards, compact working threads, or compact all threads, with options to keep pinned or woken threads full
 - Searchable multi-project filtering, remembered per window across reloads

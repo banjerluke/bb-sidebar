@@ -4,28 +4,43 @@ import { sameOrder, type ReorderScope } from "./inbox-layout";
 import type { createDragPreview } from "./drag-preview";
 import type { ListAnimationController } from "./useListAutoAnimate";
 
+export type DragShelf = "pinned" | "inbox" | "sections";
+
 export interface InboxDragOrder {
-  shelf: "pinned" | "inbox";
+  shelf: DragShelf;
   mode: "thread" | "unit";
   movingId: string;
   parentKey?: string | null;
   ids: string[];
 }
 
+/**
+ * Filing by drag: while an Active row is dragged in the section view, a
+ * section header (or Threads) under the pointer takes the drop instead of
+ * the reorder.
+ */
+export interface SectionDrop {
+  /** The section a drop here files into; undefined when not over another section's header. */
+  targetAt(element: Element | null, movingId: string): string | null | undefined;
+  setTarget(sectionId: string | null | undefined): void;
+  drop(movingId: string, sectionId: string | null): void;
+}
+
 export interface DragReorderOptions {
   key: string;
-  shelf: "pinned" | "inbox";
+  shelf: DragShelf;
   target: { isReordering: boolean };
   activeReorderCancelRef: RefObject<(() => void) | null>;
   dragOrderRef: RefObject<InboxDragOrder | null>;
   dragPreviewRef: RefObject<ReturnType<typeof createDragPreview> | null>;
   listAnimationController: ListAnimationController;
   suppressDragClick: (key: string) => void;
-  reorderScopeRef: RefObject<(key: string, shelf: "pinned" | "inbox") => ReorderScope>;
+  reorderScopeRef: RefObject<(key: string, shelf: DragShelf) => ReorderScope>;
+  sectionDropRef: RefObject<SectionDrop | null>;
   storedOrderUnitsRef: RefObject<OrderUnit[]>;
   setDragOrder: Dispatch<SetStateAction<InboxDragOrder | null>>;
   commitReorder: (
-    shelf: "pinned" | "inbox",
+    shelf: DragShelf,
     mode: "thread" | "unit",
     ids: readonly string[],
     key: string,

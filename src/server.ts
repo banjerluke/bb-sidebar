@@ -14,6 +14,7 @@ import { createServerProjectColors } from "./server-project-colors";
 import { createServerProjectManagement } from "./server-project-management";
 import { createServerSettleCleanup } from "./server-settle-cleanup";
 import { createServerSettleActions } from "./server-settle-actions";
+import { createServerSections } from "./server-sections";
 import { createServerPolicy } from "./server-policy";
 import { createServerHandlers } from "./server-handlers";
 
@@ -109,6 +110,10 @@ const migrations = [
      (id, snooze_presets, inactive_threads_enabled, inactive_after_hours,
       auto_settle_inactive, auto_settle_after_days, auto_settle_on_merge)
    VALUES (1, '', 1, 6, 1, 3, 1)`,
+  `CREATE TABLE IF NOT EXISTS section_order (
+     section_id  TEXT PRIMARY KEY,
+     sort_index  INTEGER NOT NULL
+   )`,
 ];
 
 export default async function plugin(bb: BbPluginApi) {
@@ -140,7 +145,7 @@ export default async function plugin(bb: BbPluginApi) {
     getOpenPorts,
     threadPullRequests,
     regenerateTitle,
-    { icons, colors, projects, settle },
+    { icons, colors, projects, settle, sections: createServerSections(ctx) },
   );
   const { resolveProjectIcon } = icons;
   const { wakeAncestors, clearSettlingState, clear } = lifecycle;

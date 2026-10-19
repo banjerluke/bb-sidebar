@@ -2,8 +2,16 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import type { OrderUnit } from "./pinned-order";
 import { visibleInboxThreads } from "./inbox";
 
-export const ACTIVE_SORT_MODES = ["manual", "activity", "created", "project"] as const;
-export type ActiveSortMode = (typeof ACTIVE_SORT_MODES)[number];
+export const ACTIVE_GROUPINGS = ["none", "project", "section"] as const;
+export type ActiveGrouping = (typeof ACTIVE_GROUPINGS)[number];
+export const ACTIVE_ORDERS = ["manual", "activity", "created"] as const;
+export type ActiveOrder = (typeof ACTIVE_ORDERS)[number];
+
+/** How Active is drawn: grouped by project or section, or flat, in one order. */
+export interface ActiveView {
+  group: ActiveGrouping;
+  order: ActiveOrder;
+}
 
 export type ReorderMode = "thread" | "unit";
 export interface ReorderScope {
@@ -12,14 +20,13 @@ export interface ReorderScope {
   parentKey?: string | null;
 }
 
-export function isActiveSortMode(value: string): value is ActiveSortMode {
-  return ACTIVE_SORT_MODES.some((mode) => mode === value);
+export function isActiveGrouping(value: unknown): value is ActiveGrouping {
+  return ACTIVE_GROUPINGS.some((group) => group === value);
 }
 
-// A project needs this many Active threads before it earns a header; below
-// it, its threads stay ordinary cards, so a list of one-thread projects reads
-// exactly like manual order.
-const MIN_PROJECT_GROUP_SIZE = 2;
+export function isActiveOrder(value: unknown): value is ActiveOrder {
+  return ACTIVE_ORDERS.some((order) => order === value);
+}
 
 export type ProjectViewUnit =
   | Extract<ProjectUnit, { kind: "thread" }>
@@ -48,22 +55,14 @@ export function projectUnitKey(projectId: string): string {
 }
 
 /**
- * The project view in manual order: a lone thread stays where it is, and a
- * project with enough threads is drawn once, where its first thread sits.
- * Moving a unit moves all of its threads, so a dragged group stays together.
+ * The project view: every project is drawn once, where its first thread sits,
+ * so in a sorted order the project with the newest thread leads. Moving a
+ * unit moves all of its threads, so a dragged group stays together.
  */
 export function layoutActiveThreadsByProject(inbox: readonly PluginSidebarThread[]): ProjectUnit[] {
-  const counts = new Map<string, number>();
-  for (const thread of inbox) {
-    counts.set(thread.projectId, (counts.get(thread.projectId) ?? 0) + 1);
-  }
   const units: ProjectUnit[] = [];
   const groups = new Map<string, PluginSidebarThread[]>();
   for (const thread of inbox) {
-    if ((counts.get(thread.projectId) ?? 0) < MIN_PROJECT_GROUP_SIZE) {
-      units.push({ kind: "thread", key: thread.id, thread });
-      continue;
-    }
     const existing = groups.get(thread.projectId);
     if (existing) {
       existing.push(thread);
@@ -98,12 +97,9 @@ export function sameOrder(left: readonly string[], right: readonly string[]): bo
   return left.length === right.length && left.every((id, index) => id === right[index]);
 }
 
-export function sortActiveThreads(
-  threads: readonly PluginSidebarThread[],
-  mode: ActiveSortMode,
-): PluginSidebarThread[] {
-  if (mode !== "activity" && mode !== "created") return [...threads];
-  const primaryKey = mode === "activity" ? "updatedAt" : "createdAt";
+export function sortActiveThreads(threads: readonly PluginSidebarThread[], order: ActiveOrder): PluginSidebarThread[] {
+  if (order === "manual") return [...threads];
+  const primaryKey = order === "activity" ? "updatedAt" : "createdAt";
   return [...threads].sort(
     (left, right) =>
       right[primaryKey] - left[primaryKey] || right.updatedAt - left.updatedAt || right.createdAt - left.createdAt,

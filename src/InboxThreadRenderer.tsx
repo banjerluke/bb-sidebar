@@ -1,7 +1,7 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
 import type { useInboxContextValues } from "./InboxContext";
-import type { ActiveSortMode } from "./inbox-layout";
+import type { ActiveView } from "./inbox-layout";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -12,12 +12,12 @@ export function createInboxThreadRenderer(
     wokeThreadIds,
     expandedChildParentIds,
     threadReorderControls,
-    activeSortMode,
+    activeView,
   }: {
     wokeThreadIds: ReadonlySet<string>;
     expandedChildParentIds: ReadonlySet<string>;
     threadReorderControls: (thread: PluginSidebarThread, shelf: ActiveShelfKind) => ThreadReorderControls;
-    activeSortMode: ActiveSortMode;
+    activeView: ActiveView;
   },
 ) {
   const { sidebarSettings, lifecycle, childrenByParentId } = environment;
@@ -54,7 +54,8 @@ export function createInboxThreadRenderer(
       reorder={
         !reorderable ||
         (shelf === "pinned" && thread.pinSortKey == null) ||
-        (shelf === "inbox" && (activeSortMode === "activity" || activeSortMode === "created"))
+        // Sorted rows have no manual slot, but in sections they still drag to be filed.
+        (shelf === "inbox" && activeView.order !== "manual" && activeView.group !== "section")
           ? undefined
           : threadReorderControls(thread, shelf)
       }

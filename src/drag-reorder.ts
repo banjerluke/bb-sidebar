@@ -13,6 +13,7 @@ export function createDragReorderHandler({
   listAnimationController,
   suppressDragClick,
   reorderScopeRef,
+  sectionDropRef,
   storedOrderUnitsRef,
   setDragOrder,
   commitReorder,
@@ -44,6 +45,18 @@ export function createDragReorderHandler({
     let pointerX = startX;
     let pointerY = startY;
     const position = { resolvedY: startY, reorderDirection: 0 };
+    // Only Active rows can be filed; headers and Pinned rows only reorder.
+    const sectionDrop = shelf === "inbox" ? sectionDropRef.current : null;
+    let dropTarget: string | null | undefined;
+    const trackDropTarget = (clientX: number, clientY: number) => {
+      if (!sectionDrop) return false;
+      const next = sectionDrop.targetAt(document.elementFromPoint(clientX, clientY), movingId);
+      if (next !== dropTarget) {
+        dropTarget = next;
+        sectionDrop.setTarget(next);
+      }
+      return next !== undefined;
+    };
     const reorderAt = createDragReorderGeometry(
       { shelf, key, dragOrderRef, reorderScopeRef, storedOrderUnitsRef, dragPreviewRef, setDragOrder },
       () => ({ scrollContainer, listElement }),
@@ -67,6 +80,7 @@ export function createDragReorderHandler({
       if (activeReorderCancelRef.current === cancel) {
         activeReorderCancelRef.current = null;
       }
+      if (dropTarget !== undefined) sectionDrop?.setTarget(undefined);
     }
 
     function cancel() {
@@ -121,7 +135,7 @@ export function createDragReorderHandler({
         engage();
       }
       moveEvent.preventDefault();
-      reorderAt(moveEvent.clientX, moveEvent.clientY);
+      if (!trackDropTarget(moveEvent.clientX, moveEvent.clientY)) reorderAt(moveEvent.clientX, moveEvent.clientY);
     }
 
     function onPointerUp(upEvent: PointerEvent) {
@@ -129,14 +143,20 @@ export function createDragReorderHandler({
       // Auto-scroll and host updates both move the list under a pointer
       // that never moved again, so the last pointermove is not necessarily
       // the last word on where this row belongs.
-      if (engaged) reorderAt(upEvent.clientX, upEvent.clientY);
+      const filing = engaged && trackDropTarget(upEvent.clientX, upEvent.clientY);
+      if (engaged && !filing) reorderAt(upEvent.clientX, upEvent.clientY);
       const current = dragOrderRef.current;
+      const target = dropTarget;
       finished = true;
       cleanup();
       if (!engaged || !current || current.shelf !== shelf) return;
 
       dragOrderRef.current = null;
       setDragOrder(null);
+      if (filing && target !== undefined) {
+        sectionDrop?.drop(movingId, target);
+        return;
+      }
       commitReorder(shelf, current.mode, current.ids, current.movingId, current.parentKey);
     }
 

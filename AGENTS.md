@@ -6,7 +6,8 @@ meaning intact.
 Contributor lists are for people only. Do not list AI tools, models, or agents
 as contributors or add `Co-authored-by` commit trailers crediting them.
 
-Inbox layout: `src/inbox-layout.ts`; shelves: `ThreadInboxShelves.tsx`.
+Inbox layout: `src/inbox-layout.ts`; sections: `src/section-groups.ts` and
+`SectionGroups.tsx`; shelves: `ThreadInboxShelves.tsx`.
 Inbox hooks use `src/use*.ts`; gesture helpers use `src/drag-*.ts`.
 Inbox rendering: `src/ThreadInboxView.tsx` and `src/ThreadInboxEmptyStates.tsx`.
 Inbox context: `src/InboxContext.tsx` shares environment, actions, and activity.
@@ -58,7 +59,7 @@ Do not adopt the SDK's thread menu components for this sidebar.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The
-contract re-exports all five realtime channels from `src/realtime-channels.ts`;
+contract re-exports all six realtime channels from `src/realtime-channels.ts`;
 browser value imports use that pure module to avoid loading schemas. The host
 port contract lives in `src/port-scan-contract.ts`.
 
@@ -73,6 +74,7 @@ port contract lives in `src/port-scan-contract.ts`.
 - `server-project-management`: project names, paths, and removal.
 - `server-settle-cleanup`: cleanup previews, cleanup, and runtime reclaim.
 - `server-settle-actions`: tree settle, return to Active, and Undo snapshots.
+- `server-sections`: section header order and moving a thread tree to a section.
 - `server-policy`: automatic settle evaluation and settings revisions.
 - `server-handlers`: RPC handlers assembled from the modules.
 - `server.ts`: migrations, context creation, wiring, HTTP, and events.
