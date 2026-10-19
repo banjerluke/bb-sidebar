@@ -211,6 +211,83 @@ describe("inbox list motion", () => {
     detachDock();
   });
 
+  it("re-measures after rows resize without list changes, so later motion starts on screen", async () => {
+    const observers: Array<{ callback: () => void; targets: Set<Element> }> = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        targets = new Set<Element>();
+        constructor(public callback: () => void) {
+          observers.push(this);
+        }
+        observe(target: Element) {
+          this.targets.add(target);
+        }
+        unobserve(target: Element) {
+          this.targets.delete(target);
+        }
+        disconnect() {}
+      },
+    );
+    const controller = createListAnimationController();
+    const outer = list();
+    const above = document.createElement("section");
+    const below = document.createElement("section");
+    const rows = list();
+    below.append(rows);
+    outer.append(above, below);
+    let growth = 0;
+    geometry(above, () => 0);
+    geometry(below, () => 100 + growth);
+    const detachOuter = controller.register(outer);
+    const detachRows = controller.register(rows);
+    expect(observers).toHaveLength(1);
+    expect(observers[0]!.targets).toContain(outer);
+    expect(observers[0]!.targets).toContain(rows);
+    await flush();
+    // A row in the upper shelf grows: no list gains or loses a child.
+    growth = 37;
+    observers[0]!.callback();
+    expect(frames.size).toBe(0);
+    rows.append(row());
+    await flush();
+    expect(animate.mock.contexts).not.toContain(below);
+    expect(animate.mock.contexts).not.toContain(above);
+    detachRows();
+    detachOuter();
+    expect(observers[0]!.targets.size).toBe(0);
+  });
+
+  it("animates later shelves when a shelf's list mounts or unmounts inside it", async () => {
+    const controller = createListAnimationController();
+    const outer = list();
+    const active = document.createElement("section");
+    const below = document.createElement("section");
+    outer.append(active, below);
+    let rowsHeight = 0;
+    geometry(active, () => 0);
+    geometry(below, () => 40 + rowsHeight);
+    const detachOuter = controller.register(outer);
+    await flush();
+    // Expanding renders the shelf's row list for the first time: only the
+    // shelf's own subtree changes, which no registered list observes.
+    const rows = list(2);
+    active.append(rows);
+    rowsHeight = 64;
+    const detachRows = controller.register(rows);
+    await flush();
+    const opened = animate.mock.calls.filter((_, index) => animate.mock.contexts[index] === below);
+    expect((opened.at(-1) as unknown as [Keyframe[]])[0][0]?.transform).toBe("translate(0px, -64px)");
+    effects.forEach((effect) => effect.finish());
+    rows.remove();
+    rowsHeight = 0;
+    detachRows();
+    await flush();
+    const closed = animate.mock.calls.filter((_, index) => animate.mock.contexts[index] === below);
+    expect((closed.at(-1) as unknown as [Keyframe[]])[0][0]?.transform).toBe("translate(0px, 64px)");
+    detachOuter();
+  });
+
   it("measures every list before writes and avoids doubling nested interrupted moves", async () => {
     const controller = createListAnimationController();
     const outer = list();

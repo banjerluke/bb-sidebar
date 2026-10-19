@@ -14,6 +14,8 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e:smoke
 env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'settle moves'
 # Exercise motion with 60 loaded settled rows, with timing attached to the report:
 env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'large settled shelves'
+# Toggle every shelf pair and a seeded walk, docked and not; fails on any jump:
+env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'toggle sequence'
 ```
 
 `@playwright/test` supplies role locators, retrying assertions, PNG comparisons,

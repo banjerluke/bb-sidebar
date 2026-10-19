@@ -11,6 +11,7 @@ export function createListAnimationController(enabled = true) {
   const lists = new Map<HTMLElement, List>();
   const running = new Map<HTMLElement, { animation: Animation; top: number; left: number }>();
   let observer: MutationObserver | undefined;
+  let resizes: ResizeObserver | undefined;
   let frame: number | undefined;
   let holds = 0;
   let animateNext = true;
@@ -49,19 +50,29 @@ export function createListAnimationController(enabled = true) {
     for (const { animation } of running.values()) animation.cancel();
     running.clear();
   };
-  const update = () => {
-    frame = undefined;
-    // Rectangles share the scroll container's coordinates. Compensate our active
-    // translations (including ancestors) without cancelling them between reads.
-    const offsets = translations();
+  // Rectangles share the scroll container's coordinates. Compensate our active
+  // translations (including ancestors) without cancelling them between reads.
+  const readAll = (offsets: Map<HTMLElement, Position>) => {
     const origins = new Map<HTMLElement, Position>();
     for (const { scroller } of lists.values()) {
       if (!origins.has(scroller)) origins.set(scroller, origin(scroller));
     }
-    const snapshots = [...lists].map(([parent, list]) => ({
+    return [...lists].map(([parent, list]) => ({
       list,
       next: read(parent, list.scroller, origins.get(list.scroller)!, offsets),
     }));
+  };
+  // A row can grow, a header can wrap, or the scroller can resize without any
+  // list gaining or losing a child. Re-measure then, so the next motion starts
+  // from what is on screen instead of from the layout before that change.
+  const rebaseline = () => {
+    if (frame !== undefined || holds > 0) return;
+    for (const { list, next } of readAll(translations())) list.positions = next;
+  };
+  const update = () => {
+    frame = undefined;
+    const offsets = translations();
+    const snapshots = readAll(offsets);
     let changed = 0;
     for (const { list, next } of snapshots) {
       for (const node of list.positions.keys()) if (!next.has(node)) changed++;
@@ -156,8 +167,16 @@ export function createListAnimationController(enabled = true) {
         if (holds === 0) schedule(true);
       });
       observer.observe(parent, { childList: true });
+      resizes ??= typeof ResizeObserver === "function" ? new ResizeObserver(rebaseline) : undefined;
+      resizes?.observe(parent);
+      resizes?.observe(scroller);
+      // A list can mount inside a shelf that is not itself a list (a shelf's rows
+      // appearing on expand). No observed list changes then, but what follows moves.
+      if (holds === 0) schedule(true);
       return () => {
         lists.delete(parent);
+        resizes?.unobserve(parent);
+        if (![...lists.values()].some((list) => list.scroller === scroller)) resizes?.unobserve(scroller);
         for (const [node, { animation }] of running) {
           if (parent.contains(node) || !node.isConnected) {
             animation.cancel();
@@ -166,7 +185,10 @@ export function createListAnimationController(enabled = true) {
         }
         observer?.disconnect();
         for (const node of lists.keys()) observer?.observe(node, { childList: true });
-        if (lists.size === 0 && frame !== undefined) {
+        if (lists.size > 0) {
+          // Disconnecting drops queued records; this frame covers them too.
+          if (holds === 0) schedule(true);
+        } else if (frame !== undefined) {
           cancelAnimationFrame(frame);
           frame = undefined;
         }
