@@ -134,11 +134,10 @@ describe("parking threads", () => {
     // Rendered (not merely accepted as props): a card whose park controls
     // never mount leaves the whole feature unreachable.
     expect(await screen.findByLabelText("Settle thread")).toBeDefined();
-    const snooze = screen.getByRole("combobox", { name: "Snooze thread" });
-    expect(snooze.querySelector('[data-icon="Clock"]')).not.toBeNull();
+    const snooze = screen.getByRole("combobox", { name: "Snooze, park, or archive" });
     expect(snooze.querySelector('[data-icon="ChevronDown"]')).not.toBeNull();
     expect(snooze.classList.contains("[&>svg:last-child]:hidden")).toBe(true);
-    expect(snooze.classList.contains("w-5")).toBe(true);
+    expect(snooze.classList.contains("w-4")).toBe(true);
     fireEvent.keyDown(snooze, { key: "Enter" });
     expect(await screen.findByRole("option", { name: "1 hour" })).toBeDefined();
     expect(screen.getByRole("option", { name: "Wait refresh (5 hours)" })).toBeDefined();
@@ -146,7 +145,8 @@ describe("parking threads", () => {
     expect(screen.getByRole("option", { name: "Next week" })).toBeDefined();
     const menu = screen.getByRole("listbox");
     const parkOption = within(menu).getByRole("option", { name: "Park thread" });
-    expect(within(menu).getAllByRole("option").at(-1)).toBe(parkOption);
+    expect(within(menu).getAllByRole("option").at(-2)).toBe(parkOption);
+    expect(within(menu).getAllByRole("option").at(-1)?.textContent).toBe("Archive");
     fireEvent.click(parkOption);
     await waitFor(() => expect(park).toHaveBeenCalledTimes(1));
     expect(rendered.rpcCalls).toContainEqual({ method: "park", input: { threadId: "thr_park" } });
@@ -206,7 +206,7 @@ describe("parking threads", () => {
     await waitFor(() => expect(settle).toHaveBeenCalledWith({ threadId: "thr_unread" }));
 
     const idleRow = screen.getByText("Idle work").closest("li")!;
-    fireEvent.keyDown(within(idleRow).getByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+    fireEvent.keyDown(within(idleRow).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "1 hour" }));
     await waitFor(() =>
       expect(snooze).toHaveBeenCalledWith({

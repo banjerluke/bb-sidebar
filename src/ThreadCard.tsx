@@ -16,7 +16,8 @@ import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./Chil
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
-import { SnoozeSelect } from "./SnoozeSelect";
+import { MoreActionsSelect } from "./MoreActionsSelect";
+import { SettleButton } from "./SettleButton";
 import { cn } from "./lib/utils";
 import { RowContextMenu } from "./RowContextMenu";
 import { ProviderGlyph } from "./ProviderGlyph";
@@ -32,6 +33,7 @@ import { JumpHint, useJumpHint } from "./JumpHints";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { projectIconUrl as iconUrl } from "./project-icons";
+import { useArchiveThread } from "./useArchiveThread";
 import "./settle-button.css";
 
 /** How long the settle sweep plays before the thread actually moves. */
@@ -110,6 +112,7 @@ export function ThreadCard({
   const onPark = () => parkThread(thread);
   const onSettle = () => settleThread(thread);
   const onSnooze = (until: number) => snoozeThread(thread, until);
+  const onArchive = useArchiveThread(thread);
   const onAcknowledgeWake = () => acknowledgeWake(thread.id);
   const onToggleChildren = () => toggleChildExpansion(thread.id);
   const jumpHint = useJumpHint(thread.id);
@@ -159,7 +162,7 @@ export function ThreadCard({
     };
   }, [thread.id]);
   const compactAtRenameStart = useRef(false);
-  const [isSnoozeOpen, setIsSnoozeOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
   const settleTimer = useRef<number | null>(null);
   useEffect(
@@ -182,9 +185,9 @@ export function ThreadCard({
       settleTimer.current = window.setTimeout(() => setIsSettling(false), SETTLE_RECOVER_MS);
     }, SETTLE_SWEEP_MS);
   };
-  // The sweep keeps the actions up, as an open snooze menu does, so the check
-  // it starts from does not disappear when the cursor leaves the row.
-  const holdParkActions = isSnoozeOpen || isSettling;
+  // The sweep keeps the actions up, as an open menu does, so the check it
+  // starts from does not disappear when the cursor leaves the row.
+  const holdParkActions = isMenuOpen || isSettling;
   const childListId = useId();
   const liveStatus = threadShortStatus(thread)?.showsDuration === true;
   // A thread stays folded until everything under it is done; it unfolds at
@@ -203,7 +206,7 @@ export function ThreadCard({
   // them, whatever "Show children that need attention" says.
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
   const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
-  const showParkActions = !isWoke && canPark && (snoozePresets.length > 0 || !!onPark);
+  const showParkActions = !isWoke && canPark;
 
   const unpinButton = thread.isPinned ? (
     <Tooltip label="Unpin thread">
@@ -438,8 +441,8 @@ export function ThreadCard({
                       !showProject && "w-auto min-w-0",
                       !showProject &&
                         showParkActions &&
-                        "[@media(hover:hover)]:group-hover/card:min-w-11 has-[:focus-visible]:min-w-11",
-                      !showProject && holdParkActions && "min-w-11",
+                        "[@media(hover:hover)]:group-hover/card:min-w-10 has-[:focus-visible]:min-w-10",
+                      !showProject && holdParkActions && "min-w-10",
                     )}
                   >
                     <span
@@ -462,15 +465,16 @@ export function ThreadCard({
                         )}
                       >
                         {unpinButton}
-                        <SnoozeSelect
-                          label="Snooze thread"
+                        <SettleButton label="Settle thread" settling={isSettling} onActivate={startSettle} />
+                        <MoreActionsSelect
+                          label="Snooze, park, or archive"
                           snoozePresets={snoozePresets}
-                          triggerClassName="h-5 w-5 border-0 px-0.5 py-0 shadow-none duration-200 ease-out hover:bg-transparent hover:duration-200 hover:text-[color:var(--bb-sidebar-snooze-active)] focus:ring-0 focus-visible:text-[color:var(--bb-sidebar-snooze-active)] data-[state=open]:text-[color:var(--bb-sidebar-snooze-active)] motion-reduce:transition-none [&>svg:last-child]:size-3"
-                          onOpenChange={setIsSnoozeOpen}
+                          triggerClassName="h-5 w-4 justify-center rounded-md border-0 px-0 py-0 text-muted-foreground shadow-none duration-200 ease-out hover:bg-transparent hover:duration-200 hover:text-foreground focus:ring-0 focus-visible:text-foreground data-[state=open]:text-foreground motion-reduce:transition-none"
+                          onOpenChange={setIsMenuOpen}
                           onSnooze={onSnooze}
                           onPark={onPark}
+                          onArchive={onArchive}
                         />
-                        <ParkButton label="Settle thread" settling={isSettling} onActivate={startSettle} />
                       </span>
                     ) : null}
                   </span>
@@ -532,41 +536,6 @@ export function ThreadCard({
         </div>
       </li>
     </RowContextMenu>
-  );
-}
-
-function ParkButton({ label, settling, onActivate }: { label: string; settling: boolean; onActivate: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      data-settling={settling ? "" : undefined}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onActivate();
-      }}
-      className={cn(
-        "bb-sidebar-settle relative flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground",
-        "transition-colors duration-200 ease-out hover:text-[color:var(--bb-sidebar-settle-active)]",
-        "focus-visible:text-[color:var(--bb-sidebar-settle-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
-        "motion-reduce:transition-none",
-        settling && "text-[color:var(--bb-sidebar-settle-active)]",
-      )}
-    >
-      {/* Move only the artwork so hovering an edge cannot move the hit area. */}
-      <span
-        aria-hidden="true"
-        className="bb-sidebar-settle-art pointer-events-none relative flex size-full items-center justify-center rounded-[inherit]"
-      >
-        <Icon name="Check" aria-hidden className="bb-sidebar-settle-check size-3.5" />
-        <span className="bb-sidebar-settle-stars">
-          {[0, 1, 2].map((star) => (
-            <span key={star} className="bb-sidebar-settle-star" />
-          ))}
-        </span>
-      </span>
-    </button>
   );
 }
 

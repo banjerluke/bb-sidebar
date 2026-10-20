@@ -259,7 +259,7 @@ describe("row context menu", () => {
 
     const before = Date.now();
     const snooze = await screen.findByRole("combobox", {
-      name: "Snooze thread",
+      name: "Snooze, park, or archive",
     });
     fireEvent.keyDown(snooze, { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "15 minutes" }));
@@ -272,7 +272,7 @@ describe("row context menu", () => {
     expect(within(menu).getByText("Snooze").getAttribute("aria-haspopup")).toBe("menu");
   });
 
-  it.each(["clock", "context"])("uses the five calendar presets from the %s menu", async (menuType) => {
+  it.each(["card", "context"])("uses the five calendar presets from the %s menu", async (menuType) => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 0, 5, 22));
     try {
@@ -290,15 +290,15 @@ describe("row context menu", () => {
         },
       });
       let menu: HTMLElement;
-      if (menuType === "clock") {
-        fireEvent.keyDown(await screen.findByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+      if (menuType === "card") {
+        fireEvent.keyDown(await screen.findByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
         menu = await screen.findByRole("listbox");
       } else {
         fireEvent.contextMenu(await screen.findByText("Calendar snooze"));
         fireEvent.click(await screen.findByRole("menuitem", { name: "Snooze" }));
         menu = (await screen.findByRole("menuitem", { name: "1 hour" })).closest<HTMLElement>('[role="menu"]')!;
       }
-      const role = menuType === "clock" ? "option" : "menuitem";
+      const role = menuType === "card" ? "option" : "menuitem";
       expect(
         within(menu)
           .getAllByRole(role)

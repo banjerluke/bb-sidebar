@@ -258,7 +258,7 @@ export async function parkFromCard(row: HTMLElement, action: ParkingAction) {
   if (action === "settle") {
     fireEvent.click(within(row).getByRole("button", { name: "Settle thread" }));
   } else {
-    fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+    fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
     fireEvent.click(
       await screen.findByRole("option", {
         name: action === "park" ? "Park thread" : "1 hour",

@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The clock and check on a hovered thread are now one split button. Click the check to settle, as before. The chevron beside it opens the snooze presets, Pick date & time…, Park thread, and Archive, which was only in the context menu until now.
+
 ## [0.3.3] - 2026-10-18
 
 ### Added
