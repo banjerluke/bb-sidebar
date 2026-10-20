@@ -57,6 +57,7 @@ const InboxThread = memo(function InboxThread({
     <ThreadCard
       thread={thread}
       showProject={showProject}
+      projectIconOnly={renameShelf !== "inactive" && settings.compactProjectIconOnly}
       showEnvironment={showEnvironment}
       isActive={thread.id === activeThreadId}
       isWoke={isWoke}

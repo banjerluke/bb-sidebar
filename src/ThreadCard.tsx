@@ -51,16 +51,14 @@ export interface ThreadReorderControls {
 }
 
 /**
- * One thread as a three-line card: project/status, title, then branch/activity.
- * With compactWhenWorking, live work folds to one line. Project groups omit
- * the project line. Status follows the row through manual reorders.
- *
- * Controls sit above a full-bleed anchor in a positioned row, keeping buttons
- * outside the anchor for valid markup and keyboard behaviour.
+ * Three-line card, or one line in compact mode. Project groups omit the project
+ * line. Status follows manual reorders. Controls sit above a full-bleed anchor
+ * for valid markup and keyboard access.
  */
 export function ThreadCard({
   thread,
   showProject = true,
+  projectIconOnly = false,
   showEnvironment = true,
   isActive,
   isWoke,
@@ -75,6 +73,7 @@ export function ThreadCard({
   thread: PluginSidebarThread;
   /** False when a group header already names the project. */
   showProject?: boolean;
+  projectIconOnly?: boolean;
   showEnvironment?: boolean;
   isActive: boolean;
   /** A snooze ended and has not yet been acknowledged. */
@@ -269,6 +268,7 @@ export function ThreadCard({
               thread={thread}
               tone="normal"
               showProject={showProject}
+              projectIconOnly={projectIconOnly}
               projectName={projectName}
               projectIconUrl={projectIconUrl}
               projectColor={projectColor}

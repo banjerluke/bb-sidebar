@@ -38,6 +38,7 @@ const SECTION_BY_SETTING: Record<keyof SidebarSettingsValues, string> = {
   childSortDirection: "Child threads",
   childIconStyle: "Child threads",
   threadDisplay: "Sidebar layout",
+  compactProjectIconOnly: "Sidebar layout",
   keepPinnedThreadsFull: "Sidebar layout",
   keepWokeThreadsFull: "Sidebar layout",
   compactWorkingThreads: "Sidebar layout",

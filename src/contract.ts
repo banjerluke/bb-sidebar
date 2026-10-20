@@ -146,6 +146,7 @@ export const sidebarSettingsSchema = z
     childSortDirection: z.enum(CHILD_THREAD_SORT_DIRECTIONS),
     childIconStyle: z.enum(CHILD_THREAD_ICON_STYLES),
     threadDisplay: z.enum(THREAD_DISPLAYS),
+    compactProjectIconOnly: z.boolean(),
     keepPinnedThreadsFull: z.boolean(),
     keepWokeThreadsFull: z.boolean(),
     compactWorkingThreads: z.boolean(),
