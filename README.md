@@ -28,7 +28,7 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Regenerate a thread title from its last three accepted user messages
 - Automatically retry missing thread titles once in the background, respecting the selected AI title service and manual edits
 
-Hover a thread and click the check to settle it. The chevron beside it holds the other ways to clear a row: snooze presets, a date picker, **Park thread**, and **Archive**.
+Hover a thread and click the check to settle it. The three-dots button beside it holds the other ways to clear a row: snooze presets, a date picker, **Park thread**, and **Archive**.
 
 Park threads while waiting on someone else. Use **Park thread** in that menu or the context menu, and **Resume** when ready. Parked threads have no timer and are excluded from automatic cleanup. Opening one leaves it parked; new thread activity brings it back to Active.
 

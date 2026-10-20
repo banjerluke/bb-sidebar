@@ -14,7 +14,7 @@ import { SnoozePickerDialog } from "./SnoozePickerDialog";
 import { formatSnoozeWakeTime, resolveConfiguredSnoozePreset, type ConfiguredSnoozePreset } from "./lifecycle";
 
 /**
- * The chevron half of the settle split button: every other way to clear a row
+ * The three-dots half of the settle split button: every other way to clear a row
  * off Active, so the check can stay a single click.
  */
 export function MoreActionsSelect({
@@ -68,7 +68,7 @@ export function MoreActionsSelect({
       >
         <Tooltip label={label}>
           <SelectTrigger aria-label={label} className={`${triggerClassName} [&>svg:last-child]:hidden`}>
-            <Icon name="ChevronDown" className="size-3" />
+            <Icon name="More" className="size-3.5" />
           </SelectTrigger>
         </Tooltip>
         <SelectContent align="end">
