@@ -15,6 +15,7 @@
 - Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
 - **Opening a thread from the sidebar keeps its Full Screen.** Thread rows, child-thread rows, and the hover card's subthreads are now real links that bb opens, so a thread you left in Full Screen comes back that way. Cmd/Ctrl-click opens the thread in a split, and middle-click or Shift-click opens it in a new window or tab. Child-thread rows open with Enter; Space no longer opens them.
 - Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
+- The clock and check on a hovered thread are now one split button. Click the check to settle, as before. The chevron beside it opens the snooze presets, Pick date & time…, Park thread, and Archive, which was only in the context menu until now.
 
 ## [0.3.7] - 2026-10-23
 

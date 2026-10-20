@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { usePortalScopeProps } from "../lib/portal-scope";
 
 const Select = SelectPrimitive.Root;
+const SelectGroup = SelectPrimitive.Group;
 const SelectSeparator = SelectPrimitive.Separator;
 
 const SelectTrigger = React.forwardRef<
@@ -110,4 +111,12 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger };
+const SelectLabel = React.forwardRef<
+  React.ComponentRef<typeof SelectPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Label ref={ref} className={cn("px-2 py-1 text-xs text-muted-foreground", className)} {...props} />
+));
+SelectLabel.displayName = SelectPrimitive.Label.displayName;
+
+export { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger };

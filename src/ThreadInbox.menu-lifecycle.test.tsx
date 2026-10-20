@@ -46,7 +46,7 @@ describe("row context menu", () => {
     });
 
     const snooze = await screen.findByRole("combobox", {
-      name: "Snooze thread",
+      name: "Snooze, park, or archive",
     });
     fireEvent.keyDown(snooze, { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "1 hour" }));
@@ -81,7 +81,7 @@ describe("row context menu", () => {
     });
 
     const snooze = await screen.findByRole("combobox", {
-      name: "Snooze thread",
+      name: "Snooze, park, or archive",
     });
     fireEvent.keyDown(snooze, { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "1 hour" }));
