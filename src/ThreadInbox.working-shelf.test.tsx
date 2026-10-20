@@ -136,7 +136,7 @@ describe("parking threads", () => {
     // never mount leaves the whole feature unreachable.
     expect(await screen.findByLabelText("Settle thread")).toBeDefined();
     const snooze = screen.getByRole("combobox", { name: "Snooze, park, or archive" });
-    expect(snooze.querySelector('[data-icon="ChevronDown"]')).not.toBeNull();
+    expect(snooze.querySelector('[data-icon="More"]')).not.toBeNull();
     expect(snooze.classList.contains("[&>svg:last-child]:hidden")).toBe(true);
     expect(snooze.classList.contains("w-4")).toBe(true);
     fireEvent.keyDown(snooze, { key: "Enter" });
