@@ -20,8 +20,8 @@ import { SnoozeSelect } from "./SnoozeSelect";
 import { cn } from "./lib/utils";
 import { RowContextMenu } from "./RowContextMenu";
 import { ProviderGlyph } from "./ProviderGlyph";
-import { STATUS_SLOT_CLASS, StatusOrTime, threadShortStatus } from "./StatusSlot";
-import { CompactLiveStatus } from "./StatusGlyph";
+import { STATUS_SLOT_CLASS, StatusOrTime } from "./StatusSlot";
+import { CompactStatusOrTime } from "./StatusGlyph";
 import { threadDisplayTitle } from "./inbox";
 import { InlineThreadTitle } from "./InlineThreadTitle";
 import { isWorkingTree } from "./working-tree";
@@ -186,7 +186,6 @@ export function ThreadCard({
   // it starts from does not disappear when the cursor leaves the row.
   const holdParkActions = isSnoozeOpen || isSettling;
   const childListId = useId();
-  const liveStatus = threadShortStatus(thread)?.showsDuration === true;
   // A thread stays folded until everything under it is done; it unfolds at
   // once when it needs you, fails, or just woke.
   const naturalCompact =
@@ -319,16 +318,10 @@ export function ThreadCard({
                     <>
                       {unpinButton}
                       {isWoke ? <WokeMarker onDismiss={onAcknowledgeWake} /> : null}
-                      {/* The parent's own run time while it works; otherwise its
-                          usual status or age, with the badge showing the
-                          children still running. */}
-                      {liveStatus ? (
-                        <CompactLiveStatus thread={thread} now={now} />
-                      ) : (
-                        <StatusOrTime thread={thread} now={now} />
-                      )}
+                      <CompactStatusOrTime thread={thread} now={now} />
                     </>
                   )}
+                  <ProviderGlyph providerId={thread.providerId} provider={provider} />
                 </span>
               }
             />

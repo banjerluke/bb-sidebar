@@ -410,9 +410,9 @@ describe("parking threads", () => {
       expect(titlesIn("Pinned")).toEqual(["Pinned busy"]);
       // One line like the other shelves, even with compact mode off.
       for (const title of ["Busy work", "Waiting on child"]) {
-        expect(screen.getByRole("link", { name: title }).closest("[data-parent-card]")!.classList.contains("h-8")).toBe(
-          true,
-        );
+        const row = screen.getByRole("link", { name: title }).closest("[data-parent-card]")! as HTMLElement;
+        expect(row.classList.contains("h-8")).toBe(true);
+        expect(within(row).getByRole("img", { name: "codex" }).querySelector(".rounded-full")).not.toBeNull();
       }
     },
   );
