@@ -51,7 +51,7 @@ test("snooze moves to Snoozed and wake returns to Active", async ({ page, reques
     .getByRole("listitem")
     .filter({ has: page.getByRole("link", { name: birch.title, exact: true }) });
   await link(page, birch.title).hover();
-  await row.getByRole("combobox", { name: "Snooze thread" }).click();
+  await row.getByRole("combobox", { name: "Snooze, park, or archive" }).click();
   await page.getByRole("option", { name: "1 hour", exact: true }).click();
   await expect(shelf(page, "Snoozed")).toBeVisible();
   await expand(page, "Snoozed");

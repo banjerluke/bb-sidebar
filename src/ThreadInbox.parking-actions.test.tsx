@@ -10,6 +10,7 @@ import {
   statusSlotParts,
   nestedInteractiveControls,
   loadInboxApp,
+  render,
 } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -28,7 +29,7 @@ describe("parking threads", () => {
       rpc: { listLifecycle: () => ({ rows: [] }), snooze },
     });
 
-    fireEvent.keyDown(await screen.findByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+    fireEvent.keyDown(await screen.findByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "Pick date & time…" }));
     const dialog = await screen.findByRole("dialog", { name: "Snooze until" });
     const tomorrow = new Date();
@@ -84,7 +85,7 @@ describe("parking threads", () => {
     for (const [title, , statusText] of parkable) {
       const row = screen.getByText(title).closest("li")!;
       // The actions the touch layout has to sit beside, not on top of.
-      expect(within(row).getByRole("combobox", { name: "Snooze thread" })).toBeDefined();
+      expect(within(row).getByRole("combobox", { name: "Snooze, park, or archive" })).toBeDefined();
       expect(within(row).getByRole("button", { name: "Settle thread" })).toBeDefined();
       // The card's anchor is a sibling of the controls, not their ancestor.
       expect(nestedInteractiveControls(row)).toEqual([]);
@@ -121,7 +122,7 @@ describe("parking threads", () => {
     });
 
     const row = (await screen.findByText("Menu open")).closest("li")!;
-    fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+    fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
     await screen.findByRole("option", { name: "1 hour" });
 
     const { statusWrapper } = statusSlotParts(row, "Failed");
@@ -165,7 +166,7 @@ describe("parking threads", () => {
       ["Still asking", "Needs you"],
     ] as const) {
       const row = screen.getByText(title).closest("li")!;
-      expect(within(row).queryByRole("combobox", { name: "Snooze thread" })).toBeNull();
+      expect(within(row).queryByRole("combobox", { name: "Snooze, park, or archive" })).toBeNull();
       expect(within(row).queryByRole("button", { name: "Settle thread" })).toBeNull();
       const { status, statusWrapper, slot } = statusSlotParts(row, statusText);
       expect(status.getAttribute("aria-hidden")).toBeNull();
@@ -194,6 +195,25 @@ describe("parking threads", () => {
     });
     fireEvent.click(await screen.findByLabelText("Settle thread"));
     await waitFor(() => expect(settled).toBe("thr_park"));
+  });
+
+  it("archives from the settle button's menu, releasing idle children", async () => {
+    const rendered = render([
+      thread({ id: "parent", title: "Done here" }),
+      thread({ id: "child", title: "Idle child", parentThreadId: "parent" }),
+    ]);
+
+    const row = (await screen.findByText("Done here")).closest("li")!;
+    fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "Archive" }));
+
+    expect(rendered.threadActionCalls).toContainEqual({ key: "bb--core/archive", threadId: "parent" });
+    await waitFor(() =>
+      expect(rendered.rpcCalls).toContainEqual({
+        method: "releaseRuntimes",
+        input: { threadIds: ["parent", "child"] },
+      }),
+    );
   });
 
   it("plays the settle sweep before settling, unless motion is reduced", async () => {

@@ -12,13 +12,9 @@ import { Icon, type IconName } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import { ProjectActions } from "./ProjectContextMenu";
-import {
-  canParkThread,
-  formatSnoozeWakeTime,
-  resolveConfiguredSnoozePreset,
-  type ConfiguredSnoozePreset,
-} from "./lifecycle";
+import { formatSnoozeWakeTime, resolveConfiguredSnoozePreset, type ConfiguredSnoozePreset } from "./lifecycle";
 import { beginTitleGeneration, finishTitleGeneration, useTitleGenerating } from "./title-generation-state";
+import { useArchiveThread } from "./useArchiveThread";
 
 /** The sidebar owns its menu and named delete confirmation; bb owns bound actions. */
 export function RowContextMenu({
@@ -49,11 +45,11 @@ export function RowContextMenu({
   onRename?: () => void;
 }) {
   const actions = useThreadActions(thread, {
-    keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename", "bb--core/archive"],
+    keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename"],
     requestRename: () => onRename?.(),
   });
   const navigate = useBbNavigate();
-  // bb 0.46 always supplies pin/read/rename/archive for sidebar rows. Split is
+  // bb 0.46 always supplies pin/read/rename for sidebar rows. Split is
   // omitted in compact mode and for the focused pane; navigation handles both.
   const run = (key: string) => {
     const entry = actions.find((entry) => entry.key === `bb--core/${key}`);
@@ -73,19 +69,7 @@ export function RowContextMenu({
   const renameAfterClose = useRef(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pickingSnooze, setPickingSnooze] = useState(false);
-  // Archive takes the children with it, and bb leaves every idle one's agent
-  // session loaded. Release them alongside the archive. Working children are
-  // skipped, so this never interrupts a turn archive itself would not.
-  const archive = () => {
-    void run("archive");
-    const threadIds = [
-      thread.id,
-      ...threads.filter((child) => child.parentThreadId === thread.id && canParkThread(child)).map((child) => child.id),
-    ];
-    void rpc.call("releaseRuntimes", { threadIds }).catch(() => {
-      void 0; // A missed release costs memory, not correctness.
-    });
-  };
+  const archive = useArchiveThread(thread);
   const regenerate = async () => {
     if (!beginTitleGeneration(thread.id)) return;
     try {
