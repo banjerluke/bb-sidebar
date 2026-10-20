@@ -21,8 +21,8 @@ import {
   childStatusPhrase,
   childStatusSummary,
   childSubtree,
-  type ChildStatusKind,
 } from "./child-status";
+import { childStatusBadgeClass, GrandchildDisclosureButton, type GrandchildDisclosure } from "./GrandchildDisclosure";
 import { childThreadSortOf, type ChildThreadSort } from "./sidebar-settings";
 import { ChildThreadIcon, compareChildThreads, useChildThreadDisplay } from "./ChildThreadDisplay";
 import { ProviderGlyph } from "./ProviderGlyph";
@@ -123,26 +123,6 @@ export function ChildThreadDots({
       ))}
     </span>
   );
-}
-
-/**
- * The badge tint for the subtree's most urgent state. Needs-you keeps the
- * amber the rest of the sidebar uses for a raised hand in a child row; the
- * others borrow the status glyph tones so the card and the child rows agree.
- */
-function childStatusBadgeClass(kind: ChildStatusKind | null): string {
-  switch (kind) {
-    case "failed":
-      return "bg-[color:var(--bb-sidebar-badge-failed-bg)] text-[color:var(--bb-sidebar-badge-failed-fg)]";
-    case "needs-you":
-      return "bg-[color:var(--bb-sidebar-badge-needs-you-bg)] text-[color:var(--bb-sidebar-badge-needs-you-fg)]";
-    case "done":
-      return "bg-[color:var(--bb-sidebar-badge-done-bg)] text-[color:var(--bb-sidebar-badge-done-fg)]";
-    case "working":
-      return "bg-[color:var(--bb-sidebar-badge-working-bg)] text-[color:var(--bb-sidebar-badge-working-fg)]";
-    default:
-      return "bg-muted text-foreground";
-  }
 }
 
 export function ChildThreadBadge({
@@ -290,7 +270,8 @@ export function ChildThreadList(props: ChildThreadListProps) {
             disclosure={
               descendants.length > 0
                 ? {
-                    count: descendants.length,
+                    descendants,
+                    childrenByParent,
                     relation: descendantRelation,
                     expanded: descendantsExpanded,
                     controls: descendantsId,
@@ -332,14 +313,6 @@ export function ChildThreadList(props: ChildThreadListProps) {
 interface ForeignProject {
   id: string;
   name: string | null;
-}
-
-interface GrandchildDisclosure {
-  count: number;
-  relation: string;
-  expanded: boolean;
-  controls: string;
-  onToggle: () => void;
 }
 
 function ChildThreadRow({
@@ -495,39 +468,5 @@ function ForeignProjectMark({ project }: { project: ForeignProject }) {
     <span data-foreign-project={project.id} className="flex shrink-0 items-center pl-1">
       <ProjectFavicon src={projectIconUrl(project.id, iconRevision)} name={project.name} className="size-3" />
     </span>
-  );
-}
-
-function GrandchildDisclosureButton({
-  title,
-  count,
-  relation,
-  expanded,
-  controls,
-  onToggle,
-}: GrandchildDisclosure & { title: string }) {
-  const noun = `${relation} thread${count === 1 ? "" : "s"}`;
-  const label = `${expanded ? "Hide" : "Show"} ${count} ${noun} for ${title}`;
-
-  return (
-    <Tooltip label={`${count} ${noun}`} side="bottom">
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={expanded}
-        aria-controls={controls}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onToggle();
-        }}
-        className="group mr-1 flex h-6 min-w-9 shrink-0 items-center justify-center rounded-full bg-transparent px-0.5 outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      >
-        <span className="inline-flex h-4.5 min-w-8 items-center justify-center gap-0.5 rounded-full bg-muted px-1 text-muted-foreground group-hover:bg-accent group-hover:text-foreground group-focus-visible:bg-accent group-focus-visible:text-foreground">
-          <span className="min-w-2.5 text-center font-sans text-2xs font-medium tabular-nums">{count}</span>
-          <Icon name={expanded ? "ChevronUp" : "ChevronDown"} className="size-3" aria-hidden />
-        </span>
-      </button>
-    </Tooltip>
   );
 }

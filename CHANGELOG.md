@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- A child thread's question now counts as its parent's. The tree moves to Active, even while other threads in it are still working, and an idle parent no longer sits in Inactive. A snoozed parent wakes with the Woke marker, and a parked or settled one comes back to Active until the question is answered. While a child is waiting on you, the parent can't be parked, snoozed, or settled.
+- The capsule on a child row that has children of its own takes the same status tint and glyph as the parent card's chip, and its tooltip counts what needs you. A question two levels down now shows on the row that holds it.
+
 ## [0.3.5] - 2026-10-19
 
 ### Fixed

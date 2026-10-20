@@ -37,7 +37,7 @@ export function isWorkingIndicator(indicator: PluginSidebarThreadIndicator): boo
 
 export function childStatusKind(thread: PluginSidebarThread): ChildStatusKind | null {
   if (thread.indicator === "unread-error" || thread.queuedWork === "failed") return "failed";
-  if (thread.hasPendingInteraction || thread.indicator === "waiting-for-input") return "needs-you";
+  if (threadAsksForInput(thread)) return "needs-you";
   if (thread.indicator === "unread-success") return "done";
   if (isWorkingIndicator(thread.indicator)) return "working";
   return null;
@@ -112,6 +112,36 @@ export function childStatusIndicator(kind: ChildStatusKind): PluginSidebarThread
     case "working":
       return "runtime";
   }
+}
+
+/** Whether a thread is blocked on the user: a question, an approval, or a prompt. */
+export function threadAsksForInput(thread: PluginSidebarThread): boolean {
+  return thread.hasPendingInteraction || thread.indicator === "waiting-for-input";
+}
+
+/**
+ * Every thread with a descendant that waits on the user. A child's question
+ * is shown under its parent rather than in its own row, so the parent's
+ * placement has to answer for it: such a tree belongs in Active, and wakes
+ * from a snooze, just as it would if the parent itself had asked.
+ *
+ * Walks up from each asking thread; archived ancestors and cycles stop it.
+ */
+export function threadsWithAskingDescendants(threads: readonly PluginSidebarThread[]): ReadonlySet<string> {
+  const result = new Set<string>();
+  let byId: ReadonlyMap<string, PluginSidebarThread> | undefined;
+  for (const thread of threads) {
+    if (thread.isArchived || thread.parentThreadId === null || !threadAsksForInput(thread)) continue;
+    byId ??= new Map(threads.map((candidate) => [candidate.id, candidate]));
+    const visited = new Set([thread.id]);
+    let parent = byId.get(thread.parentThreadId);
+    while (parent && !parent.isArchived && !visited.has(parent.id)) {
+      visited.add(parent.id);
+      result.add(parent.id);
+      parent = parent.parentThreadId === null ? undefined : byId.get(parent.parentThreadId);
+    }
+  }
+  return result;
 }
 
 /** Visible descendants in sibling order; archived branches and cycles stop. */

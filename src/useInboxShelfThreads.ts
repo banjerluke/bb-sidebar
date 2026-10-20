@@ -13,6 +13,7 @@ import { activeRepresentativeThreadId } from "./inbox-layout";
 import { isInactiveThread } from "./inactive";
 import { isWorkingTree } from "./working-tree";
 import { threadNeedsAttention } from "./useRenamingShelfLocks";
+import { threadsWithAskingDescendants } from "./child-status";
 
 interface InboxShelfThreadsOptions {
   activeThreadId: string | null;
@@ -55,12 +56,15 @@ export function useInboxShelfThreads({
       else active.push(thread);
     }
     const split = partitionPinned(active);
+    // A child's question shows only inside its parent's tree, so the tree
+    // answers for it in Active, as it would for the parent's own question.
+    const askingParentIds = threadsWithAskingDescendants(threads);
     const activeUnpinned: typeof split.inbox = [];
     const working: typeof split.inbox = [];
     const inactive: typeof split.inbox = [];
     for (const thread of split.inbox) {
       const lockedShelf = renamingShelfLocks.get(thread.id);
-      const needsAttention = threadNeedsAttention(thread);
+      const needsAttention = threadNeedsAttention(thread) || askingParentIds.has(thread.id);
       if (lockedShelf === "active") {
         activeUnpinned.push(thread);
         continue;
@@ -75,13 +79,14 @@ export function useInboxShelfThreads({
       }
       // A thread with work running anywhere under it waits on the Working
       // shelf, unless it just woke from a snooze: that is news for Active.
+      // A child's question is news too, however long the parent sat idle.
       if (
         workingShelfEnabled &&
         !lifecycle.wokeFor(thread) &&
         isWorkingTree(thread, childrenByParentId.get(thread.id) ?? [], childrenByParentId)
       ) {
         working.push(thread);
-      } else if (isInactiveThread(thread, now, inactiveAfterHours)) {
+      } else if (!askingParentIds.has(thread.id) && isInactiveThread(thread, now, inactiveAfterHours)) {
         inactive.push(thread);
       } else {
         activeUnpinned.push(thread);

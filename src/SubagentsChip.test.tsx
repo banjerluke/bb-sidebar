@@ -781,7 +781,7 @@ it("renders header hierarchy relative to the current child thread", () => {
   );
   fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
   expect(screen.getByRole("button", { name: "Open child thread: Grandchild" })).toBeDefined();
-  fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Grandchild" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Grandchild, 1 need you" }));
   expect(screen.getByRole("button", { name: "Open grandchild thread: Deep, Needs you" })).toBeDefined();
   expect(screen.queryByRole("button", { name: /^Open child thread: Current child/ })).toBeNull();
 });

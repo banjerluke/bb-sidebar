@@ -10,12 +10,12 @@ await loadInboxApp();
 
 describe("four-level sidebar hierarchy", () => {
   it.each([
-    ["none", null],
-    ["waiting-for-input", "needs-you"],
-    ["unread-error", "failed"],
-    ["unread-success", "done"],
-    ["runtime", "working"],
-  ] as const)("retains full active/attention path for %s", (indicator, status) => {
+    ["none", null, ""],
+    ["waiting-for-input", "needs-you", ", 1 need you"],
+    ["unread-error", "failed", ", 1 failed"],
+    ["unread-success", "done", ", 1 done"],
+    ["runtime", "working", ", 1 working"],
+  ] as const)("retains full active/attention path for %s", (indicator, status, phrase) => {
     const active = status === null;
     const rendered = renderSlot(
       inbox,
@@ -40,7 +40,8 @@ describe("four-level sidebar hierarchy", () => {
     const deep = screen.getByRole("button", { name: /^Open great-grandchild thread: Deep/ });
     expect(deep.getAttribute("aria-current")).toBe(active ? "page" : null);
     expect(screen.queryByText("Idle sibling")).toBeNull();
-    const disclosure = screen.getByRole("button", { name: "Show 2 great-grandchild threads for Grandchild" });
+    const disclosure = screen.getByRole("button", { name: `Show 2 great-grandchild threads for Grandchild${phrase}` });
+    expect(disclosure.getAttribute("data-child-status")).toBe(status);
     fireEvent.pointerDown(disclosure, { button: 0 });
     fireEvent.click(disclosure);
     expect(screen.getByText("Idle sibling")).toBeDefined();
@@ -50,7 +51,7 @@ describe("four-level sidebar hierarchy", () => {
       ...rendered.splitSourceCalls,
       ...rendered.threadActionCalls,
     ]).toEqual([]);
-    fireEvent.click(screen.getByRole("button", { name: "Hide 2 great-grandchild threads for Grandchild" }));
+    fireEvent.click(screen.getByRole("button", { name: `Hide 2 great-grandchild threads for Grandchild${phrase}` }));
     expect(screen.queryByText("Idle sibling")).toBeNull();
     fireEvent.pointerDown(deep, { button: 0 });
     expect(rendered.splitSourceCalls).toEqual([{ threadId: "deep" }]);
@@ -142,8 +143,8 @@ it("honors disabled attention retention for fourth-level descendants", async () 
   await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "getSidebarSettings")).toBe(true));
   expect(screen.queryByRole("button", { name: /^Open great-grandchild/ })).toBeNull();
   fireEvent.click(badge);
-  fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Child" }));
-  fireEvent.click(screen.getByRole("button", { name: "Show 1 great-grandchild thread for Grandchild" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Child, 1 need you" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show 1 great-grandchild thread for Grandchild, 1 need you" }));
   expect(screen.getByRole("button", { name: "Open great-grandchild thread: Deep, Needs you" })).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Active" }));
   expect(screen.queryByRole("link", { name: "Root" })).toBeNull();
