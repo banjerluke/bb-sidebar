@@ -43,7 +43,7 @@ describe("scoped active representative regressions", () => {
     );
     if (scope) {
       fireEvent.keyDown(screen.getByLabelText(/Project scope/), { key: "Enter" });
-      fireEvent.click(screen.getByRole("option", { name: scope }));
+      fireEvent.click(screen.getByRole("row", { name: scope }));
     }
     const shelf = await screen.findByRole("region", { name: "Settled" });
     expect(within(shelf).getByRole("button", { name: /^Settled/, expanded: false })).toBeDefined();
@@ -90,7 +90,7 @@ describe("scoped active representative regressions", () => {
       },
     );
     fireEvent.keyDown(screen.getByLabelText(/Project scope/), { key: "Enter" });
-    fireEvent.click(screen.getByRole("option", { name: scope }));
+    fireEvent.click(screen.getByRole("row", { name: scope }));
     expect(await screen.findByRole("link", { name: title })).toBeDefined();
     expect(screen.queryByRole("link", { name: "Root A" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Child B" })).toBeNull();

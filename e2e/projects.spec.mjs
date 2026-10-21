@@ -8,12 +8,38 @@ test("project filter remembers multiple projects per window and All projects res
   secondProject,
 }) => {
   await reset(request);
-  await open(page);
+  await open(page, { width: 280 });
   await expect(link(page, secondProject.thread.title)).toBeVisible();
   for (const { title } of fixture.threads) await expect(link(page, title)).toBeVisible();
   await page.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
-  await page.getByRole("option", { name: secondProject.name, exact: true }).click();
-  await expect(page.getByRole("button", { name: `Project scope: ${secondProject.name}`, exact: true })).toBeVisible();
+  const filter = page.getByRole("combobox", { name: "Filter projects" });
+  await filter.fill(secondProject.name);
+  await filter.press("Tab");
+  await expect(page.getByRole("button", { name: `Pin ${secondProject.name}`, exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: `Unpin ${secondProject.name}`, exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
+  await filter.fill("");
+  await page.getByRole("row", { name: "Sidebar smoke", exact: true }).hover();
+  await page.getByRole("dialog").screenshot({ path: test.info().outputPath("project-picker.png") });
+  const pickerWidth = await page.getByRole("dialog").evaluate((element) => element.getBoundingClientRect().width);
+  const scopeLayout = async () => ({
+    headerHeight: await page
+      .getByRole("button", { name: /^Project scope:/ })
+      .evaluate((element) => element.getBoundingClientRect().height),
+    pinsTop: await page
+      .getByRole("group", { name: "Pinned projects" })
+      .evaluate((element) => element.getBoundingClientRect().top),
+  });
+  const unfilteredLayout = await scopeLayout();
+  await page.getByRole("row", { name: secondProject.name, exact: true }).click();
+  await expect(page.getByRole("button", { name: "Project scope: 1 project", exact: true })).toBeVisible();
+  expect(await scopeLayout()).toEqual(unfilteredLayout);
+  await expect(page.getByRole("button", { name: "Reset project filter", exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.getByRole("dialog").evaluate((element) => element.getBoundingClientRect().width))
+    .toBe(pickerWidth);
+  await page.getByRole("dialog").screenshot({ path: test.info().outputPath("project-picker-selected.png") });
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(1);
   await expect(link(page, secondProject.thread.title)).toBeVisible();
   for (const { title } of fixture.threads) await expect(link(page, title)).toHaveCount(0);
@@ -21,19 +47,54 @@ test("project filter remembers multiple projects per window and All projects res
   // The picker stays open for a second choice; Enter toggles the filtered result.
   await page.getByRole("combobox", { name: "Filter projects" }).fill("Sidebar smoke");
   await page.getByRole("combobox", { name: "Filter projects" }).press("Enter");
-  const selectedLabel = `Project scope: ${secondProject.name} + Sidebar smoke`;
+  const selectedLabel = "Project scope: Sidebar smoke + 1 project";
   await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length + 1);
+  const shortcut = page.getByRole("button", { name: `Filter by ${secondProject.name}`, exact: true });
+  await expect(shortcut).toBeVisible();
+  await expect(shortcut).toHaveAttribute("aria-pressed", "true");
+  await shortcut.click();
+  await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length);
+  await expect(shortcut).toHaveAttribute("aria-pressed", "false");
+  await shortcut.click();
+  await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length + 1);
+  await expect(shortcut).toHaveAttribute("aria-pressed", "true");
+  await page.locator("[data-bb-sidebar-root]").screenshot({ path: test.info().outputPath("pinned-projects.png") });
+  await page.getByRole("button", { name: "Reset project filter", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
+  await expect(shortcut).toHaveAttribute("aria-pressed", "false");
+  // Both pinned shortcuts toggle independently and share their state with the picker.
+  expect(await scopeLayout()).toEqual(unfilteredLayout);
+  await page.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
+  await page.getByRole("button", { name: "Pin Sidebar smoke", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await shortcut.click();
+  expect(await scopeLayout()).toEqual(unfilteredLayout);
+  await page.getByRole("button", { name: "Filter by Sidebar smoke", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Project scope: 2 projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Filter by Sidebar smoke", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Project scope: 2 projects", exact: true }).click();
+  await expect(page.getByRole("row", { name: secondProject.name, exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("row", { name: "Sidebar smoke", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: "Unpin Sidebar smoke", exact: true }).click();
+  await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
 
   const otherWindow = await page.context().newPage();
   try {
     await open(otherWindow);
     await expect(otherWindow.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
     await otherWindow.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
-    await otherWindow.getByRole("option", { name: secondProject.name, exact: true }).click();
+    await otherWindow.getByRole("row", { name: secondProject.name, exact: true }).click();
     await page.reload();
     await expect(page.getByRole("button", { name: selectedLabel, exact: true })).toBeVisible();
   } finally {
@@ -41,14 +102,23 @@ test("project filter remembers multiple projects per window and All projects res
   }
 
   await page.getByRole("button", { name: selectedLabel, exact: true }).click();
-  await page.getByRole("option", { name: "Sidebar smoke", exact: true }).click();
+  await page.getByRole("row", { name: "Sidebar smoke", exact: true }).click();
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(1);
-  await page.getByRole("option", { name: "All projects", exact: true }).click();
+  await page.getByRole("row", { name: "All projects", exact: true }).click();
+  await expect
+    .poll(() => page.getByRole("dialog").evaluate((element) => element.getBoundingClientRect().width))
+    .toBe(pickerWidth);
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
   await expect(shelf(page, "Active").getByRole("link")).toHaveCount(fixture.threads.length + 1);
   for (const { title } of [...fixture.threads, secondProject.thread]) await expect(link(page, title)).toBeVisible();
+  await page.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
+  await page.getByRole("button", { name: `Unpin ${secondProject.name}`, exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(shortcut).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("group", { name: "Pinned projects" })).toHaveCount(0);
 });
 
 test("custom project color styles persist after reload", async ({ page, request }) => {

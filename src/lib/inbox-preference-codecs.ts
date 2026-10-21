@@ -18,6 +18,11 @@ export const projectScopeCodec: PreferenceCodec<string[]> = {
   encode: JSON.stringify,
 };
 
+export const pinnedProjectsCodec: PreferenceCodec<string[]> = {
+  ...projectScopeCodec,
+  storage: "local",
+};
+
 export const environmentGroupingCodec: PreferenceCodec<boolean> = {
   fallback: () => false,
   decode: (stored) => (stored === "true" ? true : stored === "false" ? false : null),

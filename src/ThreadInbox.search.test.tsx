@@ -401,7 +401,7 @@ describe("ThreadInbox", () => {
     );
 
     fireEvent.keyDown(screen.getByLabelText(/Project scope/), { key: "Enter" });
-    fireEvent.click(screen.getByRole("option", { name: "other" }));
+    fireEvent.click(screen.getByRole("row", { name: "other" }));
     await waitFor(() => expect(screen.getAllByRole("option", { name: /Second match/ })).toHaveLength(1));
     expect(screen.queryByText("First match")).toBeNull();
   });
@@ -425,15 +425,15 @@ describe("ThreadInbox", () => {
     fireEvent.keyDown(screen.getByLabelText(/Project scope/), { key: "Enter" });
     // The card opens with the caret already in the search row.
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Filter projects")));
-    const projectList = screen.getByRole("listbox", { name: "Projects" });
-    expect(within(projectList).getAllByRole("option")).toHaveLength(3);
+    const projectList = screen.getByRole("grid", { name: "Projects" });
+    expect(within(projectList).getAllByRole("row")).toHaveLength(3);
 
     fireEvent.change(screen.getByLabelText("Filter projects"), {
       target: { value: "KAN" },
     });
     expect(
       within(projectList)
-        .getAllByRole("option")
+        .getAllByRole("row")
         .map((option) => option.textContent),
     ).toEqual(["kanban"]);
 
@@ -453,7 +453,7 @@ describe("ThreadInbox", () => {
     fireEvent.change(screen.getByLabelText("Filter projects"), {
       target: { value: "nope" },
     });
-    expect(within(screen.getByRole("listbox", { name: "Projects" })).queryAllByRole("option")).toHaveLength(0);
+    expect(within(screen.getByRole("grid", { name: "Projects" })).queryAllByRole("row")).toHaveLength(0);
     expect(screen.getByText("No projects found")).toBeDefined();
   });
 
@@ -543,7 +543,7 @@ describe("ThreadInbox", () => {
     // Radix opens on keyboard too, which jsdom can drive without pointer
     // capture. Enter opens the list; the option click picks the scope.
     fireEvent.keyDown(screen.getByLabelText(/Project scope/), { key: "Enter" });
-    fireEvent.click(screen.getByRole("option", { name: "other" }));
+    fireEvent.click(screen.getByRole("row", { name: "other" }));
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     expect(screen.getByText("In other")).toBeDefined();
   });

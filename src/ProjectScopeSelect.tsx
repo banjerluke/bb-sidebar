@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { PluginSidebarProject } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
-import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./components/Popover";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { projectIconUrl } from "./project-icons";
 import { filterProjectsByName } from "./inbox";
@@ -9,9 +9,9 @@ import { cn } from "./lib/utils";
 
 const ALL_PROJECTS_LABEL = "All projects";
 const ALL_PROJECTS = "__all__";
-const LISTBOX_ID = "bb-sidebar-project-scope-list";
-const HINT_ID = `${LISTBOX_ID}-hint`;
-const optionId = (index: number) => `${LISTBOX_ID}-option-${index}`;
+const GRID_ID = "bb-sidebar-project-scope-grid";
+const HINT_ID = `${GRID_ID}-hint`;
+const rowId = (index: number) => `${GRID_ID}-row-${index}`;
 
 interface ScopeOption {
   id: string;
@@ -35,11 +35,15 @@ export function ProjectScopeSelect({
   projects,
   projectIconRevision,
   onScopeChange,
+  pinnedProjects,
+  onToggleProjectPin,
 }: {
   scope: readonly string[];
   projects: readonly PluginSidebarProject[];
   projectIconRevision: number;
   onScopeChange: (scope: string[]) => void;
+  pinnedProjects: readonly string[];
+  onToggleProjectPin: (projectId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -55,8 +59,11 @@ export function ProjectScopeSelect({
     [projects],
   );
   const matches = useMemo(() => filterProjectsByName(options, query), [options, query]);
-  const scopeNames = scope.map((id) => projects.find((project) => project.id === id)?.name ?? id);
-  const scopeLabel = scope.length === 0 ? ALL_PROJECTS_LABEL : scopeNames.join(" + ");
+  const unpinnedScope = scope.filter((id) => !pinnedProjects.includes(id));
+  const scopeNames = unpinnedScope.map((id) => projects.find((project) => project.id === id)?.name ?? id);
+  const pinnedCount = scope.length - unpinnedScope.length;
+  const pinnedLabel = pinnedCount > 0 ? `${pinnedCount} ${pinnedCount === 1 ? "project" : "projects"}` : "";
+  const scopeLabel = scope.length === 0 ? ALL_PROJECTS_LABEL : [...scopeNames, pinnedLabel].filter(Boolean).join(" + ");
   const selected = (id: string) => (id === ALL_PROJECTS ? scope.length === 0 : scope.includes(id));
   // The highlight follows the list as filtering shrinks it under the cursor.
   const highlighted = matches.length === 0 ? -1 : Math.min(activeIndex, matches.length - 1);
@@ -96,7 +103,7 @@ export function ProjectScopeSelect({
     }
   };
 
-  const handleQueryKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+  const handleQueryKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.nativeEvent.isComposing) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -119,35 +126,56 @@ export function ProjectScopeSelect({
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      {/* Ghost trigger: no border, no filled track — it reads as a label
+      {/* Anchor to the whole header so Reset never changes the menu width. */}
+      <PopoverAnchor asChild>
+        <div className="relative flex items-center">
+          {/* Ghost trigger: no border, no filled track — it reads as a label
           until you hover it. */}
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-label={`Project scope: ${scopeLabel}`}
-          title={scopeLabel}
-          onKeyDown={handleTriggerKeyDown}
-          className="flex min-h-7 min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-sidebar-accent hover:duration-0"
-        >
-          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-left">
-            {scope.length === 0
-              ? ALL_PROJECTS_LABEL
-              : scope.map((id, index) => (
-                  <span key={id} className="flex min-w-0 max-w-full items-center gap-1.5">
-                    <ProjectFavicon
-                      src={projectIconUrl(id, projectIconRevision)}
-                      name={scopeNames[index]}
-                      className="size-3"
-                    />
-                    <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{scopeNames[index]}</span>
-                  </span>
-                ))}
-          </span>
-          <Icon name="ChevronDown" className="size-4 shrink-0 opacity-50" />
-        </button>
-      </PopoverTrigger>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-haspopup="grid"
+              aria-expanded={open}
+              aria-label={`Project scope: ${scopeLabel}`}
+              title={scopeLabel}
+              onKeyDown={handleTriggerKeyDown}
+              className="flex min-h-7 min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-sidebar-accent hover:duration-0"
+            >
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-left">
+                {scope.length === 0
+                  ? ALL_PROJECTS_LABEL
+                  : unpinnedScope.map((id, index) => (
+                      <span key={id} className="flex min-w-0 max-w-full items-center gap-1.5">
+                        <ProjectFavicon
+                          src={projectIconUrl(id, projectIconRevision)}
+                          name={scopeNames[index]}
+                          className="size-3"
+                        />
+                        <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{scopeNames[index]}</span>
+                      </span>
+                    ))}
+                {pinnedCount > 0 ? <span>{`${unpinnedScope.length > 0 ? "+ " : ""}${pinnedLabel}`}</span> : null}
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                {/* Reserve width only; the reset button must not increase the header height. */}
+                {scope.length > 0 ? <span aria-hidden className="w-6" /> : null}
+                <Icon name="ChevronDown" className="size-4 shrink-0 opacity-50" />
+              </span>
+            </button>
+          </PopoverTrigger>
+          {scope.length > 0 ? (
+            <button
+              type="button"
+              aria-label="Reset project filter"
+              title="Reset project filter"
+              onClick={() => onScopeChange([])}
+              className="absolute right-7 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <Icon name="ArrowTurnBackward" className="size-3.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      </PopoverAnchor>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] min-w-48 p-0"
         onOpenAutoFocus={(event) => {
@@ -159,12 +187,13 @@ export function ProjectScopeSelect({
           <input
             ref={queryRef}
             role="combobox"
+            aria-haspopup="grid"
             aria-label="Filter projects"
             aria-expanded
             aria-autocomplete="list"
-            aria-controls={LISTBOX_ID}
+            aria-controls={GRID_ID}
             aria-describedby={HINT_ID}
-            aria-activedescendant={highlighted < 0 ? undefined : optionId(highlighted)}
+            aria-activedescendant={highlighted < 0 ? undefined : rowId(highlighted)}
             value={query}
             placeholder="Filter projects"
             onChange={(event) => {
@@ -180,8 +209,8 @@ export function ProjectScopeSelect({
         </p>
         <div
           ref={listRef}
-          id={LISTBOX_ID}
-          role="listbox"
+          id={GRID_ID}
+          role="grid"
           aria-label="Projects"
           aria-multiselectable="true"
           className="max-h-72 overflow-y-auto p-1"
@@ -192,32 +221,71 @@ export function ProjectScopeSelect({
             matches.map((option, index) => (
               <div
                 key={option.id}
-                id={optionId(index)}
+                id={rowId(index)}
                 data-scope-option={index}
-                role="option"
+                role="row"
+                aria-label={option.name}
                 aria-selected={selected(option.id)}
                 onPointerMove={() => setActiveIndex(index)}
                 onClick={() => select(option.id)}
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-xs outline-none",
+                  "flex w-full cursor-default select-none items-center rounded-sm pl-2 pr-2 text-xs outline-none",
                   index === highlighted && "bg-state-hover text-foreground",
                 )}
               >
-                <span className="flex min-w-0 items-center gap-1.5">
+                <div role="gridcell" className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5">
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                    {option.id !== ALL_PROJECTS ? (
+                      <ProjectFavicon
+                        src={projectIconUrl(option.id, projectIconRevision)}
+                        name={option.name}
+                        className="size-3"
+                      />
+                    ) : null}
+                    <span className="truncate">{option.name}</span>
+                  </span>
+                </div>
+                <div role="gridcell" className="ml-1 flex shrink-0 items-center gap-1">
                   {option.id !== ALL_PROJECTS ? (
-                    <ProjectFavicon
-                      src={projectIconUrl(option.id, projectIconRevision)}
-                      name={option.name}
-                      className="size-3"
-                    />
-                  ) : null}
-                  <span className="truncate">{option.name}</span>
-                </span>
-                <span aria-hidden="true" className="absolute right-2 flex size-3.5 items-center justify-center">
-                  {selected(option.id) || index === highlighted ? (
-                    <Icon name="Check" className={cn("size-4", !selected(option.id) && "text-muted-foreground/40")} />
-                  ) : null}
-                </span>
+                    <button
+                      type="button"
+                      tabIndex={index === highlighted ? 0 : -1}
+                      aria-label={`${pinnedProjects.includes(option.id) ? "Unpin" : "Pin"} ${option.name}`}
+                      title={`${pinnedProjects.includes(option.id) ? "Unpin" : "Pin"} ${option.name}`}
+                      onFocus={() => setActiveIndex(index)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleProjectPin(option.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+                          handleQueryKeyDown(event);
+                          queryRef.current?.focus();
+                        }
+                      }}
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-sm outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring",
+                        pinnedProjects.includes(option.id) ? "text-foreground" : "text-muted-foreground/40",
+                        !pinnedProjects.includes(option.id) &&
+                          index !== highlighted &&
+                          "opacity-0 focus:opacity-100 [@media(hover:none)]:opacity-100",
+                      )}
+                    >
+                      <Icon
+                        name={pinnedProjects.includes(option.id) ? "PinOff" : "Pin"}
+                        className="size-3.5"
+                        aria-hidden
+                      />
+                    </button>
+                  ) : (
+                    <span aria-hidden="true" className="size-7" />
+                  )}
+                  <span aria-hidden="true" className="flex size-3.5 shrink-0 items-center justify-center">
+                    {selected(option.id) || index === highlighted ? (
+                      <Icon name="Check" className={cn("size-4", !selected(option.id) && "text-muted-foreground/40")} />
+                    ) : null}
+                  </span>
+                </div>
               </div>
             ))
           )}

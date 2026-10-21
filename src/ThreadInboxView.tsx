@@ -13,7 +13,7 @@ import {
 import type { ActiveSortMode, ProjectViewUnit } from "./inbox-layout";
 import { cn } from "./lib/utils";
 import { ActiveSortPicker } from "./ActiveSortPicker";
-import { ProjectScopeSelect } from "./ProjectScopeSelect";
+import { ProjectScopeControls } from "./ProjectScopeControls";
 import type { ThreadReorderControls } from "./ThreadCard";
 import { SearchResults } from "./SearchResults";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
@@ -93,21 +93,14 @@ export function ThreadInboxView({
   sortedVisibleInbox,
   settledLimit,
 }: ThreadInboxViewProps) {
-  const { projects, projectIconRevision, projectNameById, lifecycle } = useInboxEnvironment();
+  const { projectIconRevision, projectNameById, lifecycle } = useInboxEnvironment();
   const { activeThreadId, now } = useInboxActivity();
-  const { onNavigate, setScope, setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
+  const { onNavigate, setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
   const { pinned, inbox, working, inactive, snoozed, parked, settled } = shelves;
   return (
     <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
       {/* Project scope is plugin-owned; New thread and search live in bb's chrome. */}
-      <div className="flex shrink-0 items-center gap-1 px-2 pb-1">
-        <ProjectScopeSelect
-          scope={scope}
-          projects={projects}
-          projectIconRevision={projectIconRevision}
-          onScopeChange={setScope}
-        />
-      </div>
+      <ProjectScopeControls scope={scope} status={status} />
 
       {isSearching && scope.length > 0 ? (
         <p className="px-3 pb-1 text-2xs text-muted-foreground">
