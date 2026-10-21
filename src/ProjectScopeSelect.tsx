@@ -10,6 +10,7 @@ import { cn } from "./lib/utils";
 const ALL_PROJECTS_LABEL = "All projects";
 const ALL_PROJECTS = "__all__";
 const LISTBOX_ID = "bb-sidebar-project-scope-list";
+const HINT_ID = `${LISTBOX_ID}-hint`;
 const optionId = (index: number) => `${LISTBOX_ID}-option-${index}`;
 
 interface ScopeOption {
@@ -162,6 +163,7 @@ export function ProjectScopeSelect({
             aria-expanded
             aria-autocomplete="list"
             aria-controls={LISTBOX_ID}
+            aria-describedby={HINT_ID}
             aria-activedescendant={highlighted < 0 ? undefined : optionId(highlighted)}
             value={query}
             placeholder="Filter projects"
@@ -173,6 +175,9 @@ export function ProjectScopeSelect({
             className="h-8 w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
+        <p id={HINT_ID} className="px-3 pb-1 pt-2 text-xs text-muted-foreground">
+          Select one or more projects
+        </p>
         <div
           ref={listRef}
           id={LISTBOX_ID}
@@ -208,36 +213,40 @@ export function ProjectScopeSelect({
                   ) : null}
                   <span className="truncate">{option.name}</span>
                 </span>
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute right-2 flex size-3.5 items-center justify-center rounded-sm border",
-                    selected(option.id)
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-muted-foreground/40",
-                  )}
-                >
-                  {selected(option.id) ? <Icon name="Check" className="size-3" /> : null}
+                <span aria-hidden="true" className="absolute right-2 flex size-3.5 items-center justify-center">
+                  {selected(option.id) || index === highlighted ? (
+                    <Icon name="Check" className={cn("size-4", !selected(option.id) && "text-muted-foreground/40")} />
+                  ) : null}
                 </span>
               </div>
             ))
           )}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1.5">
-          <button
-            type="button"
-            onClick={() => select(ALL_PROJECTS)}
-            className="rounded-sm px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            All projects
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenChange(false)}
-            className="rounded-sm px-1 py-0.5 text-xs font-medium hover:bg-state-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            Done
-          </button>
+          <span role="status" className="px-1 text-xs text-muted-foreground">
+            {scope.length === 0
+              ? ALL_PROJECTS_LABEL
+              : `${scope.length} ${scope.length === 1 ? "project" : "projects"} selected`}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            {scope.length > 0 ? (
+              <button
+                type="button"
+                aria-label="Reset to all projects"
+                onClick={() => select(ALL_PROJECTS)}
+                className="rounded-sm px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                Reset
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              className="rounded-sm px-1 py-0.5 text-xs font-medium hover:bg-state-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

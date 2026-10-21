@@ -39,8 +39,12 @@ it("toggles multiple projects without closing, remembers them on remount, and re
   const rendered = renderProjects();
   const picker = openPicker();
   expect(picker.getAttribute("aria-multiselectable")).toBe("true");
+  expect(screen.getByText("Select one or more projects")).toBeDefined();
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("All projects");
   fireEvent.click(within(picker).getByRole("option", { name: "Alpha" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("1 project selected");
   fireEvent.click(within(picker).getByRole("option", { name: "Gamma" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("2 projects selected");
   expect(screen.getByRole("button", { name: "Project scope: Alpha + Gamma" })).toBeDefined();
   expect(
     within(picker)
@@ -64,7 +68,8 @@ it("toggles multiple projects without closing, remembers them on remount, and re
   expect(screen.queryByText("Alpha thread")).toBeNull();
   expect(screen.getByText("Gamma thread")).toBeDefined();
   fireEvent.change(screen.getByLabelText("Filter projects"), { target: { value: "missing" } });
-  fireEvent.click(screen.getByRole("button", { name: "All projects" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to all projects" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("All projects");
   for (const { name } of projects) expect(screen.getByText(`${name} thread`)).toBeDefined();
   expect(JSON.parse(sessionStorage.getItem(STORAGE_KEYS.projectScope.key)!)).toEqual([]);
 });
