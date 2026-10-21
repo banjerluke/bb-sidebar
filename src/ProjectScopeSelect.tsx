@@ -264,7 +264,7 @@ export function ProjectScopeSelect({
                         }
                       }}
                       className={cn(
-                        "flex size-7 items-center justify-center rounded-sm outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring",
+                        "flex size-7 items-center justify-center rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-ring",
                         pinnedProjects.includes(option.id) ? "text-foreground" : "text-muted-foreground/40",
                         !pinnedProjects.includes(option.id) &&
                           index !== highlighted &&
