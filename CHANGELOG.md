@@ -1,11 +1,23 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.6] - 2026-10-21
+
+### Added
+
+- Pin projects above the thread list for quick filtering. Click pins to add or remove projects from the selection; pins are saved on the device and stay synchronized with the project picker.
+- An icon-only Reset action clears the project filter without removing pins. The filter summary names selected unpinned projects and shows a count for selected pinned projects.
+- A Project icon only in compact cards setting hides project names in Active, Pinned, and Working compact cards, with the full name available on hover.
 
 ### Changed
 
+- Project selection uses plain ticks, a multi-selection hint, and an accurate selection count. Unselected ticks and pin controls appear on row hover, with matching hover styling.
+- Compact cards show provider icons and retain status or age when the parent itself is idle but its children are working.
 - A child thread's question now counts as its parent's. The tree moves to Active, even while other threads in it are still working, and an idle parent no longer sits in Inactive. A snoozed parent wakes with the Woke marker, and a parked or settled one comes back to Active until the question is answered. While a child is waiting on you, the parent can't be parked, snoozed, or settled.
 - The capsule on a child row that has children of its own takes the same status tint and glyph as the parent card's chip, and its tooltip counts what needs you. A question two levels down now shows on the row that holds it.
+
+### Fixed
+
+- Selecting or resetting projects keeps the picker at the full header width. The reset control no longer adds height to the header or shifts pinned projects down.
 
 ## [0.3.5] - 2026-10-19
 
