@@ -243,7 +243,8 @@ function ActiveProjectGroup({
           // the chevron with every row's trailing glyph. Vertical panning stays
           // with the scroller, as on a row.
           className={cn(
-            "flex w-full touch-pan-y items-center gap-1.5 px-2.5 pb-0.5 pt-2 text-left",
+            "flex w-full touch-pan-y items-center gap-1.5 px-2.5 text-left",
+            expanded ? "pb-0.5 pt-2" : "py-1.5",
             !reorder.disabled && "cursor-grab active:cursor-grabbing",
           )}
         >
