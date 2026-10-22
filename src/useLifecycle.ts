@@ -10,6 +10,7 @@ import { promptToCloseSettledPorts } from "./settled-port-prompt";
 import {
   canPark,
   formatSnoozeWakeTime,
+  isAwaitingScheduledSend,
   nextWakeDelayMs,
   resolveShelf,
   resolveWakeReason,
@@ -19,11 +20,14 @@ import {
 } from "./lifecycle";
 import { createCachedRpcState } from "./lib/cached-rpc-state";
 import { lifecycleRowsCodec } from "./lib/lifecycle-cache-codec";
+import { useScheduledSends } from "./useScheduledSends";
 
 export interface LifecycleApi {
   shelfFor(thread: PluginSidebarThread): ThreadShelf;
   canPark(thread: PluginSidebarThread): boolean;
   wakeAtFor(thread: PluginSidebarThread): number | null;
+  /** When a thread that is only waiting on a scheduled message will send it. */
+  scheduledSendAtFor(thread: PluginSidebarThread): number | null;
   settledAtFor(thread: PluginSidebarThread): number | null;
   wokeFor(thread: PluginSidebarThread): boolean;
   acknowledgeWake(threadId: string): Promise<boolean>;
@@ -95,6 +99,7 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
     () => lifecycleCache.read(rpc) ?? new Map(),
   );
   const [now, setNow] = useState(() => Date.now());
+  const scheduledSends = useScheduledSends(threads);
 
   // Responses can land out of order (a mutation's refresh racing a realtime
   // one), and an older list would silently restore state the user just
@@ -157,6 +162,10 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
 
   return useMemo<LifecycleApi>(() => {
     const signalsFor = sidebarThreadSignals;
+    const scheduledSendAtFor = (thread: PluginSidebarThread) => {
+      const sendAt = scheduledSends.get(thread.id);
+      return sendAt !== undefined && isAwaitingScheduledSend(thread) ? sendAt : null;
+    };
     // One mutation per thread at a time. The write publishes on the realtime
     // channel, and that subscription refreshes every client after success.
     const mutate = async (request: LifecycleMutationRequest): Promise<boolean> => {
@@ -289,10 +298,13 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
         ) {
           return "active";
         }
+        // A scheduled thread waits like a snoozed one; its send time is its wake.
+        if (scheduledSendAtFor(thread) !== null) return "snoozed";
         return resolveShelf(row, signalsFor(thread), now);
       },
       canPark: (thread) => canPark(signalsFor(thread)),
-      wakeAtFor: (thread) => rows.get(thread.id)?.snoozedUntil ?? null,
+      wakeAtFor: (thread) => scheduledSendAtFor(thread) ?? rows.get(thread.id)?.snoozedUntil ?? null,
+      scheduledSendAtFor,
       parkedAtFor: (thread) => rows.get(thread.id)?.parkedAt ?? null,
       park: (threadId) => mutate({ method: "park", threadId }),
       resume: (threadId) => mutate({ method: "resume", threadId }),
@@ -304,5 +316,5 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       unsnooze: (threadId) => mutate({ method: "unsnooze", threadId }),
       snooze: (threadId, snoozedUntil) => mutate({ method: "snooze", threadId, snoozedUntil }),
     };
-  }, [now, rows, rpc]);
+  }, [now, rows, rpc, scheduledSends]);
 }

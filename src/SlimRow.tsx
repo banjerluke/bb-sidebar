@@ -54,6 +54,8 @@ export function SlimRow({
   const onPark = () => parkThread(thread);
   const onSettle = () => settleThread(thread);
   const onSnooze = (until: number) => snoozeThread(thread, until);
+  // A scheduled send has no snooze to cancel, and its queued message blocks parking.
+  const scheduled = lifecycle.scheduledSendAtFor(thread) !== null;
   const onRestore = () =>
     shelf === "parked"
       ? void lifecycle.resume(thread.id)
@@ -69,13 +71,13 @@ export function SlimRow({
   return (
     <RowContextMenu
       thread={thread}
-      onPark={shelf !== "parked" ? onPark : undefined}
+      onPark={shelf !== "parked" && !scheduled ? onPark : undefined}
       onResume={shelf === "parked" ? onRestore : undefined}
-      onSettle={shelf !== "settled" ? onSettle : undefined}
+      onSettle={shelf !== "settled" && !scheduled ? onSettle : undefined}
       canSnooze={shelf !== "snoozed"}
       snoozePresets={snoozePresets}
       onSnooze={onSnooze}
-      onWake={shelf === "snoozed" ? onRestore : undefined}
+      onWake={shelf === "snoozed" && !scheduled ? onRestore : undefined}
       onUnsettle={shelf === "settled" ? onRestore : undefined}
       onRename={() => setIsRenaming(true)}
     >
@@ -116,7 +118,9 @@ export function SlimRow({
                 <JumpHint label={jumpHint} />
               ) : (
                 <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
-                  <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">
+                  <span
+                    className={`flex items-center transition-opacity duration-150 ease-out motion-reduce:transition-none ${scheduled ? "" : "[@media(hover:hover)]:group-hover/slim:opacity-0"}`}
+                  >
                     {shelf === "parked" && parkedAt != null ? (
                       `Waiting ${Math.max(0, Math.floor((now - parkedAt) / 86_400_000))}d`
                     ) : shelf === "snoozed" && wakeAt !== null ? (
@@ -125,36 +129,38 @@ export function SlimRow({
                       <StatusOrTime thread={thread} now={now} />
                     )}
                   </span>
-                  <Tooltip
-                    label={
-                      shelf === "parked"
-                        ? "Resume thread"
-                        : shelf === "snoozed"
-                          ? "Wake thread now"
-                          : "Un-settle thread"
-                    }
-                  >
-                    <button
-                      type="button"
-                      aria-label={
+                  {scheduled ? null : (
+                    <Tooltip
+                      label={
                         shelf === "parked"
                           ? "Resume thread"
                           : shelf === "snoozed"
                             ? "Wake thread now"
                             : "Un-settle thread"
                       }
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onRestore();
-                      }}
-                      // Pulled right by its own padding, so the icon — not the hit
-                      // area — lands on the column.
-                      className="pointer-events-auto absolute -right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 group-hover/slim:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
                     >
-                      <Icon name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"} className="size-3.5" />
-                    </button>
-                  </Tooltip>
+                      <button
+                        type="button"
+                        aria-label={
+                          shelf === "parked"
+                            ? "Resume thread"
+                            : shelf === "snoozed"
+                              ? "Wake thread now"
+                              : "Un-settle thread"
+                        }
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onRestore();
+                        }}
+                        // Pulled right by its own padding, so the icon — not the hit
+                        // area — lands on the column.
+                        className="pointer-events-auto absolute -right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-out hover:text-foreground focus-visible:opacity-100 group-hover/slim:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
+                      >
+                        <Icon name={shelf === "snoozed" ? "Clock" : "ArrowTurnBackward"} className="size-3.5" />
+                      </button>
+                    </Tooltip>
+                  )}
                 </span>
               )}
             </>

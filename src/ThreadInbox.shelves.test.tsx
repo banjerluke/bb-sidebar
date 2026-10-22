@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { makeQueueEntry } from "@get-bb/plugin-sdk/testing";
 import { renderSlot } from "./test-slot";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
 import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp } from "./test-inbox";
@@ -39,6 +40,37 @@ describe("parking threads", () => {
     expect(within(shelf).getByText("·").className).toContain("text-sm");
     expect(within(shelf).getByText("Later").className).toContain("text-foreground/80");
     expect(within(shelf).getByLabelText("Wake thread now")).toBeDefined();
+  });
+
+  it("shelves a thread that only waits on a scheduled send with the snoozed ones", async () => {
+    const sendAt = Date.now() + 3 * 24 * 60 * 60 * 1000;
+    const waiting = { status: "pending", runtimeStatus: "pending", queuedWork: "waiting" } as const;
+    renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [
+          thread({ id: "thr_sched", title: "Scheduled check", ...waiting }),
+          thread({ id: "thr_busy", title: "Running with a follow-up", ...waiting, status: "active" }),
+        ],
+        projects: [],
+      },
+      sdk: {
+        threads: {
+          queue: {
+            list: async () => [
+              makeQueueEntry({ threadId: "thr_sched", state: "scheduled", sendAt }),
+              makeQueueEntry({ threadId: "thr_busy", state: "scheduled", sendAt }),
+            ],
+          },
+        },
+      },
+    });
+    const shelf = await screen.findByRole("region", { name: "Snoozed" });
+    fireEvent.click(within(shelf).getByRole("button"));
+    expect(within(shelf).getByText("Scheduled check")).toBeDefined();
+    expect(within(shelf).getByText("3d")).toBeDefined();
+    expect(within(shelf).queryByLabelText("Wake thread now")).toBeNull();
+    expect(within(shelf).queryByText("Running with a follow-up")).toBeNull();
   });
 
   it("persists each shelf's expanded state across remounts", async () => {
