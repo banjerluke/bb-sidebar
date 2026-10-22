@@ -8,7 +8,7 @@ import { createThreadPullRequests } from "./thread-pull-requests";
 import { createTitleRegenerator } from "./regenerate-title";
 import { AUTO_TITLE_RECOVERY_MIGRATION, createAutoTitleRecovery } from "./auto-title";
 import { createServerSettings } from "./server-settings";
-import { createServerLifecycle } from "./server-lifecycle";
+import { createServerLifecycle, LIFECYCLE_BACKFILLS_MIGRATION } from "./server-lifecycle";
 import { createServerProjectIcons } from "./server-project-icons";
 import { createServerProjectColors } from "./server-project-colors";
 import { createServerProjectManagement } from "./server-project-management";
@@ -109,6 +109,7 @@ const migrations = [
      (id, snooze_presets, inactive_threads_enabled, inactive_after_hours,
       auto_settle_inactive, auto_settle_after_days, auto_settle_on_merge)
    VALUES (1, '', 1, 6, 1, 3, 1)`,
+  LIFECYCLE_BACKFILLS_MIGRATION,
 ];
 
 export default async function plugin(bb: BbPluginApi) {

@@ -102,12 +102,12 @@ export function createServerSettleCleanup(
         ...(thread.environmentHostId && path ? [`path:${thread.environmentHostId}\0${path}`] : []),
       ];
     };
-    const protectedWorkspaces = new Set(
-      relevant.flatMap((thread) => {
-        if (canCleanSettledThread(thread, readOne(thread.id))) return [];
-        return workspaceKeys(thread);
-      }),
-    );
+    // The first thread found protecting each workspace names it in the preview.
+    const protectedWorkspaces = new Map<string, CleanupThread>();
+    for (const thread of relevant) {
+      if (canCleanSettledThread(thread, readOne(thread.id))) continue;
+      for (const key of workspaceKeys(thread)) if (!protectedWorkspaces.has(key)) protectedWorkspaces.set(key, thread);
+    }
     const unresolvedProtectedHosts = new Set(
       relevant.flatMap((thread) => {
         if (canCleanSettledThread(thread, readOne(thread.id))) return [];
@@ -122,8 +122,8 @@ export function createServerSettleCleanup(
         return [];
       }),
     );
-    const isProtectedWorkspace = (thread: CleanupThread) => {
-      if (!thread.environmentId) return false;
+    const workspaceProtection = (thread: CleanupThread): string | null => {
+      if (!thread.environmentId) return null;
       if (
         !thread.environmentHostId ||
         !thread.environmentPath ||
@@ -131,10 +131,16 @@ export function createServerSettleCleanup(
         !paths.has(thread.environmentId) ||
         unresolvedProtectedHosts.has(thread.environmentHostId)
       )
-        return true;
-      return workspaceKeys(thread).some((key) => protectedWorkspaces.has(key));
+        return "could not confirm that its workspace is not shared with active work";
+      for (const key of workspaceKeys(thread)) {
+        const owner = protectedWorkspaces.get(key);
+        if (owner)
+          return `shares a workspace with "${owner.title ?? owner.titleFallback ?? owner.id}", which is not settled`;
+      }
+      return null;
     };
-    return { byId, isProtectedWorkspace };
+    const isProtectedWorkspace = (thread: CleanupThread) => workspaceProtection(thread) !== null;
+    return { byId, isProtectedWorkspace, workspaceProtection };
   };
 
   const cleanupError = (error: unknown): string =>
@@ -201,7 +207,7 @@ export function createServerSettleCleanup(
 
   const handlers = {
     async previewSettledCleanup({ threadIds }) {
-      const { byId, isProtectedWorkspace } = await cleanupContext();
+      const { byId, workspaceProtection } = await cleanupContext();
       const threads: z.infer<typeof cleanupPreviewSchema>["threads"] = [];
       const skipped: CleanupIssue[] = [];
       const planned: CleanupPlanThread[] = [];
@@ -217,7 +223,27 @@ export function createServerSettleCleanup(
             });
             return;
           }
-          if (isProtectedWorkspace(thread)) return;
+          const protection = workspaceProtection(thread);
+          if (protection) {
+            // Say why live terminals stay open. A quiet thread needs no line.
+            try {
+              const { sessions } = await ctx.bb.sdk.terminals.list({ scope: { kind: "thread", threadId } });
+              const live = sessions.filter(
+                (session) =>
+                  session.threadId === threadId && (session.status === "running" || session.status === "starting"),
+              ).length;
+              if (live > 0) {
+                skipped.push({
+                  threadId,
+                  resource: "terminal",
+                  message: `Kept ${live} ${live === 1 ? "terminal" : "terminals"} open: ${protection}`,
+                });
+              }
+            } catch {
+              // The workspace stays protected either way.
+            }
+            return;
+          }
           let workspace: CleanupPlanThread["workspace"];
           try {
             workspace = await threadPortActions.getThreadWorkspace({ threadId });

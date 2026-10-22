@@ -72,7 +72,17 @@ describe("lifecycle RPC", () => {
       expect.objectContaining({ threadId: "thr_safe", terminalCount: 1, ports: [] }),
       expect.objectContaining({ threadId: "thr_later", terminalCount: 1, ports: [] }),
     ]);
-    expect(preview.skipped).toEqual([expect.objectContaining({ threadId: "thr_active" })]);
+    expect(preview.skipped).toHaveLength(2);
+    expect(preview.skipped).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ threadId: "thr_active" }),
+        {
+          threadId: "thr_settled",
+          resource: "terminal",
+          message: "Kept 1 terminal open: could not confirm that its workspace is not shared with active work",
+        },
+      ]),
+    );
     const stopsBefore = harness.inspection.sdk.callsTo("threads.stop").length;
     laterActive = true;
     const result = await harness.behavior.callRpc("cleanSettled", { token: preview.token });
@@ -280,8 +290,16 @@ describe("lifecycle RPC", () => {
     const closesBefore = harness.inspection.sdk.callsTo("terminals.close").length;
     const preview = (await harness.behavior.callRpc("previewSettledCleanup", { threadIds: ["thr_owner"] })) as {
       threads: unknown[];
+      skipped: unknown[];
     };
     expect(preview.threads).toEqual([]);
+    expect(preview.skipped).toEqual([
+      {
+        threadId: "thr_owner",
+        resource: "terminal",
+        message: 'Kept 1 terminal open: shares a workspace with "thr_active", which is not settled',
+      },
+    ]);
     expect(harness.inspection.sdk.callsTo("terminals.close").slice(closesBefore)).toEqual([]);
   });
 

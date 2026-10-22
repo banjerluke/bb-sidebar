@@ -22,8 +22,16 @@ export function createServerPolicy(
 ) {
   const { readSidebarSettings } = settings;
   const { reclaimThreadResources } = cleanup;
-  const { loadPolicyThreads, readAll, readOne, write, threadSignals, publishLifecycleChanges, wakeAncestors } =
-    lifecycle;
+  const {
+    loadPolicyThreads,
+    readAll,
+    readOne,
+    write,
+    threadSignals,
+    publishLifecycleChanges,
+    wakeAncestors,
+    backfillSettledChildRows,
+  } = lifecycle;
   const loadPullRequests = async (environmentIds: readonly string[]) => {
     const results = new Map<string, AutoSettlePullRequest>();
     let nextIndex = 0;
@@ -106,6 +114,8 @@ export function createServerPolicy(
       const settingsRevision = policySettingsRevision;
       const configured = readSidebarSettings();
       let threads = await loadPolicyThreads(true);
+      // Repair older trees before any decision reads their children's rows.
+      const backfilled = backfillSettledChildRows(threads);
       const lifecycleByThreadId = new Map(readAll().map((row) => [row.threadId, row]));
       const environmentIds = [
         ...new Set(
@@ -185,11 +195,12 @@ export function createServerPolicy(
       );
       // Settings can change while PRs or ports are loading. The queued pass
       // uses the latest rules; this older pass must not move or stop threads.
-      if (settingsRevision !== policySettingsRevision || changes.length === 0) return [];
+      if (settingsRevision !== policySettingsRevision || changes.length === 0) return backfilled;
       applyPolicyChanges(changes, now);
       const cleanupRows = new Map(changes.map((change) => [change.threadId, readOne(change.threadId)]));
       const changedThreadIds = new Set(changes.map((change) => change.threadId));
       publishLifecycleChanges([...changedThreadIds]);
+      for (const id of backfilled) changedThreadIds.add(id);
       for (const change of changes) {
         if (change.decision === "unsettle") {
           for (const id of await wakeAncestors(byId.get(change.threadId)!, { automaticOnly: true, threadsById: byId }))

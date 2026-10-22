@@ -155,7 +155,11 @@ export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: strin
                   ) : null}
                 </>
               ) : (
-                <p className="text-muted-foreground">No live terminals or thread-owned listening ports found.</p>
+                <p className="text-muted-foreground">
+                  {issues.length > 0
+                    ? "Nothing can be cleaned right now."
+                    : "No live terminals or thread-owned listening ports found."}
+                </p>
               )}
             </div>
           ) : null}

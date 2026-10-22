@@ -36,7 +36,8 @@ export function createServerHandlers(
   const { readSidebarSettings, writeSidebarSettings } = settings;
   const { evaluatePolicies } = policy;
   const { reclaimThreadResources } = cleanup;
-  const { readOne, readAll, withPinParentChange, write, clear, readInboxOrder, replaceInboxOrder } = lifecycle;
+  const { readOne, readAll, withPinParentChange, write, clear, readInboxOrder, replaceInboxOrder, wakeAncestors } =
+    lifecycle;
 
   // Hover cards resolve model names on every open. Share one catalog request
   // per environment and provider for a few minutes instead of refetching.
@@ -109,6 +110,16 @@ export function createServerHandlers(
         if (parentThreadId === thread.parentThreadId) return { ok: true };
         // Validate the parent before unpinning: a rejected update must keep the pin.
         await ctx.bb.sdk.threads.update({ threadId, parentThreadId });
+        // A shelved tree keeps a row for every thread in it, so the new parent's
+        // row tells whether this move puts unsettled work inside one. If so,
+        // return the new ancestors to Active, as new child work does.
+        const parentRow = parentThreadId == null ? null : readOne(parentThreadId);
+        if (
+          parentThreadId != null &&
+          parentRow &&
+          (parentRow.settledAt !== null || parentRow.parkedAt != null || parentRow.snoozedUntil !== null)
+        )
+          await wakeAncestors({ id: threadId, parentThreadId });
         if (parentThreadId != null && thread.pinnedAt != null) {
           try {
             await ctx.bb.sdk.threads.unpin({ threadId });

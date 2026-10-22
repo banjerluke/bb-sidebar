@@ -67,18 +67,31 @@ describe("automatic settle evaluation", () => {
         shelf === "snoozed" ? Date.now() + 86400000 : null,
         shelf === "snoozed" ? old + 1000 : null,
       );
-    const before = await harness.behavior.callRpc("listLifecycle", {});
+    const before = (await harness.behavior.callRpc("listLifecycle", {})) as LifecycleListResult;
+    // The first pass gives a quiet child of an older parent-only settle the
+    // parent's manual row. Parked and snoozed parents leave children alone.
+    const inherited = {
+      threadId: "child",
+      parkedAt: null,
+      settledAt: old + 1000,
+      settledOverride: "settled",
+      snoozedUntil: null,
+      snoozedAt: null,
+    };
+    const after = shelf === "settled" ? { rows: [...before.rows, inherited] } : before;
     const settings = (await harness.behavior.callRpc("getSidebarSettings", {})) as Record<string, unknown>;
     await harness.behavior.callRpc("updateSidebarSettings", { ...settings, [setting]: true });
     await harness.behavior.callRpc("evaluateAutoSettle", {});
     expect(((await harness.behavior.callRpc("listLifecycle", {})) as LifecycleListResult).rows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ threadId: "child", settledAt: expect.any(Number), settledOverride: null }),
+        shelf === "settled"
+          ? inherited
+          : expect.objectContaining({ threadId: "child", settledAt: expect.any(Number), settledOverride: null }),
       ]),
     );
     await harness.behavior.callRpc("updateSidebarSettings", settings);
     await harness.behavior.callRpc("evaluateAutoSettle", {});
-    await expect(harness.behavior.callRpc("listLifecycle", {})).resolves.toEqual(before);
+    await expect(harness.behavior.callRpc("listLifecycle", {})).resolves.toEqual(after);
     // Real child activity must still reopen the parent.
     await harness.behavior.emitThreadEvent("thread.active", {
       thread: makeThreadResponse({ id: "child", parentThreadId: "parent", status: "active" }),
