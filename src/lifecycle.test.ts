@@ -12,6 +12,7 @@ import {
   resolveShelf,
   resolveWakeReason,
   resolveConfiguredSnoozePreset,
+  scheduledSendTimes,
   snoozeWakeLabel,
   MAX_TIMEOUT_MS,
   type ThreadActivitySignals,
@@ -98,6 +99,20 @@ describe("resolveShelf", () => {
     expect(
       resolveShelf(row({ snoozedUntil: 5_000, snoozedAt: 900 }), { ...quiet, latestAttentionAt: 800 }, 1_000),
     ).toBe("snoozed");
+  });
+});
+
+describe("scheduledSendTimes", () => {
+  it("keeps the earliest send of threads whose queued rows are all scheduled", () => {
+    expect(
+      scheduledSendTimes([
+        { threadId: "later", state: "scheduled", sendAt: 3_000 },
+        { threadId: "later", state: "scheduled", sendAt: 2_000 },
+        { threadId: "mixed", state: "scheduled", sendAt: 2_000 },
+        { threadId: "mixed", state: "queued", sendAt: null },
+        { threadId: "queued", state: "queued", sendAt: null },
+      ]),
+    ).toEqual(new Map([["later", 2_000]]));
   });
 });
 
