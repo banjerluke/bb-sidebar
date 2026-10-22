@@ -70,11 +70,11 @@ export function SidebarLayoutSettings({
         ) : null}
       </SettingRow>
       <SettingRow
-        title="Project icon only in compact cards"
-        description="Show only the project icon on compact cards in Active, Pinned, and Working. The full name is available on hover."
+        title="Hide project names in compact cards"
+        description="Keep the project icon and hide its name on compact cards in Active, Pinned, and Working. Hover to see the project name."
         control={
           <Switch
-            label="Project icon only in compact cards"
+            label="Hide project names in compact cards"
             checked={draft.compactProjectIconOnly}
             onChange={(checked) => update("compactProjectIconOnly", checked)}
           />

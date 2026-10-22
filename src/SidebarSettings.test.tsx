@@ -246,7 +246,7 @@ it("replaces the compact switch with a thread display choice", async () => {
     },
   );
   const picker = await screen.findByRole("combobox", { name: "Thread display" });
-  const projectIconOnly = screen.getByRole("switch", { name: "Project icon only in compact cards" });
+  const projectIconOnly = screen.getByRole("switch", { name: "Hide project names in compact cards" });
   expect(projectIconOnly.getAttribute("aria-checked")).toBe("false");
   expect(screen.queryByRole("switch", { name: "Compact working threads" })).toBeNull();
   expect([...(picker as HTMLSelectElement).options].map((option) => option.textContent)).toEqual([
