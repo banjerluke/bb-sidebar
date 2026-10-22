@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { expect } from "@playwright/test";
 import { test, fixture, cli } from "./helpers.mjs";
 
-async function seed(title, { projectId = fixture.projectId, root } = {}) {
+export async function seed(title, { projectId = fixture.projectId, root } = {}) {
   const result = await cli([
     "thread",
     "spawn",

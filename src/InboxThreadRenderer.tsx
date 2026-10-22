@@ -1,56 +1,70 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
-import type { useInboxContextValues } from "./InboxContext";
+import { memo, useCallback } from "react";
+import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import type { ActiveView } from "./inbox-layout";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 
 type ActiveShelfKind = "pinned" | "inbox";
 
-export function createInboxThreadRenderer(
-  { environment, actions, activity }: ReturnType<typeof useInboxContextValues>,
-  {
-    wokeThreadIds,
-    expandedChildParentIds,
-    threadReorderControls,
-    activeView,
-  }: {
-    wokeThreadIds: ReadonlySet<string>;
-    expandedChildParentIds: ReadonlySet<string>;
-    threadReorderControls: (thread: PluginSidebarThread, shelf: ActiveShelfKind) => ThreadReorderControls;
-    activeView: ActiveView;
-  },
-) {
-  const { sidebarSettings, lifecycle, childrenByParentId } = environment;
+const NO_CHILDREN: readonly PluginSidebarThread[] = [];
+
+type ReorderControls = (thread: PluginSidebarThread, shelf: ActiveShelfKind) => ThreadReorderControls;
+
+// The wrapper receives stable row inputs. Menu hooks and card rendering stay
+// behind this boundary when another shelf expands or collapses.
+const InboxThread = memo(function InboxThread({
+  thread,
+  shelf,
+  reorderable,
+  showProject,
+  compact,
+  renameShelf,
+  showEnvironment,
+  isWoke,
+  childrenExpanded,
+  threadReorderControls,
+  activeView,
+}: {
+  thread: PluginSidebarThread;
+  shelf: ActiveShelfKind;
+  reorderable: boolean;
+  showProject: boolean;
+  compact: boolean;
+  renameShelf: "active" | "working" | "inactive";
+  showEnvironment: boolean;
+  isWoke: boolean;
+  childrenExpanded: boolean;
+  threadReorderControls: ReorderControls;
+  activeView: ActiveView;
+}) {
+  const { sidebarSettings, lifecycle, childrenByParentId } = useInboxEnvironment();
+  const { activeThreadId } = useInboxActivity();
+  const { setRenamingShelfLocks } = useInboxActions();
   const settings = sidebarSettings ?? DEFAULT_SIDEBAR_SETTINGS;
-  const { activeThreadId } = activity;
-  const { setRenamingShelfLocks } = actions;
-  const renderActiveThread = (
-    thread: PluginSidebarThread,
-    shelf: ActiveShelfKind,
-    reorderable = true,
-    showProject = true,
-    compact = false,
-    renameShelf: "active" | "working" | "inactive" = "active",
-    showEnvironment = true,
-  ) => (
+  const onRenamingChange = useCallback(
+    (editing: boolean) => {
+      setRenamingShelfLocks((current) => {
+        const next = new Map(current);
+        if (editing) next.set(thread.id, renameShelf);
+        else next.delete(thread.id);
+        return next;
+      });
+    },
+    [thread.id, renameShelf, setRenamingShelfLocks],
+  );
+  return (
     <ThreadCard
-      key={thread.id}
       thread={thread}
       showProject={showProject}
+      projectIconOnly={renameShelf !== "inactive" && settings.compactProjectIconOnly}
       showEnvironment={showEnvironment}
       isActive={thread.id === activeThreadId}
-      isWoke={wokeThreadIds.has(thread.id)}
+      isWoke={isWoke}
       canPark={lifecycle.canPark(thread)}
-      onRenamingChange={(editing) => {
-        setRenamingShelfLocks((current) => {
-          const next = new Map(current);
-          if (editing) next.set(thread.id, renameShelf);
-          else next.delete(thread.id);
-          return next;
-        });
-      }}
-      childThreads={childrenByParentId.get(thread.id) ?? []}
-      childrenExpanded={expandedChildParentIds.has(thread.id)}
+      onRenamingChange={onRenamingChange}
+      childThreads={childrenByParentId.get(thread.id) ?? NO_CHILDREN}
+      childrenExpanded={childrenExpanded}
       reorder={
         !reorderable ||
         (shelf === "pinned" && thread.pinSortKey == null) ||
@@ -63,10 +77,45 @@ export function createInboxThreadRenderer(
       compactAlways={
         settings.threadDisplay === "compact-all" &&
         !(shelf === "pinned" && settings.keepPinnedThreadsFull) &&
-        !(wokeThreadIds.has(thread.id) && settings.keepWokeThreadsFull)
+        !(isWoke && settings.keepWokeThreadsFull)
       }
     />
   );
+});
 
-  return renderActiveThread;
+export function createInboxThreadRenderer({
+  wokeThreadIds,
+  expandedChildParentIds,
+  threadReorderControls,
+  activeView,
+}: {
+  wokeThreadIds: ReadonlySet<string>;
+  expandedChildParentIds: ReadonlySet<string>;
+  threadReorderControls: ReorderControls;
+  activeView: ActiveView;
+}) {
+  return (
+    thread: PluginSidebarThread,
+    shelf: ActiveShelfKind,
+    reorderable = true,
+    showProject = true,
+    compact = false,
+    renameShelf: "active" | "working" | "inactive" = "active",
+    showEnvironment = true,
+  ) => (
+    <InboxThread
+      key={thread.id}
+      thread={thread}
+      shelf={shelf}
+      reorderable={reorderable}
+      showProject={showProject}
+      compact={compact}
+      renameShelf={renameShelf}
+      showEnvironment={showEnvironment}
+      isWoke={wokeThreadIds.has(thread.id)}
+      childrenExpanded={expandedChildParentIds.has(thread.id)}
+      threadReorderControls={threadReorderControls}
+      activeView={activeView}
+    />
+  );
 }

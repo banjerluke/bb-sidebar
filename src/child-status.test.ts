@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
-import { childStatusKind, childStatusPhrase, childStatusSummary, childSubtree } from "./child-status";
+import {
+  childStatusKind,
+  childStatusPhrase,
+  childStatusSummary,
+  childSubtree,
+  threadsWithAskingDescendants,
+} from "./child-status";
 
 function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
@@ -115,5 +121,43 @@ describe("full child subtree", () => {
       ["archived", [hidden]],
     ]);
     expect(childSubtree([c, sibling], map).map((row) => row.id)).toEqual(["c", "g", "sibling"]);
+  });
+});
+
+describe("threadsWithAskingDescendants", () => {
+  it("marks every ancestor of a child that waits on the user", () => {
+    const threads = [
+      thread({ id: "root" }),
+      thread({ id: "child", parentThreadId: "root", indicator: "runtime" }),
+      thread({ id: "grandchild", parentThreadId: "child", hasPendingInteraction: true }),
+      thread({ id: "sibling", parentThreadId: "root" }),
+      thread({ id: "other" }),
+      thread({ id: "other-child", parentThreadId: "other", indicator: "waiting-for-input" }),
+    ];
+    expect([...threadsWithAskingDescendants(threads)].sort()).toEqual(["child", "other", "root"]);
+  });
+
+  it("ignores archived askers and stops at archived ancestors and cycles", () => {
+    expect(
+      threadsWithAskingDescendants([
+        thread({ id: "root" }),
+        thread({ id: "archived-asker", parentThreadId: "root", hasPendingInteraction: true, isArchived: true }),
+      ]).size,
+    ).toBe(0);
+    expect([
+      ...threadsWithAskingDescendants([
+        thread({ id: "root" }),
+        thread({ id: "archived", parentThreadId: "root", isArchived: true }),
+        thread({ id: "asker", parentThreadId: "archived", hasPendingInteraction: true }),
+      ]),
+    ]).toEqual([]);
+    expect(
+      [
+        ...threadsWithAskingDescendants([
+          thread({ id: "a", parentThreadId: "b" }),
+          thread({ id: "b", parentThreadId: "a", hasPendingInteraction: true }),
+        ]),
+      ].sort(),
+    ).toEqual(["a"]);
   });
 });

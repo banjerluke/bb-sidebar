@@ -23,9 +23,8 @@ function providerMaskStyle(logoUrl: string): CSSProperties {
 /**
  * The agent a thread runs on, resolved from bb's live provider directory.
  *
- * Always rendered, so the card's third line has a fixed right edge even when
- * a thread has no branch. A provider without a served logo, or one missing
- * from the current directory, gets a neutral dot rather than nothing.
+ * Ends the card's third line or a compact row. A provider without a served
+ * logo, or one missing from the current directory, gets a neutral dot.
  */
 export function ProviderGlyph({
   providerId,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 
 /**
  * Swallow the click a finished drag would otherwise fire on the row it started
@@ -42,8 +42,8 @@ export function useDragClickSuppression(activeReorderCancelRef: RefObject<(() =>
     },
     [],
   );
-  return (key: string) => {
+  return useCallback((key: string) => {
     clickSuppressionRef.current?.();
     clickSuppressionRef.current = armClickSuppression(key);
-  };
+  }, []);
 }

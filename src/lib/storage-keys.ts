@@ -18,6 +18,8 @@ export const STORAGE_KEYS = {
   emptySectionsExpanded: { key: "bb-sidebar:empty-sections-expanded:v1", evictionPriority: 56 },
   // Selected projects in this window's session storage; empty means all.
   projectScope: { key: "bb-sidebar:project-scope:v1", evictionPriority: 85 },
+  // Project shortcuts saved on this device, in pin order.
+  pinnedProjects: { key: "bb-sidebar:pinned-projects:v1", evictionPriority: 90 },
   environmentCollapse: { key: "bb-sidebar:environment-collapse:v1", evictionPriority: 55 },
   environmentGrouping: { key: "bb-sidebar:environment-grouping:v1", evictionPriority: 71 },
   // Shelf disclosure booleans.

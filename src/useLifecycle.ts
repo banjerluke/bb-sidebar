@@ -21,6 +21,7 @@ import {
 import { createCachedRpcState } from "./lib/cached-rpc-state";
 import { lifecycleRowsCodec } from "./lib/lifecycle-cache-codec";
 import { useScheduledSends } from "./useScheduledSends";
+import { threadsWithAskingDescendants } from "./child-status";
 
 export interface LifecycleApi {
   shelfFor(thread: PluginSidebarThread): ThreadShelf;
@@ -100,6 +101,13 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
   );
   const [now, setNow] = useState(() => Date.now());
   const scheduledSends = useScheduledSends(threads);
+  // Keyed by membership, so the API below keeps its identity across the
+  // thread updates that do not change who is waiting on a child.
+  const askingParentKey = [...threadsWithAskingDescendants(threads)].sort().join("\n");
+  const askingParentIds = useMemo(
+    () => new Set(askingParentKey === "" ? [] : askingParentKey.split("\n")),
+    [askingParentKey],
+  );
 
   // Responses can land out of order (a mutation's refresh racing a realtime
   // one), and an older list would silently restore state the user just
@@ -161,10 +169,15 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
   }, [now, rows]);
 
   return useMemo<LifecycleApi>(() => {
-    const signalsFor = sidebarThreadSignals;
+    // A descendant's question counts as the parent's own: it brings the tree
+    // back from any shelf, ends a snooze, and blocks parking it again.
+    const signalsFor = (thread: PluginSidebarThread) => {
+      const signals = sidebarThreadSignals(thread);
+      return askingParentIds.has(thread.id) ? { ...signals, hasPendingInteraction: true } : signals;
+    };
     const scheduledSendAtFor = (thread: PluginSidebarThread) => {
       const sendAt = scheduledSends.get(thread.id);
-      return sendAt !== undefined && isAwaitingScheduledSend(thread) ? sendAt : null;
+      return sendAt !== undefined && isAwaitingScheduledSend(thread) && !askingParentIds.has(thread.id) ? sendAt : null;
     };
     // One mutation per thread at a time. The write publishes on the realtime
     // channel, and that subscription refreshes every client after success.
@@ -316,5 +329,5 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       unsnooze: (threadId) => mutate({ method: "unsnooze", threadId }),
       snooze: (threadId, snoozedUntil) => mutate({ method: "snooze", threadId, snoozedUntil }),
     };
-  }, [now, rows, rpc, scheduledSends]);
+  }, [askingParentIds, now, rows, rpc, scheduledSends]);
 }

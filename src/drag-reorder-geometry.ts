@@ -2,7 +2,7 @@ import { type OrderUnit, movePinnedId } from "./pinned-order";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { sameOrder, type ReorderScope } from "./inbox-layout";
 import type { createDragPreview } from "./drag-preview";
-import type { ListAnimationController } from "./useListAutoAnimate";
+import type { ListAnimationController } from "./useListMotion";
 
 export type DragShelf = "pinned" | "inbox" | "sections";
 

@@ -32,19 +32,23 @@ function renderProjects(searchQuery = "") {
 
 function openPicker() {
   fireEvent.keyDown(screen.getByRole("button", { name: /^Project scope:/ }), { key: "Enter" });
-  return screen.getByRole("listbox", { name: "Projects" });
+  return screen.getByRole("grid", { name: "Projects" });
 }
 
 it("toggles multiple projects without closing, remembers them on remount, and resets to all", async () => {
   const rendered = renderProjects();
   const picker = openPicker();
   expect(picker.getAttribute("aria-multiselectable")).toBe("true");
-  fireEvent.click(within(picker).getByRole("option", { name: "Alpha" }));
-  fireEvent.click(within(picker).getByRole("option", { name: "Gamma" }));
+  expect(screen.getByText("Select one or more projects")).toBeDefined();
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("All projects");
+  fireEvent.click(within(picker).getByRole("row", { name: "Alpha" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("1 project selected");
+  fireEvent.click(within(picker).getByRole("row", { name: "Gamma" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("2 projects selected");
   expect(screen.getByRole("button", { name: "Project scope: Alpha + Gamma" })).toBeDefined();
   expect(
     within(picker)
-      .getAllByRole("option", { selected: true })
+      .getAllByRole("row", { selected: true })
       .map((option) => option.textContent),
   ).toEqual(["Alpha", "Gamma"]);
   expect(screen.getByText("Alpha thread")).toBeDefined();
@@ -52,7 +56,7 @@ it("toggles multiple projects without closing, remembers them on remount, and re
   expect(screen.queryByText("Beta thread")).toBeNull();
   expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Filter projects" }));
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
-  expect(screen.queryByRole("listbox", { name: "Projects" })).toBeNull();
+  expect(screen.queryByRole("grid", { name: "Projects" })).toBeNull();
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /^Project scope:/ })));
 
   rendered.lifecycle.unmount();
@@ -60,11 +64,12 @@ it("toggles multiple projects without closing, remembers them on remount, and re
   expect(screen.getByRole("button", { name: "Project scope: Alpha + Gamma" })).toBeDefined();
   expect(screen.queryByText("Beta thread")).toBeNull();
   const restored = openPicker();
-  fireEvent.click(within(restored).getByRole("option", { name: "Alpha" }));
+  fireEvent.click(within(restored).getByRole("row", { name: "Alpha" }));
   expect(screen.queryByText("Alpha thread")).toBeNull();
   expect(screen.getByText("Gamma thread")).toBeDefined();
   fireEvent.change(screen.getByLabelText("Filter projects"), { target: { value: "missing" } });
-  fireEvent.click(screen.getByRole("button", { name: "All projects" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to all projects" }));
+  expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toBe("All projects");
   for (const { name } of projects) expect(screen.getByText(`${name} thread`)).toBeDefined();
   expect(JSON.parse(sessionStorage.getItem(STORAGE_KEYS.projectScope.key)!)).toEqual([]);
 });
@@ -84,7 +89,7 @@ it("lets the keyboard select multiple filtered projects, toggle off the last one
   fireEvent.keyDown(input, { key: "Enter" });
   expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
   fireEvent.keyDown(input, { key: "Escape" });
-  expect(screen.queryByRole("listbox", { name: "Projects" })).toBeNull();
+  expect(screen.queryByRole("grid", { name: "Projects" })).toBeNull();
 });
 
 it("searches the selected projects and labels the restricted results", () => {
@@ -106,8 +111,8 @@ it("keeps selection usable when session storage is unavailable", () => {
   try {
     renderProjects();
     const picker = openPicker();
-    fireEvent.click(within(picker).getByRole("option", { name: "Beta" }));
-    fireEvent.click(within(picker).getByRole("option", { name: "Gamma" }));
+    fireEvent.click(within(picker).getByRole("row", { name: "Beta" }));
+    fireEvent.click(within(picker).getByRole("row", { name: "Gamma" }));
     expect(screen.getByText("Beta thread")).toBeDefined();
     expect(screen.queryByText("Alpha thread")).toBeNull();
   } finally {
@@ -172,9 +177,9 @@ it("keeps the on-screen keyboard down on touch devices", async () => {
   renderProjects();
   const picker = openPicker();
   const filter = screen.getByRole("combobox", { name: "Filter projects" });
-  await waitFor(() => expect(within(picker).getByRole("option", { name: "Alpha" })).toBeDefined());
+  await waitFor(() => expect(within(picker).getByRole("row", { name: "Alpha" })).toBeDefined());
   expect(document.activeElement).not.toBe(filter);
-  fireEvent.click(within(picker).getByRole("option", { name: "Alpha" }));
+  fireEvent.click(within(picker).getByRole("row", { name: "Alpha" }));
   expect(screen.getByRole("button", { name: "Project scope: Alpha" })).toBeDefined();
   expect(document.activeElement).not.toBe(filter);
 });

@@ -10,7 +10,7 @@ import { useQuantizedNow } from "./useQuantizedNow";
 import { useProjectIconRevision } from "./useProjectIconRevision";
 import { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 import { useDragClickSuppression } from "./useDragClickSuppression";
-import { useListAutoAnimate, createListAnimationController } from "./useListAutoAnimate";
+import { useListMotion, createListAnimationController } from "./useListMotion";
 import {
   sameOrder,
   sortActiveThreads,
@@ -45,7 +45,8 @@ import { parseInactiveAfterHours } from "./inactive";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
-import { activeViewCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
+import { activeViewCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
+import { useChildExpansion } from "./useChildExpansion";
 const SETTLED_INITIAL_LIMIT = 10;
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -66,8 +67,8 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
   const lifecycle = useLifecycle(threads);
   const projectIconRevision = useProjectIconRevision();
   const listAnimationController = useMemo(() => createListAnimationController(!isCompactViewport), [isCompactViewport]);
-  const attachShelvesAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
-  const attachDockAutoAnimateRef = useListAutoAnimate<HTMLDivElement>(listAnimationController);
+  const attachShelvesMotionRef = useListMotion<HTMLDivElement>(listAnimationController);
+  const attachDockMotionRef = useListMotion<HTMLDivElement>(listAnimationController);
   const attachScrollFadeRef = useScrollFade<HTMLDivElement>();
   const activeThreadIdRef = useRef(activeThreadId);
   activeThreadIdRef.current = activeThreadId;
@@ -85,10 +86,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
   const [scope, setScope] = useProjectScope({ projects, status });
   const now = useQuantizedNow();
   const projectNameById = useMemo(() => new Map(projects.map((project) => [project.id, project.name])), [projects]);
-  const [expandedChildParentIds, setExpandedChildParentIds] = usePersistedPreference(
-    STORAGE_KEYS.childExpansion.key,
-    childExpansionCodec,
-  );
   const [expandedShelves, setExpandedShelves] = usePersistedPreference(
     STORAGE_KEYS.shelfExpansion.key,
     shelfExpansionCodec,
@@ -102,20 +99,8 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     () => childThreadsByParent(threads, childDisplay.sort),
     [threads, childDisplay.sort],
   );
-  useEffect(() => {
-    setExpandedChildParentIds((current) => {
-      const next = new Set([...current].filter((threadId) => childrenByParentId.has(threadId)));
-      return next.size === current.size ? current : next;
-    });
-  }, [childrenByParentId]);
-  const toggleChildExpansion = useCallback((parentThreadId: string) => {
-    setExpandedChildParentIds((current) => {
-      const next = new Set(current);
-      if (next.has(parentThreadId)) next.delete(parentThreadId);
-      else next.add(parentThreadId);
-      return next;
-    });
-  }, []);
+  const { expandedChildParentIds, setExpandedChildParentIds, toggleChildExpansion } =
+    useChildExpansion(childrenByParentId);
 
   const {
     activeListThreadId,
@@ -304,85 +289,98 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
   );
   const reorderScopeRef = useRef(reorderScope);
   reorderScopeRef.current = reorderScope;
-  const commitReorder = (
-    shelf: DragShelf,
-    mode: ReorderMode,
-    previewIds: readonly string[],
-    movingId: string,
-    parentKey: string | null = null,
-  ) => {
-    if (shelf === "sections") {
-      sectionGroupsRef.current.commitSectionOrder(previewIds, movingId);
-      return;
-    }
-    if (shelf === "pinned") {
-      const live = reorderTargetsRef.current.pinned;
-      void live.reorder(rebaseMovedId(live.ids, previewIds, movingId), movingId);
-      return;
-    }
-    const live = reorderTargetsRef.current.inbox;
-    const ids =
-      activeViewRef.current.group === "project" || mode === "unit"
-        ? projectGroupsRef.current.rebaseOrder(live.ids, previewIds, movingId, parentKey)
-        : rebaseMovedId(live.ids, previewIds, movingId);
-    if (ids) void live.reorder(ids);
-  };
+  const commitReorder = useCallback(
+    (
+      shelf: DragShelf,
+      mode: ReorderMode,
+      previewIds: readonly string[],
+      movingId: string,
+      parentKey: string | null = null,
+    ) => {
+      if (shelf === "sections") {
+        sectionGroupsRef.current.commitSectionOrder(previewIds, movingId);
+        return;
+      }
+      if (shelf === "pinned") {
+        const live = reorderTargetsRef.current.pinned;
+        void live.reorder(rebaseMovedId(live.ids, previewIds, movingId), movingId);
+        return;
+      }
+      const live = reorderTargetsRef.current.inbox;
+      const ids =
+        activeViewRef.current.group === "project" || mode === "unit"
+          ? projectGroupsRef.current.rebaseOrder(live.ids, previewIds, movingId, parentKey)
+          : rebaseMovedId(live.ids, previewIds, movingId);
+      if (ids) void live.reorder(ids);
+    },
+    [],
+  );
   // Keyboard reordering moves a row with no pointer to follow and no sound, so
   // the only feedback a screen reader gets is what this region says.
   const [reorderAnnouncement, setReorderAnnouncement] = useState("");
-
-  const threadReorderControls = (thread: PluginSidebarThread, shelf: "pinned" | "inbox"): ThreadReorderControls =>
-    reorderControls(thread.id, shelf, threadDisplayTitle(thread));
 
   /**
    * Pointer and keyboard reordering for one row or project header. `key` is a
    * thread id, or a project unit key for a header.
    */
-  const reorderControls = (key: string, shelf: DragShelf, title: string): ThreadReorderControls => {
-    const target =
-      shelf === "pinned"
-        ? pinnedReorder
-        : shelf === "sections"
-          ? { isReordering: sectionGroups.isReordering }
-          : inboxReorder;
-    return {
-      disabled: target.isReordering,
-      isDragging: dragOrder?.shelf === shelf && dragOrder.movingId === key,
-      onPointerDown: createDragReorderHandler({
-        key,
-        shelf,
-        target,
-        activeReorderCancelRef,
-        dragOrderRef,
-        dragPreviewRef,
-        listAnimationController,
-        suppressDragClick,
-        reorderScopeRef,
-        sectionDropRef,
-        storedOrderUnitsRef,
-        setDragOrder,
-        commitReorder,
-      }),
-      onKeyDown: (event) => {
-        if (!event.altKey || target.isReordering || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
-          return;
-        }
-        // Sorted rows have no manual slot to move to.
-        if (shelf === "inbox" && activeView.order !== "manual") return;
-        event.preventDefault();
-        event.stopPropagation();
-        const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
-        const ids = movePinnedIdByOffset(currentIds, key, event.key === "ArrowUp" ? -1 : 1);
-        const shelfName = shelf === "pinned" ? "Pinned" : shelf === "sections" ? "sections" : "Active";
-        setReorderAnnouncement(
-          sameOrder(ids, currentIds)
-            ? `${title} is already ${event.key === "ArrowUp" ? "first" : "last"} in ${shelfName}`
-            : `${title} moved to ${ids.indexOf(key) + 1} of ${ids.length} in ${shelfName}`,
-        );
-        commitReorder(shelf, mode, ids, key, parentKey);
-      },
-    };
-  };
+  const reorderControls = useCallback(
+    (key: string, shelf: DragShelf, title: string): ThreadReorderControls => {
+      const target =
+        shelf === "sections" ? { isReordering: sectionGroups.isReordering } : reorderTargetsRef.current[shelf];
+      return {
+        disabled: target.isReordering,
+        isDragging: dragOrder?.shelf === shelf && dragOrder.movingId === key,
+        onPointerDown: createDragReorderHandler({
+          key,
+          shelf,
+          target,
+          activeReorderCancelRef,
+          dragOrderRef,
+          dragPreviewRef,
+          listAnimationController,
+          suppressDragClick,
+          reorderScopeRef,
+          sectionDropRef,
+          storedOrderUnitsRef,
+          setDragOrder,
+          commitReorder,
+        }),
+        onKeyDown: (event) => {
+          if (!event.altKey || target.isReordering || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
+            return;
+          }
+          // Sorted rows have no manual slot to move to.
+          if (shelf === "inbox" && activeView.order !== "manual") return;
+          event.preventDefault();
+          event.stopPropagation();
+          const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
+          const ids = movePinnedIdByOffset(currentIds, key, event.key === "ArrowUp" ? -1 : 1);
+          const shelfName = shelf === "pinned" ? "Pinned" : shelf === "sections" ? "sections" : "Active";
+          setReorderAnnouncement(
+            sameOrder(ids, currentIds)
+              ? `${title} is already ${event.key === "ArrowUp" ? "first" : "last"} in ${shelfName}`
+              : `${title} moved to ${ids.indexOf(key) + 1} of ${ids.length} in ${shelfName}`,
+          );
+          commitReorder(shelf, mode, ids, key, parentKey);
+        },
+      };
+    },
+    [
+      pinnedReorder.isReordering,
+      inboxReorder.isReordering,
+      sectionGroups.isReordering,
+      activeView.order,
+      dragOrder,
+      listAnimationController,
+      suppressDragClick,
+      commitReorder,
+    ],
+  );
+  const threadReorderControls = useCallback(
+    (thread: PluginSidebarThread, shelf: "pinned" | "inbox") =>
+      reorderControls(thread.id, shelf, threadDisplayTitle(thread)),
+    [reorderControls],
+  );
 
   const isSearching = searchQuery.trim().length > 0;
   const searchCandidates = useMemo(() => filterByProjects(visibleInboxThreads(threads), scope), [scope, threads]);
@@ -444,7 +442,7 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     setSettledLimit,
     toggleProjectCollapse,
   });
-  const renderActiveThread = createInboxThreadRenderer(inboxContext, {
+  const renderActiveThread = createInboxThreadRenderer({
     wokeThreadIds,
     expandedChildParentIds,
     threadReorderControls,
@@ -479,8 +477,8 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         wokeThreadIds={wokeThreadIds}
         expandedChildParentIds={expandedChildParentIds}
         dockShelvesEnabled={dockShelvesEnabled}
-        attachShelvesAutoAnimateRef={attachShelvesAutoAnimateRef}
-        attachDockAutoAnimateRef={attachDockAutoAnimateRef}
+        attachShelvesMotionRef={attachShelvesMotionRef}
+        attachDockMotionRef={attachDockMotionRef}
         expandedShelves={expandedShelves}
         renderActiveThread={renderActiveThread}
         activeView={activeView}

@@ -356,7 +356,7 @@ describe("ThreadInbox", () => {
       .getByRole("button", { name: "Open child thread: Busy child, Working · 5m" })
       .closest("[data-child-thread-row]") as HTMLElement;
     const disclosure = within(childRow).getByRole("button", {
-      name: "Show 2 grandchild threads for Busy child",
+      name: "Show 2 grandchild threads for Busy child, 1 failed, 1 need you",
     });
     expect(within(childRow).getByText("Working · 5m")).toBeDefined();
     fireEvent.click(disclosure);

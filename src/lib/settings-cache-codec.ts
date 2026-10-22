@@ -39,6 +39,7 @@ export function decodeSettingsCache(input: unknown): SidebarSettingsValues | nul
     ...value,
     ...childThreadSettingsOf(value),
     threadDisplay: threadDisplayOf(value),
+    compactProjectIconOnly: value.compactProjectIconOnly === true,
     keepPinnedThreadsFull: value.keepPinnedThreadsFull === true,
     keepWokeThreadsFull: value.keepWokeThreadsFull === true,
     compactWorkingThreads: threadDisplayOf(value) !== "full",

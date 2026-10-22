@@ -1,4 +1,5 @@
-import { useListAutoAnimate } from "./useListAutoAnimate";
+import { useListMotion } from "./useListMotion";
+import { useMemo } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon, type IconName } from "./components/Icon";
 import { cn } from "./lib/utils";
@@ -45,11 +46,11 @@ export function CompactShelf({
   expandedChildParentIds: ReadonlySet<string>;
 }) {
   const { lifecycle } = useInboxEnvironment();
-  const { activeThreadId } = useInboxActivity();
+  const { activeThreadId, now: clockNow } = useInboxActivity();
   const { onNavigate } = useInboxActions();
-  const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListMotionRef = useListMotion<HTMLUListElement>();
+  const now = useMemo(() => Date.now(), [clockNow, visibleThreads]);
   if (threads.length === 0 && shelf !== "settled") return null;
-  const now = Date.now();
   const limit = shelf === "settled" ? (settledLimit ?? threads.length) : threads.length;
   const hasMore = shelf === "settled" && threads.length > limit;
   return (
@@ -66,7 +67,7 @@ export function CompactShelf({
         ) : undefined
       }
     >
-      <ul ref={attachListAutoAnimateRef} className="flex flex-col gap-px">
+      <ul ref={attachListMotionRef} className="flex flex-col gap-px">
         {visibleThreads.map((thread) => (
           <SlimRow
             key={thread.id}
@@ -215,7 +216,7 @@ function ActiveProjectGroup({
 }) {
   const stripeView = expanded ? "group-full" : "group-collapsed";
   const projectColor = useProjectColor(projectId);
-  const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListMotionRef = useListMotion<HTMLUListElement>();
   return (
     // One item of the top-level list, so the whole project is a single drop
     // target when projects are dragged around each other.
@@ -268,11 +269,7 @@ function ActiveProjectGroup({
             />
           </span>
         </button>
-        <ul
-          ref={attachListAutoAnimateRef}
-          aria-label={`${projectName} active threads`}
-          className="flex flex-col gap-px"
-        >
+        <ul ref={attachListMotionRef} aria-label={`${projectName} active threads`} className="flex flex-col gap-px">
           {children}
         </ul>
       </section>
@@ -294,10 +291,10 @@ export function ProjectGroups({
 }) {
   const { projectNameById, projectIconRevision } = useInboxEnvironment();
   const { toggleProjectCollapse: onToggle } = useInboxActions();
-  const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListMotionRef = useListMotion<HTMLUListElement>();
   if (units.length === 0) return null;
   return (
-    <ul ref={attachListAutoAnimateRef} className="flex flex-col gap-px">
+    <ul ref={attachListMotionRef} className="flex flex-col gap-px">
       {units.map((unit) => {
         if (unit.kind === "thread") return renderThread(unit.thread, false);
         const projectName = projectNameById.get(unit.projectId) ?? "Project";
@@ -337,7 +334,7 @@ export function ProjectGroups({
 }
 
 export function Shelf({ label, children }: { label: string | null; children: React.ReactNode }) {
-  const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListMotionRef = useListMotion<HTMLUListElement>();
   return (
     // A named section is exposed as a landmark region; shelf rows stay in an
     // unnamed list beneath their collapsible heading.
@@ -348,7 +345,7 @@ export function Shelf({ label, children }: { label: string | null; children: Rea
           <span className="h-px flex-1 bg-sidebar-border" />
         </h2>
       ) : null}
-      <ul ref={attachListAutoAnimateRef} className="flex flex-col gap-px">
+      <ul ref={attachListMotionRef} className="flex flex-col gap-px">
         {children}
       </ul>
     </section>

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { memo, useId, useState } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
@@ -22,7 +22,7 @@ import { projectIconUrl as iconUrl } from "./project-icons";
  * Same structure as the card — a full-bleed anchor under the restore button,
  * because a `<button>` inside an `<a>` is invalid interactive nesting.
  */
-export function SlimRow({
+export const SlimRow = memo(function SlimRow({
   thread,
   isActive,
   shelf,
@@ -179,4 +179,4 @@ export function SlimRow({
       </li>
     </RowContextMenu>
   );
-}
+});

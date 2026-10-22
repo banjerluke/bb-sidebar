@@ -33,6 +33,8 @@ export interface SidebarSettingsValues {
   childIconStyle: ChildThreadIconStyle;
   /** How Pinned, Active, and Inactive threads are drawn. */
   threadDisplay: ThreadDisplay;
+  /** Show only project icons on compact Active, Pinned, and Working cards. */
+  compactProjectIconOnly: boolean;
   /** With Compact all threads: keep pinned threads as full cards. */
   keepPinnedThreadsFull: boolean;
   /** With Compact all threads: keep threads that just woke as full cards. */
@@ -63,6 +65,7 @@ export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   childSortDirection: "ascending",
   childIconStyle: "disc",
   threadDisplay: "full",
+  compactProjectIconOnly: false,
   keepPinnedThreadsFull: false,
   keepWokeThreadsFull: false,
   compactWorkingThreads: false,

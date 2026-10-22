@@ -10,6 +10,7 @@ export function CompactRow({
   thread,
   tone,
   showProject = true,
+  projectIconOnly = false,
   projectName,
   projectIconUrl,
   projectColor,
@@ -29,6 +30,7 @@ export function CompactRow({
   thread: PluginSidebarThread;
   tone: "normal" | "muted";
   showProject?: boolean;
+  projectIconOnly?: boolean;
   projectName: string | null;
   projectIconUrl: string;
   projectColor?: CSSProperties;
@@ -102,28 +104,34 @@ export function CompactRow({
             <ProjectFavicon projectId={thread.projectId} src={projectIconUrl} name={projectName} className="size-3" />
             <span
               style={projectColor}
-              className={cn(
-                "max-w-[40%] shrink truncate",
-                projectColor
-                  ? "bb-sidebar-project-name"
-                  : !muted || isActive
-                    ? "text-muted-foreground/70"
-                    : "text-muted-foreground/50 group-hover/slim:text-muted-foreground/70",
-              )}
+              className={
+                projectIconOnly
+                  ? "sr-only"
+                  : cn(
+                      "max-w-[40%] shrink truncate",
+                      projectColor
+                        ? "bb-sidebar-project-name"
+                        : !muted || isActive
+                          ? "text-muted-foreground/70"
+                          : "text-muted-foreground/50 group-hover/slim:text-muted-foreground/70",
+                    )
+              }
             >
               {projectName}
             </span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                "shrink-0 text-sm leading-none",
-                !muted || isActive
-                  ? "text-muted-foreground/60"
-                  : "text-muted-foreground/45 group-hover/slim:text-muted-foreground/60",
-              )}
-            >
-              ·
-            </span>
+            {!projectIconOnly ? (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "shrink-0 text-sm leading-none",
+                  !muted || isActive
+                    ? "text-muted-foreground/60"
+                    : "text-muted-foreground/45 group-hover/slim:text-muted-foreground/60",
+                )}
+              >
+                ·
+              </span>
+            ) : null}
           </>
         ) : null}
         <InlineThreadTitle

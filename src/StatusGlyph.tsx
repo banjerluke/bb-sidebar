@@ -3,7 +3,7 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { relativeTimeLabel } from "./relative-time";
-import { shortStatusLabel, statusToneClass, threadShortStatus, useThreadWithDraft } from "./StatusSlot";
+import { shortStatusLabel, statusToneClass, StatusOrTime, threadShortStatus, useThreadWithDraft } from "./StatusSlot";
 import { useWorkingSinceContext } from "./useWorkingSince";
 
 /**
@@ -90,8 +90,10 @@ function ShineIcon({
  * The live-status glyph and how long the work has run ("◌ 5m"), for rows too
  * narrow for the card's "Working · 5m". The full label stays readable to
  * assistive tech; the duration is left off under a minute, as on the card.
+ * Threads with no live status show their usual status or age, including
+ * parents whose children are still running.
  */
-export function CompactLiveStatus({
+export function CompactStatusOrTime({
   thread: listedThread,
   now,
 }: {
@@ -102,7 +104,7 @@ export function CompactLiveStatus({
   const thread = useThreadWithDraft(listedThread);
   const workingSince = useWorkingSinceContext();
   const status = threadShortStatus(thread);
-  if (status === null) return null;
+  if (status === null || !status.showsDuration) return <StatusOrTime thread={listedThread} now={now} />;
   const startedAt = workingSince.get(thread.id);
   const elapsed = startedAt === undefined ? "now" : relativeTimeLabel(startedAt, now);
   return (

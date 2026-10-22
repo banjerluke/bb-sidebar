@@ -7,7 +7,7 @@ import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { toast } from "./lib/toast";
 import { usePortalScopeProps } from "./lib/portal-scope";
-import { useListAutoAnimate } from "./useListAutoAnimate";
+import { useListMotion } from "./useListMotion";
 import { TRAILING_GLYPH_BOX_CLASS } from "./StatusSlot";
 import type { ThreadReorderControls } from "./ThreadCard";
 import type { SectionView } from "./useInboxSections";
@@ -33,10 +33,10 @@ export function SectionGroups({
   reorderControls: (key: string, name: string) => ThreadReorderControls;
   renderThread: (thread: PluginSidebarThread) => ReactNode;
 }) {
-  const attachListAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
-  const attachLooseAutoAnimateRef = useListAutoAnimate<HTMLUListElement>();
+  const attachListMotionRef = useListMotion<HTMLUListElement>();
+  const attachLooseMotionRef = useListMotion<HTMLUListElement>();
   return (
-    <ul ref={attachListAutoAnimateRef} className="flex flex-col gap-px">
+    <ul ref={attachListMotionRef} className="flex flex-col gap-px">
       {view.groups.map((group) => {
         const reorder = reorderControls(group.key, group.section.name);
         return (
@@ -106,7 +106,7 @@ export function SectionGroups({
               <span className="h-px flex-1 bg-sidebar-border/50" />
             </h3>
           ) : null}
-          <ul ref={attachLooseAutoAnimateRef} className="flex flex-col gap-px">
+          <ul ref={attachLooseMotionRef} className="flex flex-col gap-px">
             {view.loose.map(renderThread)}
           </ul>
         </section>

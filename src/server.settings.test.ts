@@ -200,7 +200,13 @@ it("writes only JSON and keeps historical columns unchanged across reloads", asy
     unknown
   >;
   expect(beforeJson).toBeNull();
-  const next = { ...DEFAULT_SIDEBAR_SETTINGS, snoozePresets: "20m, 6h", inactiveAfterHours: 18, workingShelf: true };
+  const next = {
+    ...DEFAULT_SIDEBAR_SETTINGS,
+    snoozePresets: "20m, 6h",
+    inactiveAfterHours: 18,
+    workingShelf: true,
+    compactProjectIconOnly: true,
+  };
   await expect(harness.behavior.callRpc("updateSidebarSettings", next)).resolves.toEqual(next);
   const { settings_json: storedJson, ...afterColumns } = db.prepare("SELECT * FROM sidebar_settings").get() as Record<
     string,
@@ -227,6 +233,7 @@ it("defaults missing and invalid JSON fields without losing valid settings", asy
       inactiveThreadsEnabled: "false",
       autoSettleAfterDays: -1,
       childSortField: "invalid",
+      compactProjectIconOnly: "true",
       projectColorDisplay: "invalid",
       removedSetting: true,
     }),

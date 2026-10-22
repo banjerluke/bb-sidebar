@@ -1,5 +1,5 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
-import { childStatusKind } from "./child-status";
+import { childStatusKind, childSubtree, threadAsksForInput } from "./child-status";
 import { isThreadWorking } from "./lifecycle";
 import { threadShortStatus } from "./StatusSlot";
 
@@ -11,6 +11,8 @@ import { threadShortStatus } from "./StatusSlot";
  *
  * The thread itself needing you, or failing, outranks its children's work:
  * that is the user's cue, so such a thread never counts as working here.
+ * A descendant waiting on the user outranks the rest of the tree's work too:
+ * its question shows only inside this tree, so the tree must stay in view.
  *
  * Decides both the compact row and the Working shelf.
  */
@@ -27,23 +29,12 @@ export function isWorkingTree(
   ) {
     return false;
   }
+  const descendants = childSubtree(childThreads, childrenByParent);
+  if (descendants.some(threadAsksForInput)) return false;
   if (threadShortStatus(thread)?.showsDuration === true || isThreadWorking(thread)) return true;
-  const pending = [...childThreads];
-  const seen = new Set<string>();
-  while (pending.length > 0) {
-    const child = pending.pop()!;
-    if (child.isArchived || seen.has(child.id)) continue;
-    seen.add(child.id);
-    if (
+  return descendants.some(
+    (child) =>
       childStatusKind(child) === "working" ||
-      (child.indicator !== "unread-error" &&
-        child.indicator !== "waiting-for-input" &&
-        !child.hasPendingInteraction &&
-        child.queuedWork !== "failed" &&
-        isThreadWorking(child))
-    )
-      return true;
-    pending.push(...(childrenByParent.get(child.id) ?? []));
-  }
-  return false;
+      (child.indicator !== "unread-error" && child.queuedWork !== "failed" && isThreadWorking(child)),
+  );
 }

@@ -23,8 +23,9 @@ describe("children of shelved threads", () => {
         threads: [
           thread({ id: "parent", title: "Shelved parent" }),
           thread({ id: "quiet", title: "Quiet child", parentThreadId: "parent" }),
-          // Needs the user, but a shelved row stays one line until expanded.
-          thread({ id: "asking", title: "Asking child", parentThreadId: "parent", hasPendingInteraction: true }),
+          // Failed, but a shelved row stays one line until expanded. A child
+          // that asks for input is the exception: it brings the parent back.
+          thread({ id: "failed", title: "Failed child", parentThreadId: "parent", indicator: "unread-error" }),
           thread({ id: "lonely", title: "No children" }),
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
@@ -41,12 +42,12 @@ describe("children of shelved threads", () => {
     expect(chip.getAttribute("aria-expanded")).toBe("false");
     expect(within(shelf).getAllByRole("button", { name: /child thread/ })).toHaveLength(1);
     expect(within(shelf).queryByText("Quiet child")).toBeNull();
-    expect(within(shelf).queryByText("Asking child")).toBeNull();
+    expect(within(shelf).queryByText("Failed child")).toBeNull();
 
     fireEvent.click(chip);
     expect(chip.getAttribute("aria-expanded")).toBe("true");
     expect(within(shelf).getByText("Quiet child")).toBeDefined();
-    expect(within(shelf).getByText("Asking child")).toBeDefined();
+    expect(within(shelf).getByText("Failed child")).toBeDefined();
     expect(JSON.parse(localStorage.getItem("bb-sidebar:child-expansion:v1")!)).toEqual(["parent"]);
 
     fireEvent.click(chip);

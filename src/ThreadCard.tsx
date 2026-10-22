@@ -21,8 +21,8 @@ import { SettleButton } from "./SettleButton";
 import { cn } from "./lib/utils";
 import { RowContextMenu } from "./RowContextMenu";
 import { ProviderGlyph } from "./ProviderGlyph";
-import { STATUS_SLOT_CLASS, StatusOrTime, threadShortStatus } from "./StatusSlot";
-import { CompactLiveStatus } from "./StatusGlyph";
+import { STATUS_SLOT_CLASS, StatusOrTime } from "./StatusSlot";
+import { CompactStatusOrTime } from "./StatusGlyph";
 import { threadDisplayTitle } from "./inbox";
 import { InlineThreadTitle } from "./InlineThreadTitle";
 import { isWorkingTree } from "./working-tree";
@@ -53,16 +53,14 @@ export interface ThreadReorderControls {
 }
 
 /**
- * One thread as a three-line card: project/status, title, then branch/activity.
- * With compactWhenWorking, live work folds to one line. Project groups omit
- * the project line. Status follows the row through manual reorders.
- *
- * Controls sit above a full-bleed anchor in a positioned row, keeping buttons
- * outside the anchor for valid markup and keyboard behaviour.
+ * Three-line card, or one line in compact mode. Project groups omit the project
+ * line. Status follows manual reorders. Controls sit above a full-bleed anchor
+ * for valid markup and keyboard access.
  */
 export function ThreadCard({
   thread,
   showProject = true,
+  projectIconOnly = false,
   showEnvironment = true,
   isActive,
   isWoke,
@@ -77,6 +75,7 @@ export function ThreadCard({
   thread: PluginSidebarThread;
   /** False when a group header already names the project. */
   showProject?: boolean;
+  projectIconOnly?: boolean;
   showEnvironment?: boolean;
   isActive: boolean;
   /** A snooze ended and has not yet been acknowledged. */
@@ -189,7 +188,6 @@ export function ThreadCard({
   // starts from does not disappear when the cursor leaves the row.
   const holdParkActions = isMenuOpen || isSettling;
   const childListId = useId();
-  const liveStatus = threadShortStatus(thread)?.showsDuration === true;
   // A thread stays folded until everything under it is done; it unfolds at
   // once when it needs you, fails, or just woke.
   const naturalCompact =
@@ -273,6 +271,7 @@ export function ThreadCard({
               thread={thread}
               tone="normal"
               showProject={showProject}
+              projectIconOnly={projectIconOnly}
               projectName={projectName}
               projectIconUrl={projectIconUrl}
               projectColor={projectColor}
@@ -322,16 +321,10 @@ export function ThreadCard({
                     <>
                       {unpinButton}
                       {isWoke ? <WokeMarker onDismiss={onAcknowledgeWake} /> : null}
-                      {/* The parent's own run time while it works; otherwise its
-                          usual status or age, with the badge showing the
-                          children still running. */}
-                      {liveStatus ? (
-                        <CompactLiveStatus thread={thread} now={now} />
-                      ) : (
-                        <StatusOrTime thread={thread} now={now} />
-                      )}
+                      <CompactStatusOrTime thread={thread} now={now} />
                     </>
                   )}
+                  <ProviderGlyph providerId={thread.providerId} provider={provider} />
                 </span>
               }
             />

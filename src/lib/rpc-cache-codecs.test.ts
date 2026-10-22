@@ -53,10 +53,18 @@ describe("settings cache codec", () => {
         childSortField: "unknown",
         childIconStyle: 42,
         compactWorkingThreads: "true",
+        compactProjectIconOnly: "true",
         workingShelf: 1,
         projectColorDisplay: "unknown",
       }),
     ).toEqual({ ...DEFAULT_SIDEBAR_SETTINGS, ...oldSettings });
+  });
+  it("retains the icon-only project preference", () => {
+    expect(decodeSettingsCache({ ...oldSettings, compactProjectIconOnly: true })).toEqual({
+      ...DEFAULT_SIDEBAR_SETTINGS,
+      ...oldSettings,
+      compactProjectIconOnly: true,
+    });
   });
 });
 
