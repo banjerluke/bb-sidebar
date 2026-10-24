@@ -1,4 +1,4 @@
-import { useSidebarThreadPullRequest } from "./bb-sdk";
+import { useEnvironmentPullRequest } from "./bb-sdk";
 import { useEffect, useId, useState } from "react";
 import { UrlLink, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract, ThreadPullRequest } from "./contract";
@@ -12,7 +12,7 @@ import { mergeThreadPullRequests, pullRequestStatusLabel, pullRequestToneClass }
  * Mount it only while the card is open: the history costs an event-log scan.
  */
 export function ThreadPullRequestDetails({ thread }: { thread: PluginSidebarThread }) {
-  const { pullRequest } = useSidebarThreadPullRequest(thread.id);
+  const pullRequest = useEnvironmentPullRequest(thread.environment?.id ?? null);
   const { call } = useRpc<typeof bbSidebarRpcContract>();
   const [history, setHistory] = useState<readonly ThreadPullRequest[]>([]);
   const [expanded, setExpanded] = useState(false);

@@ -1,4 +1,4 @@
-import { useSidebarThreadPullRequest } from "./bb-sdk";
+import { useEnvironmentPullRequest } from "./bb-sdk";
 import { Tooltip } from "./components/Tooltip";
 import { cn } from "./lib/utils";
 import { pullRequestStatusLabel, pullRequestToneClass } from "./pull-request-display";
@@ -32,8 +32,8 @@ export function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
   }
   return <span className="flex-1" />;
 }
-export function ThreadPullRequest({ threadId }: { threadId: string }) {
-  const { pullRequest } = useSidebarThreadPullRequest(threadId);
+export function ThreadPullRequest({ environmentId }: { environmentId: string | null }) {
+  const pullRequest = useEnvironmentPullRequest(environmentId);
   if (!pullRequest) return null;
   return (
     <Tooltip label={`${pullRequest.title}\n${pullRequestStatusLabel(pullRequest)}`} className="whitespace-pre-line">

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { ServerContext } from "./server-context";
 import type { createServerLifecycle, StoredLifecycleRow } from "./server-lifecycle";
 import type { createThreadPortActions } from "./thread-ports";
@@ -12,6 +13,24 @@ import {
 import { threadTreeIds } from "./thread-tree";
 import { resolveShelf } from "./lifecycle";
 import { runThreadTasks } from "./thread-tasks";
+import { GITHUB_PR_STATUS_PLUGIN_ID, MAX_PULL_REQUEST_KEYS } from "./github-pr-status";
+
+// Reads wait for overdue PR data, so a batch can take a while; the next
+// five-minute pass retries.
+const PULL_REQUEST_LOOKUP_TIMEOUT_MS = 60_000;
+
+// Rows are parsed one at a time so one malformed row leaves the others usable.
+const pullRequestRowSchema = z.discriminatedUnion("outcome", [
+  z.object({
+    outcome: z.literal("available"),
+    pullRequest: z.object({
+      state: z.enum(["draft", "open", "merged", "closed"]),
+      updatedAt: z.string(),
+    }),
+  }),
+  z.object({ outcome: z.literal("absent") }),
+  z.object({ outcome: z.literal("unavailable") }),
+]);
 
 export function createServerPolicy(
   ctx: ServerContext,
@@ -32,33 +51,49 @@ export function createServerPolicy(
     wakeAncestors,
     backfillSettledChildRows,
   } = lifecycle;
+  // A missing row, a lookup error, or `unavailable` (machine offline, `gh`
+  // failed, PR Status disabled) is not evidence that no open PR exists. Each
+  // becomes `unknown`, which keeps the thread where it is.
+  let pullRequestLookupFailing = false;
   const loadPullRequests = async (environmentIds: readonly string[]) => {
     const results = new Map<string, AutoSettlePullRequest>();
-    let nextIndex = 0;
-    const workers = Array.from({ length: Math.min(4, environmentIds.length) }, async () => {
-      while (nextIndex < environmentIds.length) {
-        const environmentId = environmentIds[nextIndex++]!;
-        try {
-          const result = await ctx.bb.sdk.environments.pullRequest({
-            environmentId,
-          });
-          if (result.outcome === "available") {
-            results.set(environmentId, {
-              outcome: "available",
-              state: result.pullRequest.state,
-              updatedAt: result.pullRequest.updatedAt,
-            });
-          } else if (result.outcome === "absent") {
-            results.set(environmentId, { outcome: "absent" });
-          } else {
-            results.set(environmentId, { outcome: "unknown" });
-          }
-        } catch {
+    for (let start = 0; start < environmentIds.length; start += MAX_PULL_REQUEST_KEYS) {
+      const keys = environmentIds.slice(start, start + MAX_PULL_REQUEST_KEYS);
+      let rows: Record<string, unknown> = {};
+      try {
+        rows = await ctx.bb.sdk.plugins.callRpc({
+          pluginId: GITHUB_PR_STATUS_PLUGIN_ID,
+          method: "pullRequests",
+          input: { keys },
+          outputSchema: z.record(z.string(), z.unknown()),
+          signal: AbortSignal.timeout(PULL_REQUEST_LOOKUP_TIMEOUT_MS),
+        });
+        pullRequestLookupFailing = false;
+      } catch (error) {
+        if (!pullRequestLookupFailing) {
+          ctx.bb.log.warn(
+            `GitHub PR Status lookup failed; threads with a workspace keep their place until it succeeds: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+        pullRequestLookupFailing = true;
+      }
+      for (const environmentId of keys) {
+        const row = pullRequestRowSchema.safeParse(rows[environmentId]);
+        if (!row.success || row.data.outcome === "unavailable") {
           results.set(environmentId, { outcome: "unknown" });
+        } else if (row.data.outcome === "absent") {
+          results.set(environmentId, { outcome: "absent" });
+        } else {
+          results.set(environmentId, {
+            outcome: "available",
+            state: row.data.pullRequest.state,
+            updatedAt: row.data.pullRequest.updatedAt,
+          });
         }
       }
-    });
-    await Promise.all(workers);
+    }
     return results;
   };
 

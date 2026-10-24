@@ -3,6 +3,7 @@ import { createFakePluginHost as createHost, makeThreadResponse } from "@get-bb/
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import plugin, { type StoredLifecycleRow } from "./server";
 import { deferred } from "./test-fixtures";
+import { GITHUB_PR_STATUS_PLUGIN_ID } from "./github-pr-status";
 
 // Default both SDK listings to the test's thread fixture. Host-boundary tests
 // override them separately to reproduce visibility, paging and stale replies.
@@ -96,6 +97,7 @@ export function projectThread(overrides: Partial<ProjectThread> & { id: string }
     status: "idle",
     title: null,
     titleFallback: null,
+    parentNotifications: "auto",
     updatedAt: 1,
     visibility: "visible",
     ...overrides,
@@ -163,6 +165,35 @@ export function availablePullRequest(
       url: "https://example.com/pr/12",
     },
   };
+}
+
+type PullRequestStatusRow =
+  | ReturnType<typeof availablePullRequest>
+  | { outcome: "absent" }
+  | { outcome: "unavailable"; message: string };
+
+/**
+ * A `plugins.callRpc` fake that answers GitHub PR Status's keyed
+ * `pullRequests` read with one row per environment id, and records each batch.
+ */
+export function pullRequestStatus(
+  row: (environmentId: string) => PullRequestStatusRow | Promise<PullRequestStatusRow>,
+  batches: string[][] = [],
+) {
+  const callRpc = async ({
+    pluginId,
+    method,
+    input,
+    outputSchema,
+  }: Parameters<BbPluginApi["sdk"]["plugins"]["callRpc"]>[0]) => {
+    if (pluginId !== GITHUB_PR_STATUS_PLUGIN_ID || method !== "pullRequests") {
+      throw new Error(`Unexpected RPC ${pluginId}.${method}`);
+    }
+    const { keys } = input as { keys: string[] };
+    batches.push(keys);
+    return outputSchema.parse(Object.fromEntries(await Promise.all(keys.map(async (key) => [key, await row(key)]))));
+  };
+  return callRpc as BbPluginApi["sdk"]["plugins"]["callRpc"];
 }
 
 afterEach(async () => {

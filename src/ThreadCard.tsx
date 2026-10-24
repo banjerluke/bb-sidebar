@@ -504,7 +504,7 @@ export function ThreadCard({
                 {thread.activity.backgroundAgents > 0 ? (
                   <ActivityCount label="background agents" count={thread.activity.backgroundAgents} />
                 ) : null}
-                {isVisible ? <ThreadPullRequest threadId={thread.id} /> : null}
+                {isVisible ? <ThreadPullRequest environmentId={thread.environment?.id ?? null} /> : null}
                 <ProviderGlyph providerId={thread.providerId} provider={provider} />
               </div>
             </div>

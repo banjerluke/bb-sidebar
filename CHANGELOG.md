@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Requires bb 0.47.0 or later. Pull request badges, the hover card's pull request list, and automatic settling now read pull request status from bb's bundled GitHub PR Status plugin.
+
+### Fixed
+
+- Automatic settling works again on bb 0.47. bb removed the pull request lookup the sidebar used, so every lookup failed and no thread with a workspace was settled, whether by a merged pull request or by inactivity. If GitHub PR Status is disabled or a machine is offline, those threads stay where they are rather than being settled without knowing whether a pull request is open.
+
 ## [0.3.6] - 2026-10-21
 
 ### Added

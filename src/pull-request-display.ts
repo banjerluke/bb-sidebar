@@ -1,17 +1,17 @@
-import type { PluginSidebarPullRequest } from "@get-bb/plugin-sdk/app";
 import type { ThreadPullRequest } from "./contract";
+import type { EnvironmentPullRequest, PullRequestAttention, PullRequestState } from "./github-pr-status";
 
 /**
- * A PR as the sidebar draws it. Only the live branch PR from bb carries
- * `attention`; PRs found in the thread's history have just a state, and none
- * when `gh` could not look them up.
+ * A PR as the sidebar draws it. Only the live branch PR from GitHub PR Status
+ * carries `attention`; PRs found in the thread's history have just a state,
+ * and none when `gh` could not look them up.
  */
 type DisplayPullRequest = {
   number: number;
   title: string | null;
   url: string;
-  state: PluginSidebarPullRequest["state"] | null;
-  attention?: PluginSidebarPullRequest["attention"];
+  state: PullRequestState | null;
+  attention?: PullRequestAttention;
 };
 
 export function pullRequestStatusLabel(pullRequest: DisplayPullRequest): string {
@@ -38,8 +38,9 @@ export function pullRequestStatusLabel(pullRequest: DisplayPullRequest): string 
       return "Merged";
     case "closed":
       return "Closed";
-    case "none":
-    case undefined:
+    // `none`, history entries without attention, and values newer than this
+    // sidebar fall back to the state.
+    default:
       if (!pullRequest.state) return "Status unavailable";
       return pullRequest.state[0]!.toUpperCase() + pullRequest.state.slice(1);
   }
@@ -70,14 +71,14 @@ export function pullRequestToneClass(pullRequest: DisplayPullRequest): string {
 }
 
 /**
- * The thread's PRs newest first. The live branch PR from bb has the richer
- * status, so it replaces its history entry. bb reports it per workspace, so in
- * a shared checkout it may belong to another thread; it leads the list only
- * when the workspace is the thread's own worktree (a PR opened outside
- * `gh pr create`).
+ * The thread's PRs newest first. The live branch PR from GitHub PR Status has
+ * the richer status, so it replaces its history entry. It is reported per
+ * workspace, so in a shared checkout it may belong to another thread; it
+ * leads the list only when the workspace is the thread's own worktree (a PR
+ * opened outside `gh pr create`).
  */
 export function mergeThreadPullRequests(
-  current: PluginSidebarPullRequest | null,
+  current: EnvironmentPullRequest | null,
   history: readonly ThreadPullRequest[],
   ownsWorkspace: boolean,
 ): DisplayPullRequest[] {

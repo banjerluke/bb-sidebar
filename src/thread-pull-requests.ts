@@ -1,9 +1,10 @@
 // Every pull request a thread opened, not just the one on its current branch.
 //
-// bb only reports the PR for an environment's checked-out branch, so a thread
-// that ships several branches in a row shows only the latest. The thread's own
-// event log still has the rest: each `gh pr create` prints the PR URL. This
-// module finds those URLs and asks the thread's host for their status via `gh`.
+// GitHub PR Status only reports the PR for an environment's checked-out
+// branch, so a thread that ships several branches in a row shows only the
+// latest. The thread's own event log still has the rest: each `gh pr create`
+// prints the PR URL. This module finds those URLs and asks the thread's host
+// for their status via `gh`.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { portScanContract } from "./port-scan-contract";
 import { createdPullRequestUrls, pullRequestNumber } from "./pull-requests";

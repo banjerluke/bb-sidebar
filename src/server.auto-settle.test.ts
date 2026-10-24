@@ -7,6 +7,7 @@ import {
   projectThread,
   projectsWith,
   availablePullRequest,
+  pullRequestStatus,
   loadPlugin,
   deferred,
   type LifecycleListResult,
@@ -24,6 +25,9 @@ describe("automatic settle evaluation", () => {
       pluginId: "bb-sidebar",
       sdk: {
         plugins: {
+          callRpc: pullRequestStatus(() =>
+            setting === "autoSettleOnMerge" ? availablePullRequest("merged") : { outcome: "absent" },
+          ),
           getSettings: async () => ({
             ok: true as const,
             schema: {},
@@ -42,10 +46,6 @@ describe("automatic settle evaluation", () => {
             ]),
         },
         threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId }) },
-        environments: {
-          pullRequest: async () =>
-            setting === "autoSettleOnMerge" ? availablePullRequest("merged") : { outcome: "absent" as const },
-        },
       },
     });
     await plugin(bb);
@@ -125,12 +125,12 @@ describe("automatic settle evaluation", () => {
         sdk: {
           projects: { list: async () => projectsWith(threads) },
           threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId }) },
-          environments: {
-            pullRequest: async () => {
+          plugins: {
+            callRpc: pullRequestStatus(async () => {
               entered.resolve();
               await release.promise;
-              return { outcome: "absent" as const };
-            },
+              return { outcome: "absent" };
+            }),
           },
         },
       });
@@ -172,7 +172,7 @@ describe("automatic settle evaluation", () => {
             ]),
         },
         threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId }) },
-        environments: { pullRequest: async () => availablePullRequest(prOpen ? "open" : "merged") },
+        plugins: { callRpc: pullRequestStatus(() => availablePullRequest(prOpen ? "open" : "merged")) },
       },
     });
     await plugin(bb);
@@ -204,7 +204,7 @@ describe("automatic settle evaluation", () => {
             ]),
         },
         threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId }) },
-        environments: { pullRequest: async () => availablePullRequest(prOpen ? "open" : "merged") },
+        plugins: { callRpc: pullRequestStatus(() => availablePullRequest(prOpen ? "open" : "merged")) },
       },
     });
     await plugin(bb);
@@ -375,9 +375,7 @@ describe("automatic settle evaluation", () => {
               }),
             ]),
         },
-        environments: {
-          pullRequest: async () => ({ outcome: "absent" as const }),
-        },
+        plugins: { callRpc: pullRequestStatus(() => ({ outcome: "absent" })) },
       },
     });
     await plugin(bb);
@@ -428,6 +426,7 @@ describe("automatic settle evaluation", () => {
   it("looks up a shared environment once and settles merged PR threads together", async () => {
     const old = Date.now() - 60_000;
     const environmentId = "env_shared";
+    const batches: string[][] = [];
     const { bb, harness } = createFakePluginHost({
       pluginId: "bb-sidebar",
       sdk: {
@@ -469,9 +468,7 @@ describe("automatic settle evaluation", () => {
               }),
             ]),
         },
-        environments: {
-          pullRequest: async () => availablePullRequest("merged"),
-        },
+        plugins: { callRpc: pullRequestStatus(() => availablePullRequest("merged"), batches) },
       },
     });
     await plugin(bb);
@@ -480,7 +477,7 @@ describe("automatic settle evaluation", () => {
     await expect(harness.behavior.callRpc("evaluateAutoSettle", {})).resolves.toEqual({
       changedThreadIds: ["thr_a", "thr_b"],
     });
-    expect(harness.inspection.sdk.callsTo("environments.pullRequest")).toHaveLength(1);
+    expect(batches).toEqual([[environmentId]]);
   });
 
   it("discards an outdated policy pass when settings change during evaluation", async () => {
@@ -503,11 +500,11 @@ describe("automatic settle evaluation", () => {
       pluginId: "bb-sidebar",
       sdk: {
         projects: { list: async () => projectsWith([thread]) },
-        environments: {
-          pullRequest: async () => {
+        plugins: {
+          callRpc: pullRequestStatus(() => {
             pullRequestCalls += 1;
             return pullRequestCalls === 1 ? firstPullRequest : availablePullRequest("merged");
-          },
+          }),
         },
       },
     });
@@ -571,9 +568,7 @@ describe("automatic settle evaluation", () => {
               }),
             ]),
         },
-        environments: {
-          pullRequest: async () => availablePullRequest(pullRequestState),
-        },
+        plugins: { callRpc: pullRequestStatus(() => availablePullRequest(pullRequestState)) },
       },
     });
     await plugin(bb);

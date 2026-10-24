@@ -7,6 +7,7 @@ import {
   loadPlugin,
   projectThread,
   projectsWith,
+  pullRequestStatus,
   terminalSession,
   type LifecycleListResult,
   type ProjectThread,
@@ -35,10 +36,9 @@ async function loadWith(threads: () => ProjectThread[]) {
   const { bb, harness } = createFakePluginHost({
     pluginId: "bb-sidebar",
     sdk: {
-      plugins: manualOnly,
+      plugins: { ...manualOnly, callRpc: pullRequestStatus(() => ({ outcome: "absent" })) },
       projects: { list: async () => projectsWith(threads()) },
       threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId }) },
-      environments: { pullRequest: async () => ({ outcome: "absent" as const }) },
     },
   });
   await plugin(bb);
@@ -122,7 +122,7 @@ describe("children of older parent-only settles", () => {
         throw new Error(`Unexpected host call: ${method}`);
       },
       sdk: {
-        plugins: manualOnly,
+        plugins: { ...manualOnly, callRpc: pullRequestStatus(() => ({ outcome: "absent" })) },
         projects: { list: async () => projectsWith(threads) },
         threads: { get: async ({ threadId }) => makeThreadResponse({ id: threadId, environmentId: "env_shared" }) },
         environments: {
@@ -130,7 +130,6 @@ describe("children of older parent-only settles", () => {
             ({ id: "env_shared", hostId: "host_1", path: "/workspace/shared", status: "ready" }) as Awaited<
               ReturnType<typeof bb.sdk.environments.get>
             >,
-          pullRequest: async () => ({ outcome: "absent" as const }),
         },
         terminals: {
           list: async ({ scope }) => ({

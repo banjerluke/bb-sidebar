@@ -32,22 +32,44 @@ describe("pull request badge", () => {
     }
   });
 
+  const prEnvironment = {
+    id: "env_pr",
+    name: "Worktree",
+    branchName: "bb/fix-flake",
+    workspaceDisplayKind: "managed-worktree" as const,
+    path: null,
+    isWorktree: null,
+    providerId: null,
+  };
   const withPr = (attention: string, state = "open") =>
     renderSlot(inbox, listProps, {
       sidebarThreads: {
         status: "ready",
-        threads: [thread({ id: "thr_pr" })],
+        threads: [thread({ id: "thr_pr", environment: prEnvironment })],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
-      sidebarPullRequests: {
-        thr_pr: {
-          number: 412,
-          title: "Fix the flake",
-          url: "https://github.com/o/r/pull/412",
-          state,
-          attention,
-        } as never,
+      rpc: {
+        listLifecycle: () => ({ rows: [] }),
+        // GitHub PR Status's keyed read, answered per environment id.
+        pullRequests: (input) =>
+          Object.fromEntries(
+            (input as { keys: string[] }).keys.map((key) => [
+              key,
+              key === "env_pr"
+                ? {
+                    outcome: "available",
+                    pullRequest: {
+                      number: 412,
+                      title: "Fix the flake",
+                      url: "https://github.com/o/r/pull/412",
+                      state,
+                      attention,
+                      updatedAt: "2026-10-23T12:00:00Z",
+                    },
+                  }
+                : { outcome: "absent" },
+            ]),
+          ),
       },
     });
 
