@@ -20,7 +20,7 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'toggle sequence'
 
 `@playwright/test` supplies role locators, retrying assertions, PNG comparisons,
 and failure screenshots/traces. Both commands use `scripts/e2e/server.mjs` and
-bb-app 0.46.0. Neither runs as part of `npm run check`. Run e2e separately from
+bb-app 0.47.0. Neither runs as part of `npm run check`. Run e2e separately from
 Vitest; the scratch server and Chromium compete with the unit suite for CPU.
 Before releases on macOS: `npm run e2e`; CI: `gh workflow run "Browser e2e"`.
 
@@ -134,9 +134,10 @@ terminal, and lifecycle state. It does not exercise closing a real terminal.
 
 Three populated captures cover light, dark, and a 280 px wide plugin sidebar.
 A fourth capture shows empty Active after all threads have been settled.
-The wide captures are 320 px. The host's persisted width includes a 53 px
-navigation rail/border, so the browser fixture adds that amount and asserts the
-actual plugin width. The populated images contain Pinned, Active, Snoozed, and Settled.
+The wide captures are 320 px. The host's persisted width includes a 49 px
+navigation rail/border on bb 0.47, so the browser fixture adds that amount and
+asserts the actual plugin width. Update the offset in `open()` when a host
+release changes it. The populated images contain Pinned, Active, Snoozed, and Settled.
 Titles, project name, branch, order, locale, and timezone are fixed. A capture
 stylesheet hides relative update/wake labels while retaining layout, reduced
 motion disables animation, and the mouse moves off the sidebar.

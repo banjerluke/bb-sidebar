@@ -89,8 +89,8 @@ export async function open(page, { theme = "light", width = 320, empty = false }
   await page.addInitScript(
     ({ theme, width }) => {
       localStorage.setItem("bb.theme", theme);
-      // bb 0.46.1 reserves 45 px for its navigation rail and border.
-      localStorage.setItem("bb.sidebar.width", String(width + 45));
+      // bb 0.47.0 reserves 49 px for its navigation rail and border.
+      localStorage.setItem("bb.sidebar.width", String(width + 49));
     },
     { theme, width },
   );

@@ -15,20 +15,17 @@ async function colors(toast) {
       return read(probe);
     };
     const surface = tokens("--popover", "--popover-foreground");
-    const button = tokens("--secondary", "--secondary-foreground");
-    const hover = tokens("--accent", "--accent-foreground");
     const muted = tokens("--popover", "--muted-foreground").text;
     probe.remove();
     const card = element.getAttribute("data-styled") === "false" ? element.firstElementChild : element;
     const action = [...element.querySelectorAll("button")].find((el) => el.textContent === "Undo");
-    const description = element.querySelector("[data-description]");
+    // bb 0.47 draws every toast with its own component; older hosts used Sonner's markup.
+    const description = element.querySelector('[data-testid="app-toast-description"], [data-description]');
     return {
       toast: read(card),
       action: read(action),
       description: description ? read(description).text : null,
       surface,
-      button,
-      hover,
       muted,
     };
   });
@@ -42,8 +39,11 @@ async function capture(page, toast, testInfo, theme, kind) {
   return result;
 }
 
+// The sidebar's toasts go through bb's Toaster with its own class, so they
+// should be indistinguishable from bb's native toasts. Compare against the
+// native Archive toast instead of fixed tokens so host restyles are followed.
 for (const theme of ["dark", "light"]) {
-  test(`sidebar toast matches host surfaces in ${theme}`, async ({ page, request }, testInfo) => {
+  test(`sidebar toast matches bb's native toast in ${theme}`, async ({ page, request }, testInfo) => {
     await reset(request);
     await open(page, { theme });
     const thread = fixture.threads[0];
@@ -51,12 +51,9 @@ for (const theme of ["dark", "light"]) {
     const toast = page.locator("[data-sonner-toast].bb-sidebar-toast").filter({ hasText: "Thread settled" });
     await expect(toast).toBeVisible();
     const settled = await capture(page, toast, testInfo, theme, "sidebar");
-    expect(settled.toast).toEqual(settled.surface);
-    expect(settled.action).toEqual(settled.button);
-    expect(settled.description).toBe(settled.muted);
     const undo = toast.getByRole("button", { name: "Undo", exact: true });
     await undo.hover();
-    expect((await colors(toast)).action).toEqual(settled.hover);
+    const settledHover = (await colors(toast)).action;
     await undo.click();
     await expect(link(page, thread.title)).toBeVisible();
 
@@ -66,8 +63,19 @@ for (const theme of ["dark", "light"]) {
     await expect(native).toBeVisible();
     await expect(native).not.toHaveClass(/bb-sidebar-toast/);
     const archived = await capture(page, native, testInfo, theme, "native");
+    const nativeUndo = native.getByRole("button", { name: "Undo", exact: true });
+    await nativeUndo.hover();
+    const archivedHover = (await colors(native)).action;
+
     expect(archived.toast).toEqual(archived.surface);
-    await native.getByRole("button", { name: "Undo", exact: true }).click();
+    expect(settled.toast).toEqual(archived.toast);
+    expect(settled.action).toEqual(archived.action);
+    expect(settledHover).toEqual(archivedHover);
+    // Settling the fixture stops its agent session, so the toast describes it.
+    expect(settled.description).toBe(settled.muted);
+    expect(settled.description).toBe(archived.description);
+
+    await nativeUndo.click();
     await expect(link(page, thread.title)).toBeVisible();
   });
 }
