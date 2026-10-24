@@ -15,7 +15,7 @@ export function createServerSettleCleanup(
   threadPortActions: ReturnType<typeof createThreadPortActions>,
   getOpenPorts: ReturnType<typeof createPortDiscovery>,
 ) {
-  const { loadPolicyThreads, readOne, sameLifecycle, threadSignals } = lifecycle;
+  const { loadPolicyThreads, loadPolicyThread, readOne, sameLifecycle, threadSignals } = lifecycle;
   type CleanupIssue = z.infer<typeof cleanupIssueSchema>;
 
   type CleanupPlanThread = {
@@ -162,7 +162,7 @@ export function createServerSettleCleanup(
       (!owner || sameLifecycle(readOne(owner.threadId), owner.row));
     const canReclaim = async () => {
       if (!ownsRow()) return false;
-      const thread = (await loadPolicyThreads(snapshot?.visibility === "hidden")).find((item) => item.id === threadId);
+      const thread = await loadPolicyThread(threadId, snapshot?.visibility === "hidden");
       return (
         ownsRow() &&
         thread !== undefined &&

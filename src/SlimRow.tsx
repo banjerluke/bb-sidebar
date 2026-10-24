@@ -1,5 +1,5 @@
 import { memo, useId, useState } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useSidebarThreadShortcut, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
@@ -10,7 +10,8 @@ import { threadDisplayTitle } from "./inbox";
 import { snoozeWakeLabel } from "./lifecycle";
 import { useProjectColor } from "./ProjectColors";
 import { OpenPortsIndicator } from "./OpenPorts";
-import { JumpHint, useJumpHint } from "./JumpHints";
+import { ShortcutHint } from "./bb-sdk";
+import { rowKeyshortcuts } from "./lib/keyshortcuts";
 import { useInboxActivity, useInboxEnvironment, useInboxActions } from "./InboxContext";
 import { projectIconUrl as iconUrl } from "./project-icons";
 
@@ -61,7 +62,7 @@ export const SlimRow = memo(function SlimRow({
         ? void lifecycle.unsnooze(thread.id)
         : void lifecycle.unsettle(thread.id);
   const projectColor = useProjectColor(thread.projectId);
-  const jumpHint = useJumpHint(thread.id);
+  const shortcut = useSidebarThreadShortcut(thread.id);
   const title = threadDisplayTitle(thread);
   const rowLabel = projectName ? `${projectName} · ${title}` : title;
   const [isRenaming, setIsRenaming] = useState(false);
@@ -90,6 +91,7 @@ export const SlimRow = memo(function SlimRow({
           isActive={isActive}
           isRenaming={isRenaming}
           onRenamingChange={setIsRenaming}
+          linkProps={{ "aria-keyshortcuts": rowKeyshortcuts(shortcut?.ariaKeyshortcuts, false) }}
           onOpen={() => {
             navigate.toThread(thread.id, { split: false });
             onNavigate();
@@ -112,8 +114,8 @@ export const SlimRow = memo(function SlimRow({
               {/* Size to the label so the port icon stays beside it. Keep enough
               room for the restore button, which replaces the label on hover.
               On touch devices, show both side by side. */}
-              {jumpHint ? (
-                <JumpHint label={jumpHint} />
+              {shortcut ? (
+                <ShortcutHint shortcut={shortcut} />
               ) : (
                 <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
                   <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">

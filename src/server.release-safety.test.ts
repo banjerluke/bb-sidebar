@@ -19,8 +19,9 @@ describe("release lifecycle safety", () => {
       projectsWith(threads.filter((t) => t.visibility === "visible")),
     );
     harness.inspection.sdk.stub("threads.list", async (args: Parameters<BbPluginApi["sdk"]["threads"]["list"]>[0]) => {
-      const { offset = 0, limit = 100 } = args ?? {};
-      return threads.slice(offset, offset + limit);
+      const { offset = 0, limit = 100, threadIds } = args ?? {};
+      const matching = threadIds ? threads.filter((t) => threadIds.includes(t.id)) : threads;
+      return matching.slice(offset, offset + limit);
     });
     harness.inspection.sdk.stub("threads.get", async ({ threadId }) =>
       makeThreadResponse(threads.find((t) => t.id === threadId)!),
@@ -69,6 +70,21 @@ describe("release lifecycle safety", () => {
     gate.resolve();
     await settling;
     expect(stopped).not.toContain(late.id);
+  });
+
+  it("looks up only the settling thread before stopping it", async () => {
+    const threads = [
+      projectThread({ id: "root" }),
+      ...Array.from({ length: 150 }, (_, i) => projectThread({ id: `other${i}` })),
+    ];
+    const h = await host(threads);
+    await h.behavior.callRpc("settle", { threadId: "root" });
+    expect(h.inspection.sdk.callsTo("threads.stop")).toEqual([[{ threadId: "root" }]]);
+    // Each reclaim check is one id-filtered read, not a walk over every page.
+    const reads = h.inspection.sdk.callsTo("threads.list") as Array<[{ threadIds?: string[] }]>;
+    const reclaimReads = reads.filter(([args]) => args?.threadIds);
+    expect(reclaimReads.length).toBeGreaterThan(0);
+    expect(reclaimReads.every(([args]) => args.threadIds?.join() === "root")).toBe(true);
   });
 
   it("rechecks activity after terminal lookup before closing anything", async () => {

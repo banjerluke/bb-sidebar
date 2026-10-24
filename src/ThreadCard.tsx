@@ -1,7 +1,7 @@
 import { ThreadLocation, ThreadPullRequest } from "./ThreadMetadata";
 import { CompactRow } from "./CompactRow";
 import { WokeMarker } from "./WokeMarker";
-import { useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
+import { ShortcutHint, useSidebarThreadSplit, useThreadActions } from "./bb-sdk";
 import {
   useId,
   useLayoutEffect,
@@ -11,13 +11,14 @@ import {
   type KeyboardEventHandler,
   type PointerEventHandler,
 } from "react";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useSidebarThreadShortcut, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./ChildThreadList";
 import { Icon } from "./components/Icon";
 import { Tooltip } from "./components/Tooltip";
 import { ThreadDetailsTooltip } from "./ThreadDetailsTooltip";
 import { SnoozeSelect } from "./SnoozeSelect";
 import { cn } from "./lib/utils";
+import { rowKeyshortcuts } from "./lib/keyshortcuts";
 import { RowContextMenu } from "./RowContextMenu";
 import { ProviderGlyph } from "./ProviderGlyph";
 import { STATUS_SLOT_CLASS, StatusOrTime } from "./StatusSlot";
@@ -28,7 +29,6 @@ import { isWorkingTree } from "./working-tree";
 import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
 import { OpenPortsIndicator } from "./OpenPorts";
-import { JumpHint, useJumpHint } from "./JumpHints";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { projectIconUrl as iconUrl } from "./project-icons";
@@ -111,7 +111,7 @@ export function ThreadCard({
   const onSnooze = (until: number) => snoozeThread(thread, until);
   const onAcknowledgeWake = () => acknowledgeWake(thread.id);
   const onToggleChildren = () => toggleChildExpansion(thread.id);
-  const jumpHint = useJumpHint(thread.id);
+  const shortcut = useSidebarThreadShortcut(thread.id);
   const { splitProps, layout } = useSidebarThreadSplit(thread.id);
   const rowRef = useRef<HTMLLIElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -286,7 +286,7 @@ export function ThreadCard({
               rowProps={{ "data-parent-card": "", "data-settling": isSettling ? "" : undefined }}
               linkProps={{
                 draggable: false,
-                "aria-keyshortcuts": reorder ? "Alt+ArrowUp Alt+ArrowDown" : undefined,
+                "aria-keyshortcuts": rowKeyshortcuts(shortcut?.ariaKeyshortcuts, !!reorder),
                 onPointerDown: (event) => {
                   splitProps.onPointerDown?.(event);
                   reorder?.onPointerDown(event);
@@ -312,8 +312,8 @@ export function ThreadCard({
                       onToggle={onToggleChildren}
                     />
                   ) : null}
-                  {jumpHint ? (
-                    <JumpHint label={jumpHint} />
+                  {shortcut ? (
+                    <ShortcutHint shortcut={shortcut} />
                   ) : (
                     <>
                       {unpinButton}
@@ -357,7 +357,7 @@ export function ThreadCard({
                   aria-label={threadDisplayTitle(thread)}
                   aria-current={isActive ? "page" : undefined}
                   draggable={false}
-                  aria-keyshortcuts={reorder ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
+                  aria-keyshortcuts={rowKeyshortcuts(shortcut?.ariaKeyshortcuts, !!reorder)}
                   onPointerDown={(event) => {
                     splitProps.onPointerDown?.(event);
                     reorder?.onPointerDown(event);
@@ -409,9 +409,9 @@ export function ThreadCard({
                 )}
                 {/* bb's own rows trade their trailing status for the shortcut
                   while the modifier is held; these do the same. */}
-                {jumpHint ? (
+                {shortcut ? (
                   <span className={cn(STATUS_SLOT_CLASS, "w-auto")}>
-                    <JumpHint label={jumpHint} />
+                    <ShortcutHint shortcut={shortcut} />
                   </span>
                 ) : isWoke ? (
                   <span className={cn(STATUS_SLOT_CLASS, "w-auto gap-1.5")}>

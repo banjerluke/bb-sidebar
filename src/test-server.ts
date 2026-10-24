@@ -14,7 +14,9 @@ export const createFakePluginHost = (options: Parameters<typeof createHost>[0]) 
       "threads.list",
       async (args: Parameters<BbPluginApi["sdk"]["threads"]["list"]>[0]) => {
         const projects = await result.bb.sdk.projects.list({ include: "threads", includePersonal: true });
-        const threads = projects.flatMap((p) => ("threads" in p ? p.threads : []));
+        const all = projects.flatMap((p) => ("threads" in p ? p.threads : []));
+        // bb 0.47 filters by id server-side; unknown ids are left out.
+        const threads = args?.threadIds ? all.filter((thread) => args.threadIds!.includes(thread.id)) : all;
         const offset = args?.offset ?? 0;
         return threads.slice(offset, offset + (args?.limit ?? 100));
       },

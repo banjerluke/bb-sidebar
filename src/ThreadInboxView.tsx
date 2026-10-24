@@ -1,5 +1,5 @@
 import type { useSidebarThreads } from "./bb-sdk";
-import type { RefObject, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadListLoading, ActiveEmptyState, WorkingEmptyState } from "./ThreadInboxEmptyStates";
 import {
@@ -36,7 +36,6 @@ interface ShelfThreads {
 
 interface ThreadInboxViewProps {
   shelves: Record<"pinned" | "inbox" | "working" | "inactive" | "snoozed" | "parked" | "settled", ShelfThreads>;
-  jumpHintsRootRef: RefObject<HTMLDivElement | null>;
   scope: readonly string[];
   reorderAnnouncement: string;
   attachScrollFadeRef: (node: HTMLDivElement | null) => void;
@@ -68,7 +67,6 @@ interface ThreadInboxViewProps {
 
 export function ThreadInboxView({
   shelves,
-  jumpHintsRootRef,
   scope,
   reorderAnnouncement,
   attachScrollFadeRef,
@@ -89,7 +87,7 @@ export function ThreadInboxView({
   const { setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
   const { pinned, inbox, working, inactive, snoozed, parked, settled } = shelves;
   return (
-    <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
+    <div data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
       {/* Project scope is plugin-owned; New thread lives in bb's chrome. */}
       <ProjectScopeControls scope={scope} status={status} />
 

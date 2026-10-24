@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSdk, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "./lib/toast";
 import { cn } from "./lib/utils";
-import { threadDisplayTitle } from "./inbox";
+import { threadDisplayTitle, threadStoredTitle, threadTitleHasMentions } from "./inbox";
 import { ThreadTitle } from "./ThreadTitle";
 
 /** Inline title editing shared by full cards and parked rows. */
@@ -18,7 +18,8 @@ export function InlineThreadTitle({
   className?: string;
 }) {
   const sdk = useSdk();
-  const title = threadDisplayTitle(thread);
+  // Edit the stored title so saving never flattens mention tokens into names.
+  const title = threadStoredTitle(thread);
   const [draft, setDraft] = useState(title);
   const finished = useRef(false);
   const latest = useRef({ draft, title, sdk, onEditingChange });
@@ -42,7 +43,16 @@ export function InlineThreadTitle({
     finished.current = false;
   }, [editing, title]);
 
-  if (!editing) return <ThreadTitle threadId={thread.id} title={title} className={className} />;
+  if (!editing) {
+    return (
+      <ThreadTitle
+        threadId={thread.id}
+        title={threadDisplayTitle(thread)}
+        mentions={threadTitleHasMentions(thread)}
+        className={className}
+      />
+    );
+  }
 
   const finish = (save: boolean) => {
     if (finished.current) return;
@@ -57,7 +67,7 @@ export function InlineThreadTitle({
   return (
     <input
       autoFocus
-      aria-label={`Rename ${title}`}
+      aria-label={`Rename ${threadDisplayTitle(thread)}`}
       value={draft}
       onFocus={(event) => event.currentTarget.select()}
       onChange={(event) => setDraft(event.currentTarget.value)}

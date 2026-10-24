@@ -28,6 +28,24 @@ test("pin persists in Pinned after reload", async ({ page }) => {
   await expect(link(page, atlas.title, "Pinned")).toBeVisible();
 });
 
+// bb owns the hold delay, numbering, and pill; the sidebar draws what it assigns.
+test("holding the shortcut modifier shows bb's jump keys on sidebar rows", async ({ page }) => {
+  const modifier = process.platform === "darwin" ? "Meta" : "Control";
+  const sidebar = page.locator("[data-bb-sidebar-root]");
+  await expect(link(page, atlas.title)).toBeVisible();
+  await page.mouse.move(1000, 750);
+  await page.keyboard.down(modifier);
+  try {
+    const hints = sidebar.locator("kbd");
+    await expect(hints).toHaveCount(fixture.threads.length);
+    await expect(hints.first()).toContainText("1");
+    await expect(link(page, atlas.title)).toHaveAttribute("aria-keyshortcuts", /1/);
+  } finally {
+    await page.keyboard.up(modifier);
+  }
+  await expect(sidebar.locator("kbd")).toHaveCount(0);
+});
+
 test("manual keyboard reorder persists after reload", async ({ page, request }) => {
   const active = shelf(page, "Active");
   await expect(active.getByRole("link").first()).toHaveAttribute("aria-keyshortcuts", /Alt\+ArrowUp/);

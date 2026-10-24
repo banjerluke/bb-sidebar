@@ -1,8 +1,18 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
 import { renderSlot } from "./test-slot";
-import { inbox, defaultSidebarSettings, thread, listProps, toastMocks, loadInboxApp } from "./test-inbox";
+import {
+  inbox,
+  defaultSidebarSettings,
+  thread,
+  listProps,
+  toastMocks,
+  loadInboxApp,
+  PolicyMenu,
+  deferred,
+} from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -180,5 +190,121 @@ describe("parent thread menu", () => {
         description: "Parent is no longer available",
       }),
     );
+  });
+
+  describe("parent notifications", () => {
+    const openNotifications = async () => {
+      fireEvent.contextMenu(screen.getByRole("button", { name: "Policy row" }));
+      const menu = await screen.findByRole("menu", { name: "Thread actions" });
+      fireEvent.click(within(menu).getByRole("menuitem", { name: "Notify parent" }));
+      const label = await screen.findByText("Wake the parent thread on");
+      const submenu = label.closest<HTMLElement>('[role="menu"]')!;
+      expect(submenu.getAttribute("aria-label")).toBe("Parent notifications");
+      return submenu;
+    };
+    const checked = (menu: HTMLElement) =>
+      within(menu)
+        .getAllByRole("menuitemradio")
+        .filter((item) => item.getAttribute("aria-checked") === "true")
+        .map((item) => item.textContent);
+
+    // bb never reports a fork's outcomes to its parent, whatever the setting says.
+    it.each([
+      ["a root thread", thread({ id: "root", title: "Root" })],
+      ["a fork with a parent", thread({ id: "fork", title: "Fork", parentThreadId: "root", originKind: "fork" })],
+    ])("does not appear on %s", async (_, selected) => {
+      renderSlot({ component: PolicyMenu }, { selected }, { sidebarThreads: { threads: [selected] } });
+      fireEvent.contextMenu(screen.getByRole("button", { name: "Policy row" }));
+      const menu = await screen.findByRole("menu", { name: "Thread actions" });
+      expect(within(menu).queryByRole("menuitem", { name: "Notify parent" })).toBeNull();
+    });
+
+    it("reads the setting only after a save from an earlier open lands", async () => {
+      const child = thread({ id: "child", title: "Child", parentThreadId: "root" });
+      let stored = "auto" as "auto" | "off";
+      const saved = deferred<void>();
+      renderSlot(
+        { component: PolicyMenu },
+        { selected: child },
+        {
+          sidebarThreads: { threads: [child] },
+          sdk: {
+            threads: {
+              get: async () => makeThreadResponse({ id: "child", parentNotifications: stored }),
+              update: async () => {
+                await saved.promise;
+                stored = "off";
+                return makeThreadResponse({ id: "child", parentNotifications: "off" });
+              },
+            },
+          },
+        },
+      );
+      let menu = await openNotifications();
+      await waitFor(() => expect(checked(menu)).toEqual([expect.stringContaining("Every outcome")]));
+      fireEvent.click(within(menu).getByRole("menuitemradio", { name: /^Off/ }));
+
+      // Reopened while the save is still in flight: no stale read, no second write.
+      menu = await openNotifications();
+      expect(checked(menu)).toEqual([]);
+      for (const item of within(menu).getAllByRole("menuitemradio"))
+        expect(item.hasAttribute("data-disabled")).toBe(true);
+      saved.resolve();
+      await waitFor(() => expect(checked(menu)).toEqual([expect.stringContaining("Off")]));
+    });
+
+    it("shows the current setting and saves a new one", async () => {
+      const child = thread({ id: "child", title: "Child", parentThreadId: "root" });
+      const rendered = renderSlot(
+        { component: PolicyMenu },
+        { selected: child },
+        {
+          sidebarThreads: { threads: [child] },
+          sdk: {
+            threads: { get: async () => makeThreadResponse({ id: "child", parentNotifications: "stuck" }) },
+          },
+        },
+      );
+      const menu = await openNotifications();
+      await waitFor(() => expect(checked(menu)).toEqual([expect.stringContaining("Only when stuck")]));
+      fireEvent.click(within(menu).getByRole("menuitemradio", { name: /^Off/ }));
+      await waitFor(() =>
+        expect(rendered.sdkCalls).toContainEqual({
+          method: "threads.update",
+          args: [{ threadId: "child", parentNotifications: "off" }],
+        }),
+      );
+    });
+
+    it("reports a failed save and shows the saved setting again", async () => {
+      const child = thread({ id: "child", title: "Child", parentThreadId: "root" });
+      renderSlot(
+        { component: PolicyMenu },
+        { selected: child },
+        {
+          sidebarThreads: { threads: [child] },
+          sdk: {
+            threads: {
+              get: async () => makeThreadResponse({ id: "child", parentNotifications: "auto" }),
+              update: async () => {
+                throw new Error("offline");
+              },
+            },
+          },
+        },
+      );
+      const menu = await openNotifications();
+      await waitFor(() => expect(checked(menu)).toEqual([expect.stringContaining("Every outcome")]));
+      fireEvent.click(within(menu).getByRole("menuitemradio", { name: /^Off/ }));
+      await waitFor(() =>
+        expect(toastMocks.error).toHaveBeenCalledWith("Could not update parent notifications", {
+          className: "bb-sidebar-toast",
+          description: "offline",
+        }),
+      );
+      // Choosing closes the menu; reopening reads the setting bb still holds.
+      const reopened = await openNotifications();
+      await waitFor(() => expect(checked(reopened)).toEqual([expect.stringContaining("Every outcome")]));
+    });
   });
 });

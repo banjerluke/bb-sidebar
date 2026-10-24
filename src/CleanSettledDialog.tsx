@@ -1,10 +1,12 @@
 import { useBbNavigate } from "@get-bb/plugin-sdk/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRpc } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult } from "./contract";
+import { useSidebarThreads } from "./bb-sdk";
+import { threadDisplayTitle } from "./inbox";
 
 export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: string[]; onNavigate: () => void }) {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
@@ -18,6 +20,9 @@ export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: strin
   const [refreshKey, setRefreshKey] = useState(0);
   const latestThreadIds = useRef(threadIds);
   latestThreadIds.current = threadIds;
+  // The server sends stored titles; show them as the rows do, mentions resolved.
+  const { threads } = useSidebarThreads();
+  const titleById = useMemo(() => new Map(threads.map((thread) => [thread.id, threadDisplayTitle(thread)])), [threads]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,10 +126,10 @@ export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: strin
                   <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-border bg-background p-2">
                     {preview.threads.map((thread) => (
                       <li key={thread.threadId}>
-                        <span className="font-medium">{thread.title}</span>
+                        <span className="font-medium">{titleById.get(thread.threadId) ?? thread.title}</span>
                         <button
                           type="button"
-                          aria-label={`Open thread: ${thread.title}`}
+                          aria-label={`Open thread: ${titleById.get(thread.threadId) ?? thread.title}`}
                           disabled={busy}
                           onClick={() => {
                             if (busy) return;

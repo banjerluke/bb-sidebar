@@ -1,13 +1,26 @@
+import { ThreadTitle as BbThreadTitle } from "@get-bb/plugin-sdk/app";
 import { Icon } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { useTitleGenerating } from "./title-generation-state";
 
-export function ThreadTitle({ threadId, title, className }: { threadId: string; title: string; className?: string }) {
+export function ThreadTitle({
+  threadId,
+  title,
+  mentions = false,
+  className,
+}: {
+  threadId: string;
+  title: string;
+  /** Draw bb's mention chips; `title` is the same text resolved to names. */
+  mentions?: boolean;
+  className?: string;
+}) {
   const generating = useTitleGenerating(threadId);
-  if (!generating) return <span className={className}>{title}</span>;
+  const text = mentions ? <BbThreadTitle threadId={threadId} /> : title;
+  if (!generating) return <span className={className}>{text}</span>;
   return (
     <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5", className)}>
-      <span className="min-w-0 truncate">{title}</span>
+      <span className="min-w-0 truncate">{text}</span>
       <span role="status" aria-label="Generating title" className="inline-flex shrink-0 text-muted-foreground/60">
         <Icon name="Loading" aria-hidden="true" className="size-3 animate-spin motion-reduce:animate-none" />
       </span>

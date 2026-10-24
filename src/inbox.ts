@@ -35,11 +35,30 @@ export function sortSettledThreads<
   });
 }
 
-export function threadDisplayTitle(thread: PluginSidebarThread): string {
+/** The title as stored, for editing: mentions stay tokens so a rename keeps them. */
+export function threadStoredTitle(thread: PluginSidebarThread): string {
   const title = thread.title?.trim();
   if (title) return title;
   const fallback = thread.titleFallback?.trim();
   return fallback ? fallback : "Untitled thread";
+}
+
+/**
+ * Whether bb resolved mentions in the title. bb's `displayTitle` is the title,
+ * else the fallback, with every mention it knows (threads, projects, sections,
+ * folders, files) resolved to a name, so for a named thread it differs from
+ * the stored text only when something was resolved. This follows bb's mention
+ * syntax instead of copying it.
+ */
+export function threadTitleHasMentions(thread: PluginSidebarThread): boolean {
+  if (!thread.title?.trim() && !thread.titleFallback?.trim()) return false;
+  const resolved = thread.displayTitle?.trim();
+  return !!resolved && resolved !== threadStoredTitle(thread);
+}
+
+/** The title as bb shows it: mentions resolved to names, anything else exactly as stored. */
+export function threadDisplayTitle(thread: PluginSidebarThread): string {
+  return threadTitleHasMentions(thread) ? thread.displayTitle.trim() : threadStoredTitle(thread);
 }
 
 /** Projects whose name matches the picker query; every project when blank. */

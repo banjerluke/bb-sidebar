@@ -249,6 +249,13 @@ export function createServerLifecycle(ctx: ServerContext) {
     return [...byId.values()];
   };
 
+  /** One thread under loadPolicyThreads' rules, without listing every thread. */
+  const loadPolicyThread = async (threadId: string, includeHidden = false) => {
+    const [thread] = await ctx.bb.sdk.threads.list({ threadIds: [threadId], archived: false, includeHidden });
+    if (!thread || thread.id !== threadId || thread.archivedAt !== null || thread.deletedAt !== null) return undefined;
+    return includeHidden || thread.visibility === "visible" ? thread : undefined;
+  };
+
   type CleanupThread = Awaited<ReturnType<typeof loadPolicyThreads>>[number];
 
   const threadSignals = (thread: CleanupThread) => ({
@@ -341,6 +348,7 @@ export function createServerLifecycle(ctx: ServerContext) {
     readInboxOrder,
     replaceInboxOrder,
     loadPolicyThreads,
+    loadPolicyThread,
     threadSignals,
     settleTree,
     loadSettleTree,

@@ -12,6 +12,8 @@ import {
   sortByCreatedAtDescending,
   sortSettledThreads,
   threadDisplayTitle,
+  threadStoredTitle,
+  threadTitleHasMentions,
   visibleInboxThreads,
 } from "./inbox";
 
@@ -116,6 +118,33 @@ describe("threadDisplayTitle", () => {
 
   it("treats a whitespace-only title as absent", () => {
     expect(threadDisplayTitle(thread({ title: "   ", titleFallback: "Fallback" }))).toBe("Fallback");
+  });
+
+  it("shows bb's resolved names for mention titles and keeps the stored text for editing", () => {
+    const mentioned = thread({ title: "Review @thread:thr_other", displayTitle: "Review Other thread" });
+    expect(threadTitleHasMentions(mentioned)).toBe(true);
+    expect(threadDisplayTitle(mentioned)).toBe("Review Other thread");
+    expect(threadStoredTitle(mentioned)).toBe("Review @thread:thr_other");
+    // A host that has not resolved the name yet still shows the stored title.
+    expect(threadDisplayTitle({ ...mentioned, displayTitle: "" })).toBe("Review @thread:thr_other");
+  });
+
+  it("follows whatever bb resolved, including section aliases and file paths", () => {
+    const folder = thread({ title: "Review @folder:sec_work", displayTitle: "Review Work" });
+    expect(threadTitleHasMentions(folder)).toBe(true);
+    expect(threadDisplayTitle(folder)).toBe("Review Work");
+    const file = thread({ title: "Fix @src/inbox.ts", displayTitle: "Fix inbox.ts" });
+    expect(threadDisplayTitle(file)).toBe("Fix inbox.ts");
+  });
+
+  it("leaves titles bb did not change exactly as stored", () => {
+    const plain = thread({ title: "Email me@example.com", displayTitle: "Email me@example.com" });
+    expect(threadTitleHasMentions(plain)).toBe(false);
+    expect(threadDisplayTitle(plain)).toBe("Email me@example.com");
+    // An unnamed thread keeps the sidebar's placeholder, not bb's short id.
+    const unnamed = thread({ title: null, titleFallback: null, displayTitle: "thr_1" });
+    expect(threadTitleHasMentions(unnamed)).toBe(false);
+    expect(threadDisplayTitle(unnamed)).toBe("Untitled thread");
   });
 });
 

@@ -20,7 +20,6 @@ import { WorkingSinceContext } from "./useWorkingSince";
 import type { WorkingSince } from "./working-since";
 import { ChildThreadDisplayContext, type ChildThreadDisplay } from "./ChildThreadDisplay";
 import { OpenPortsProvider } from "./OpenPorts";
-import { JumpHintsContext } from "./JumpHints";
 import type { ActiveSortMode } from "./inbox-layout";
 import type { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 
@@ -146,14 +145,12 @@ export function InboxProvider({
   listAnimationController,
   workingSince,
   childDisplay,
-  jumpHints,
   children,
 }: {
   value: InboxValues;
   listAnimationController: ListAnimationController;
   workingSince: WorkingSince;
   childDisplay: ChildThreadDisplay;
-  jumpHints: ReadonlyMap<string, string>;
   children: ReactNode;
 }) {
   const { sidebarSettings, projects } = value.environment;
@@ -168,13 +165,11 @@ export function InboxProvider({
         <WorkingSinceContext.Provider value={workingSince}>
           <ChildThreadDisplayContext.Provider value={childDisplay}>
             <OpenPortsProvider>
-              <JumpHintsContext.Provider value={jumpHints}>
-                <InboxEnvironmentContext.Provider value={value.environment}>
-                  <InboxActionsContext.Provider value={value.actions}>
-                    <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
-                  </InboxActionsContext.Provider>
-                </InboxEnvironmentContext.Provider>
-              </JumpHintsContext.Provider>
+              <InboxEnvironmentContext.Provider value={value.environment}>
+                <InboxActionsContext.Provider value={value.actions}>
+                  <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
+                </InboxActionsContext.Provider>
+              </InboxEnvironmentContext.Provider>
             </OpenPortsProvider>
           </ChildThreadDisplayContext.Provider>
         </WorkingSinceContext.Provider>

@@ -2,9 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Notify parent** in a child thread's context menu chooses which of its turn outcomes wake the parent thread: every outcome, only when stuck (failed, interrupted, or waiting on an answer), or off. Forks don't show it, because bb never reports a fork's outcomes to its parent.
+
 ### Changed
 
 - Requires bb 0.47.0 or later. Pull request badges, the hover card's pull request list, and automatic settling now read pull request status from bb's bundled GitHub PR Status plugin.
+- Jump shortcut hints (⌘1–9) come from bb, so they always match the row each shortcut opens and follow bb's styling and timing. Full cards, compact cards, and shelf rows also announce their jump key to screen readers while it is shown.
+- Titles with mentions (threads, projects, sections, files) show the names bb resolves, with bb's mention chips, in rows, labels, the parent picker, and the Clean dialog's thread list. Renaming still edits the stored title, so mentions survive a rename.
+- Settling no longer lists every thread to check each one before stopping its runtime or closing its terminals; it looks up only that thread.
 
 ### Removed
 

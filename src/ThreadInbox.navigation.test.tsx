@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
 
@@ -41,31 +41,33 @@ describe("ThreadInbox", () => {
     expect(navigated).toBe(1);
   });
 
-  it("shows bb's jump shortcut hints only while the modifier is held", () => {
-    vi.useFakeTimers();
-    try {
-      render(Array.from({ length: 10 }, (_, index) => thread({ id: `thr_${index}`, title: `Thread ${index}` })));
-      const hints = () => [...document.querySelectorAll("kbd")].map((hint) => hint.textContent);
+  // bb owns the modifier hold and numbering; rows draw what it assigns.
+  it("shows bb's jump shortcut on a row in place of its status", () => {
+    const threads = [thread({ id: "thr_a", title: "Thread A" }), thread({ id: "thr_b", title: "Thread B" })];
+    const options = {
+      sidebarThreads: {
+        status: "ready" as const,
+        threads,
+        projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
+      },
+      rpc: { listLifecycle: () => ({ rows: [] }) },
+    };
+    const hints = () => [...document.querySelectorAll("kbd")].map((hint) => hint.textContent);
 
-      // jsdom reports no Mac platform, so the modifier is Control.
-      fireEvent.keyDown(window, { key: "Control" });
-      act(() => vi.advanceTimersByTime(699));
-      expect(hints()).toEqual([]);
+    const idle = renderSlot(inbox, listProps, options);
+    expect(hints()).toEqual([]);
+    const keys = (name: string) => screen.getByRole("link", { name }).getAttribute("aria-keyshortcuts");
+    expect(keys("Thread A")).toBe("Alt+ArrowUp Alt+ArrowDown");
+    idle.lifecycle.unmount();
 
-      act(() => vi.advanceTimersByTime(1));
-      expect(hints()).toEqual(Array.from({ length: 9 }, (_, index) => `Ctrl + ${index + 1}`));
-
-      fireEvent.keyUp(window, { key: "Control" });
-      expect(hints()).toEqual([]);
-
-      // A quick chord never shows them.
-      fireEvent.keyDown(window, { key: "Control" });
-      fireEvent.keyDown(window, { key: "c", ctrlKey: true });
-      act(() => vi.advanceTimersByTime(1_000));
-      expect(hints()).toEqual([]);
-    } finally {
-      vi.useRealTimers();
-    }
+    renderSlot(inbox, listProps, {
+      ...options,
+      sidebarShortcuts: { thr_a: { label: "⌘1", ariaKeyshortcuts: "Meta+1" } },
+    });
+    expect(hints()).toEqual(["⌘1"]);
+    // The jump key joins the reorder keys the row already announces.
+    expect(keys("Thread A")).toBe("Meta+1 Alt+ArrowUp Alt+ArrowDown");
+    expect(keys("Thread B")).toBe("Alt+ArrowUp Alt+ArrowDown");
   });
 
   it("opens a thread normally when the platform modifier is held", () => {

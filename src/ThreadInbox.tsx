@@ -32,7 +32,6 @@ import { useInboxReorder } from "./useInboxReorder";
 import { useInboxProjectGroups } from "./useInboxProjectGroups";
 import { environmentUnitKey } from "./environment-groups";
 import { useWorkingSince } from "./useWorkingSince";
-import { useJumpHints } from "./JumpHints";
 import { useSidebarSettings } from "./useSidebarSettings";
 import { useProjectScope } from "./useProjectScope";
 import { threadDisplayTitle } from "./inbox";
@@ -69,8 +68,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: P
   const attachScrollFadeRef = useScrollFade<HTMLDivElement>();
   const activeThreadIdRef = useRef(activeThreadId);
   activeThreadIdRef.current = activeThreadId;
-  const jumpHintsRootRef = useRef<HTMLDivElement>(null);
-  const jumpHints = useJumpHints(jumpHintsRootRef);
   const configuredSnoozePresets = sidebarSettings?.snoozePresets ?? DEFAULT_SIDEBAR_SETTINGS.snoozePresets;
   const snoozePresets = useMemo(() => parseConfiguredSnoozePresets(configuredSnoozePresets), [configuredSnoozePresets]);
   const inactiveAfterHours = parseInactiveAfterHours(
@@ -450,7 +447,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: P
       listAnimationController={listAnimationController}
       workingSince={workingSince}
       childDisplay={childDisplay}
-      jumpHints={jumpHints}
     >
       <ThreadInboxView
         shelves={{
@@ -462,7 +458,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: P
           parked: { threads: parked, visibleThreads: visibleParked },
           settled: { threads: settled, visibleThreads: visibleSettled },
         }}
-        jumpHintsRootRef={jumpHintsRootRef}
         scope={scope}
         reorderAnnouncement={reorderAnnouncement}
         attachScrollFadeRef={attachScrollFadeRef}

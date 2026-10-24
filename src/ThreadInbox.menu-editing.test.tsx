@@ -116,6 +116,21 @@ describe("row context menu", () => {
     );
   });
 
+  it("shows a mention title with names and renames from the stored text", async () => {
+    const rendered = render([
+      thread({ id: "thr_mention", title: "Review @thread:thr_other", displayTitle: "Review Other thread" }),
+    ]);
+    const row = await screen.findByRole("link", { name: "Review Other thread" });
+    // bb's ThreadTitle draws the chips; the test runtime renders its plain text.
+    expect(document.querySelector("[data-thread-title='thr_mention']")?.textContent).toBe("Review Other thread");
+
+    fireEvent.doubleClick(row);
+    const input = await screen.findByRole("textbox", { name: "Rename Review Other thread" });
+    expect((input as HTMLInputElement).value).toBe("Review @thread:thr_other");
+    fireEvent.blur(input);
+    expect(rendered.sdkCalls.some((call) => call.method === "threads.update")).toBe(false);
+  });
+
   it("copies the branch, thread ID, and thread link", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", {

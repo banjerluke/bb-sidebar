@@ -98,4 +98,38 @@ describe("Compact all threads", () => {
     fireEvent.click(marker);
     await waitFor(() => expect(acknowledged).toEqual(["woke"]));
   });
+
+  // bb numbers compact cards and shelf rows too; each announces the key it shows.
+  it("announces the jump key on compact cards and shelf rows", async () => {
+    renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [thread({ id: "compact", title: "Compact work" }), thread({ id: "settled", title: "Settled work" })],
+        projects,
+      },
+      sidebarShortcuts: {
+        compact: { label: "⌘1", ariaKeyshortcuts: "Meta+1" },
+        settled: { label: "⌘2", ariaKeyshortcuts: "Meta+2" },
+      },
+      rpc: {
+        getSidebarSettings: () => ({
+          ...defaultSidebarSettings,
+          inactiveThreadsEnabled: false,
+          threadDisplay: "compact-all",
+        }),
+        listLifecycle: () => ({
+          rows: [{ threadId: "settled", settledAt: Date.now(), snoozedUntil: null, snoozedAt: null }],
+        }),
+      },
+    });
+    await waitFor(() => expect(folded("Compact work")).toBe(true));
+    expect(screen.getByRole("link", { name: "Compact work" }).getAttribute("aria-keyshortcuts")).toBe(
+      "Meta+1 Alt+ArrowUp Alt+ArrowDown",
+    );
+    const settled = await screen.findByRole("region", { name: "Settled" });
+    const toggle = within(settled).queryByRole("button", { expanded: false });
+    if (toggle) fireEvent.click(toggle);
+    const row = await within(settled).findByRole("link", { name: /Settled work/ });
+    expect(row.getAttribute("aria-keyshortcuts")).toBe("Meta+2");
+  });
 });

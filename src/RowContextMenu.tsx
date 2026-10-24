@@ -5,6 +5,7 @@ import { useBbNavigate, useRpc, type PluginSidebarThread } from "@get-bb/plugin-
 import { toast } from "./lib/toast";
 import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
+import { notifiesParent, ParentNotificationsMenu } from "./ParentNotificationsMenu";
 import { DeleteThreadDialog } from "./DeleteThreadDialog";
 import { SnoozePickerDialog } from "./SnoozePickerDialog";
 import { Icon, type IconName } from "./components/Icon";
@@ -80,6 +81,8 @@ function RowMenuContents({
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const regenerating = useTitleGenerating(thread.id);
   const renameAfterClose = useRef(false);
+  // Outlives the portaled submenu, which unmounts when a choice closes the menu.
+  const pendingNotificationSave = useRef<Promise<void> | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pickingSnooze, setPickingSnooze] = useState(false);
   // Archive takes the children with it, and bb leaves every idle one's agent
@@ -155,6 +158,9 @@ function RowMenuContents({
             >
               <Item onSelect={() => void run("split")}>Open in split</Item>
               <ParentThreadMenu thread={thread} />
+              {notifiesParent(thread) ? (
+                <ParentNotificationsMenu thread={thread} pendingSave={pendingNotificationSave} />
+              ) : null}
               {projectItems ? (
                 <ContextMenu.Sub onOpenChange={onOpenChange}>
                   <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">

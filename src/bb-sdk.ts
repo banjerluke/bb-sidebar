@@ -16,6 +16,7 @@ export {
   experimental_useProviders as useProviders,
   experimental_useSidebarThreadSplit as useSidebarThreadSplit,
   experimental_ThreadStatusGlyph as ThreadStatusGlyph,
+  experimental_ShortcutHint as ShortcutHint,
 } from "@get-bb/plugin-sdk/app";
 
 export function useThreadActions(thread: PluginSidebarThread, options?: PluginThreadActionsOptions) {
