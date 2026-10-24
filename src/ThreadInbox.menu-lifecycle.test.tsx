@@ -111,6 +111,37 @@ describe("row context menu", () => {
     );
   });
 
+  it("names a busy mention-titled thread in a settle error the way bb shows it", async () => {
+    renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [
+          thread({ id: "thr_parent", title: "Parent" }),
+          thread({
+            id: "thr_busy",
+            title: "Review @thread:thr_x",
+            displayTitle: "Review Login fix",
+            parentThreadId: "thr_parent",
+          }),
+        ],
+        projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
+      },
+      rpc: {
+        listLifecycle: () => ({ rows: [] }),
+        settle: () => {
+          throw new Error("Cannot settle while Review @thread:thr_x is working or waiting for input");
+        },
+      },
+    });
+    fireEvent.click(await screen.findByLabelText("Settle thread"));
+    await waitFor(() =>
+      expect(toastMocks.error).toHaveBeenCalledWith("Could not settle thread", {
+        className: "bb-sidebar-toast",
+        description: "Cannot settle while Review Login fix is working or waiting for input",
+      }),
+    );
+  });
+
   it("asks to close owned ports after settling, and only closes on confirmation", async () => {
     const ports = [{ port: 3000, pid: 123 }];
     const close = vi.fn(() => ({ signalled: [3000], skipped: [], failed: [] }));

@@ -61,6 +61,21 @@ export function threadDisplayTitle(thread: PluginSidebarThread): string {
   return threadTitleHasMentions(thread) ? thread.displayTitle.trim() : threadStoredTitle(thread);
 }
 
+/**
+ * Server-built messages quote stored titles, mention tokens and all, because
+ * only the app has bb's resolved names. Swap each mention title for its name.
+ * Mention tokens make a stored title distinctive, and plain titles are left
+ * alone, so nothing else in the text can match.
+ */
+export function resolveThreadTitlesIn(text: string, threads: readonly PluginSidebarThread[]): string {
+  const titles = threads
+    .filter(threadTitleHasMentions)
+    .map((thread) => [threadStoredTitle(thread), threadDisplayTitle(thread)] as const)
+    // A title that contains another is replaced first.
+    .sort(([left], [right]) => right.length - left.length);
+  return titles.reduce((resolved, [stored, display]) => resolved.split(stored).join(display), text);
+}
+
 /** Projects whose name matches the picker query; every project when blank. */
 export function filterProjectsByName<T extends { name: string }>(projects: readonly T[], query: string): T[] {
   const normalized = query.trim().toLowerCase();

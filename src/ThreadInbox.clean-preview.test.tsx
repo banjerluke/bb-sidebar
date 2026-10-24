@@ -67,6 +67,39 @@ describe("parking threads", () => {
     expect(dialog.textContent).toContain("1 terminal closed · 1 port shutdown request sent");
   });
 
+  it("names a mention-titled workspace owner in a skip reason the way bb shows it", async () => {
+    const settled = thread({ id: "thr_settled", title: "Finished" });
+    const owner = thread({ id: "thr_owner", title: "Review @thread:thr_x", displayTitle: "Review Login fix" });
+    renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [settled, owner],
+        projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
+      },
+      rpc: {
+        listLifecycle: () => ({
+          rows: [{ threadId: "thr_settled", settledAt: 200, snoozedUntil: null, snoozedAt: null }],
+        }),
+        previewSettledCleanup: () => ({
+          token: "98bb67b5-b58b-4fc4-9a55-34e557dc8f55",
+          threads: [],
+          skipped: [
+            {
+              threadId: "thr_settled",
+              resource: "terminal",
+              message: 'Kept 1 terminal open: shares a workspace with "Review @thread:thr_x", which is not settled',
+            },
+          ],
+        }),
+      },
+    });
+    const shelf = await screen.findByRole("region", { name: "Settled" });
+    fireEvent.click(within(shelf).getByRole("button", { name: "Close terminals and ports of settled threads" }));
+    const dialog = await screen.findByRole("dialog", { name: "Clean settled resources?" });
+    await waitFor(() => expect(dialog.textContent).toContain('shares a workspace with "Review Login fix"'));
+    expect(dialog.textContent).not.toContain("@thread:thr_x");
+  });
+
   it("marks each project's rows with that project's own soft colour", async () => {
     const settled = [
       thread({ id: "thr_a", title: "In bb" }),

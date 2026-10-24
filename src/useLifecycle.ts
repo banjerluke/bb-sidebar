@@ -20,6 +20,7 @@ import {
 import { createCachedRpcState } from "./lib/cached-rpc-state";
 import { lifecycleRowsCodec } from "./lib/lifecycle-cache-codec";
 import { threadsWithAskingDescendants } from "./child-status";
+import { resolveThreadTitlesIn } from "./inbox";
 
 export interface LifecycleApi {
   shelfFor(thread: PluginSidebarThread): ThreadShelf;
@@ -109,6 +110,9 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
   // changed. Only the newest request may write.
   const requestSeq = useRef(0);
   const inFlightThreadIds = useRef(new Set<string>());
+  // Read at error time, so the API below keeps its identity across thread updates.
+  const latestThreads = useRef(threads);
+  latestThreads.current = threads;
   const portPromptVersions = useRef(new Map<string, number>());
   const refresh = useCallback(async () => {
     const seq = ++requestSeq.current;
@@ -205,8 +209,10 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
           await rpc.call(method, { threadId });
         }
       } catch (error) {
+        const description = errorDescription(error);
         toast.error(ERROR_MESSAGE[method], {
-          description: errorDescription(error),
+          // The server names threads by their stored titles.
+          description: description && resolveThreadTitlesIn(description, latestThreads.current),
         });
         return false;
       } finally {

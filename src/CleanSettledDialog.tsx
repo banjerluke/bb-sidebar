@@ -6,7 +6,7 @@ import { Icon } from "./components/Icon";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import type { bbSidebarRpcContract, SettledCleanupPreview, SettledCleanupResult } from "./contract";
 import { useSidebarThreads } from "./bb-sdk";
-import { threadDisplayTitle } from "./inbox";
+import { resolveThreadTitlesIn, threadDisplayTitle } from "./inbox";
 
 export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: string[]; onNavigate: () => void }) {
   const rpc = useRpc<typeof bbSidebarRpcContract>();
@@ -184,7 +184,7 @@ export function CleanSettledDialog({ threadIds, onNavigate }: { threadIds: strin
               <ul className="mt-1 list-inside list-disc">
                 {issues.map((issue, index) => (
                   <li key={`${issue.threadId}:${issue.resource}:${index}`}>
-                    {issue.threadId}: {issue.message}
+                    {issue.threadId}: {resolveThreadTitlesIn(issue.message, threads)}
                   </li>
                 ))}
               </ul>

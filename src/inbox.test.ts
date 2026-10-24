@@ -12,6 +12,7 @@ import {
   sortByCreatedAtDescending,
   sortSettledThreads,
   threadDisplayTitle,
+  resolveThreadTitlesIn,
   threadStoredTitle,
   threadTitleHasMentions,
   visibleInboxThreads,
@@ -145,6 +146,26 @@ describe("threadDisplayTitle", () => {
     const unnamed = thread({ title: null, titleFallback: null, displayTitle: "thr_1" });
     expect(threadTitleHasMentions(unnamed)).toBe(false);
     expect(threadDisplayTitle(unnamed)).toBe("Untitled thread");
+  });
+});
+
+describe("resolveThreadTitlesIn", () => {
+  const threads = [
+    thread({ id: "a", title: "Review @thread:thr_x", displayTitle: "Review Login fix" }),
+    thread({ id: "b", title: "Review @thread:thr_x again", displayTitle: "Review Login fix again" }),
+    thread({ id: "c", title: "Plain title", displayTitle: "Plain title" }),
+  ];
+
+  it("swaps stored mention titles for bb's names and leaves the rest of the text", () => {
+    expect(resolveThreadTitlesIn('shares a workspace with "Review @thread:thr_x", which is not settled', threads)).toBe(
+      'shares a workspace with "Review Login fix", which is not settled',
+    );
+    expect(resolveThreadTitlesIn("Cannot settle while Review @thread:thr_x again is working", threads)).toBe(
+      "Cannot settle while Review Login fix again is working",
+    );
+    expect(resolveThreadTitlesIn("Cannot settle while Plain title is working", threads)).toBe(
+      "Cannot settle while Plain title is working",
+    );
   });
 });
 
