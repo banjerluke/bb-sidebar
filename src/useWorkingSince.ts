@@ -9,9 +9,9 @@ import {
 } from "./working-since";
 
 /**
- * Handed down by context rather than props: the status slot sits under cards,
- * slim rows and search results alike, and each would otherwise thread one
- * more value through three layers to reach it.
+ * Handed down by context rather than props: the status slot sits under cards
+ * and slim rows alike, and each would otherwise thread one more value through
+ * three layers to reach it.
  */
 export const WorkingSinceContext = createContext<WorkingSince>(EMPTY_WORKING_SINCE);
 

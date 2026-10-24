@@ -35,7 +35,7 @@ import { useWorkingSince } from "./useWorkingSince";
 import { useJumpHints } from "./JumpHints";
 import { useSidebarSettings } from "./useSidebarSettings";
 import { useProjectScope } from "./useProjectScope";
-import { filterByProjects, searchThreadsByTitle, threadDisplayTitle, visibleInboxThreads } from "./inbox";
+import { threadDisplayTitle } from "./inbox";
 import { movePinnedIdByOffset, orderPinnedThreads, rebaseMovedId } from "./pinned-order";
 import { parseConfiguredSnoozePresets } from "./lifecycle";
 import { parseInactiveAfterHours } from "./inactive";
@@ -51,10 +51,11 @@ type ActiveShelfKind = "pinned" | "inbox";
  * The sidebar's scrolling list. Manual order is durable; optional views sort
  * the same rows without changing their saved positions.
  *
- * The host owns New thread and search. This list applies searchQuery and adds
- * the plugin's project scope picker.
+ * The host owns New thread, and thread search lives in bb's quick palette, so
+ * this list ignores the deprecated `searchQuery` prop. It adds the plugin's
+ * project scope picker.
  */
-export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompactViewport }: PluginThreadListProps) {
+export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: PluginThreadListProps) {
   const { status, threads, projects } = useSidebarThreads();
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
@@ -355,12 +356,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
     [reorderControls],
   );
 
-  const isSearching = searchQuery.trim().length > 0;
-  const searchCandidates = useMemo(() => filterByProjects(visibleInboxThreads(threads), scope), [scope, threads]);
-  const searchResults = useMemo(
-    () => searchThreadsByTitle(searchCandidates, searchQuery),
-    [searchCandidates, searchQuery],
-  );
   const visibleParked = useMemo(
     () => visibleShelfThreads(parked, expandedShelves.parked, activeListThreadId),
     [activeListThreadId, expandedShelves.parked, parked],
@@ -472,9 +467,6 @@ export function ThreadInbox({ activeThreadId, onNavigate, searchQuery, isCompact
         reorderAnnouncement={reorderAnnouncement}
         attachScrollFadeRef={attachScrollFadeRef}
         status={status}
-        isSearching={isSearching}
-        searchResults={searchResults}
-        wokeThreadIds={wokeThreadIds}
         expandedChildParentIds={expandedChildParentIds}
         dockShelvesEnabled={dockShelvesEnabled}
         attachShelvesMotionRef={attachShelvesMotionRef}

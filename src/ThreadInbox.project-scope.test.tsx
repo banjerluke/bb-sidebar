@@ -15,19 +15,15 @@ const projects = ["Alpha", "Beta", "Gamma"].map((name) => ({
   settingsHref: "",
 }));
 
-function renderProjects(searchQuery = "") {
-  return renderSlot(
-    inbox,
-    { ...listProps, searchQuery },
-    {
-      sidebarThreads: {
-        status: "ready",
-        projects,
-        threads: projects.map(({ id }) => thread({ id, projectId: id, title: `${id} thread` })),
-      },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
+function renderProjects() {
+  return renderSlot(inbox, listProps, {
+    sidebarThreads: {
+      status: "ready",
+      projects,
+      threads: projects.map(({ id }) => thread({ id, projectId: id, title: `${id} thread` })),
     },
-  );
+    rpc: { listLifecycle: () => ({ rows: [] }) },
+  });
 }
 
 function openPicker() {
@@ -90,18 +86,6 @@ it("lets the keyboard select multiple filtered projects, toggle off the last one
   expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
   fireEvent.keyDown(input, { key: "Escape" });
   expect(screen.queryByRole("grid", { name: "Projects" })).toBeNull();
-});
-
-it("searches the selected projects and labels the restricted results", () => {
-  sessionStorage.setItem(STORAGE_KEYS.projectScope.key, JSON.stringify(["Alpha", "Gamma"]));
-  renderProjects("thread");
-  const results = screen.getByRole("listbox", { name: "Thread search results" });
-  expect(
-    within(results)
-      .getAllByRole("option")
-      .map((row) => row.getAttribute("aria-label")),
-  ).toEqual(["Alpha thread, Alpha", "Gamma thread, Gamma"]);
-  expect(screen.getByText("Searching 2 selected projects")).toBeDefined();
 });
 
 it("keeps selection usable when session storage is unavailable", () => {

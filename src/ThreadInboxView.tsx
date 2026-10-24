@@ -15,8 +15,7 @@ import { cn } from "./lib/utils";
 import { ActiveSortPicker } from "./ActiveSortPicker";
 import { ProjectScopeControls } from "./ProjectScopeControls";
 import type { ThreadReorderControls } from "./ThreadCard";
-import { SearchResults } from "./SearchResults";
-import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
+import { useInboxActions } from "./InboxContext";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
 import type { useInboxProjectGroups } from "./useInboxProjectGroups";
 
@@ -42,9 +41,6 @@ interface ThreadInboxViewProps {
   reorderAnnouncement: string;
   attachScrollFadeRef: (node: HTMLDivElement | null) => void;
   status: ReturnType<typeof useSidebarThreads>["status"];
-  isSearching: boolean;
-  searchResults: readonly PluginSidebarThread[];
-  wokeThreadIds: ReadonlySet<string>;
   expandedChildParentIds: ReadonlySet<string>;
   dockShelvesEnabled: boolean;
   attachShelvesMotionRef: (node: HTMLDivElement | null) => void;
@@ -77,9 +73,6 @@ export function ThreadInboxView({
   reorderAnnouncement,
   attachScrollFadeRef,
   status,
-  isSearching,
-  searchResults,
-  wokeThreadIds,
   expandedChildParentIds,
   dockShelvesEnabled,
   attachShelvesMotionRef,
@@ -93,20 +86,12 @@ export function ThreadInboxView({
   sortedVisibleInbox,
   settledLimit,
 }: ThreadInboxViewProps) {
-  const { projectIconRevision, projectNameById, lifecycle } = useInboxEnvironment();
-  const { activeThreadId, now } = useInboxActivity();
-  const { onNavigate, setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
+  const { setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
   const { pinned, inbox, working, inactive, snoozed, parked, settled } = shelves;
   return (
     <div ref={jumpHintsRootRef} data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
-      {/* Project scope is plugin-owned; New thread and search live in bb's chrome. */}
+      {/* Project scope is plugin-owned; New thread lives in bb's chrome. */}
       <ProjectScopeControls scope={scope} status={status} />
-
-      {isSearching && scope.length > 0 ? (
-        <p className="px-3 pb-1 text-2xs text-muted-foreground">
-          Searching {scope.length === 1 ? "selected project" : `${scope.length} selected projects`}
-        </p>
-      ) : null}
 
       <p role="status" aria-live="polite" className="sr-only">
         {reorderAnnouncement}
@@ -123,21 +108,6 @@ export function ThreadInboxView({
           <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
             Could not load threads.
           </p>
-        ) : isSearching && searchResults.length === 0 ? (
-          <p role="status" className="px-2 py-6 text-center text-xs text-muted-foreground">
-            No threads found
-          </p>
-        ) : isSearching ? (
-          <SearchResults
-            threads={searchResults}
-            projectNameById={projectNameById}
-            projectIconRevision={projectIconRevision}
-            activeThreadId={activeThreadId}
-            now={now}
-            wokeThreadIds={wokeThreadIds}
-            onAcknowledgeWake={(threadId) => void lifecycle.acknowledgeWake(threadId)}
-            onNavigate={onNavigate}
-          />
         ) : (
           <DockableShelves
             docked={dockShelvesEnabled}

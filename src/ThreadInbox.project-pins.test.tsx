@@ -15,19 +15,15 @@ const projects = ["Alpha", "Beta", "Empty"].map((name) => ({
   settingsHref: "",
 }));
 
-function renderProjects(searchQuery = "") {
-  return renderSlot(
-    inbox,
-    { ...listProps, searchQuery },
-    {
-      sidebarThreads: {
-        status: "ready",
-        projects,
-        threads: ["Alpha", "Beta"].map((id) => thread({ id, projectId: id, title: `${id} thread` })),
-      },
-      rpc: { listLifecycle: () => ({ rows: [] }) },
+function renderProjects() {
+  return renderSlot(inbox, listProps, {
+    sidebarThreads: {
+      status: "ready",
+      projects,
+      threads: ["Alpha", "Beta"].map((id) => thread({ id, projectId: id, title: `${id} thread` })),
     },
-  );
+    rpc: { listLifecycle: () => ({ rows: [] }) },
+  });
 }
 
 function openPicker() {
@@ -111,18 +107,15 @@ it("names unpinned selections before the pinned count and resets without removin
   expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
 });
 
-it("keeps shortcuts outside the scroller even with collapsed shelves, no threads, or no search results", () => {
+it("keeps shortcuts outside the scroller even with collapsed shelves or no threads", () => {
   localStorage.setItem(STORAGE_KEYS.pinnedProjects.key, JSON.stringify(["Alpha", "Empty"]));
   localStorage.setItem(STORAGE_KEYS.shelfExpansion.key, JSON.stringify({ active: false }));
-  const rendered = renderProjects();
+  renderProjects();
   const shortcuts = screen.getByRole("group", { name: "Pinned projects" });
   expect(shortcuts.closest("[data-list-motion-scroller]")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Filter by Empty" }));
   expect(screen.getByRole("button", { name: "Filter by Empty", pressed: true })).toBeDefined();
   expect(screen.queryByText("Alpha thread")).toBeNull();
-  rendered.lifecycle.unmount();
-  renderProjects("missing");
-  expect(screen.getByText("No threads found")).toBeDefined();
   expect(within(screen.getByRole("group", { name: "Pinned projects" })).getAllByRole("button")).toHaveLength(2);
 });
 

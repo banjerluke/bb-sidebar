@@ -42,13 +42,6 @@ export function threadDisplayTitle(thread: PluginSidebarThread): string {
   return fallback ? fallback : "Untitled thread";
 }
 
-/** Substring match on the visible title only, preserving the incoming order. */
-export function searchThreadsByTitle(threads: readonly PluginSidebarThread[], query: string): PluginSidebarThread[] {
-  const normalized = query.trim().toLowerCase();
-  if (normalized.length === 0) return [...threads];
-  return threads.filter((thread) => threadDisplayTitle(thread).toLowerCase().includes(normalized));
-}
-
 /** Projects whose name matches the picker query; every project when blank. */
 export function filterProjectsByName<T extends { name: string }>(projects: readonly T[], query: string): T[] {
   const normalized = query.trim().toLowerCase();
