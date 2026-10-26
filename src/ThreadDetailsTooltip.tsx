@@ -95,7 +95,7 @@ export function ThreadDetailsTooltip({
     : [];
   const label = (
     <div className="flex flex-col gap-2">
-      <div className="truncate text-xs font-semibold leading-4 text-popover-foreground">
+      <div className="line-clamp-2 break-words text-xs font-semibold leading-4 text-popover-foreground">
         {threadDisplayTitle(thread)}
       </div>
       <div className="flex flex-col gap-1.5 text-xs leading-4 text-muted-foreground">
@@ -232,7 +232,7 @@ function SubthreadRow({ thread, onOpen }: { thread: PluginSidebarThread; onOpen:
         className="mt-px size-3.5 shrink-0 [&_span]:size-3.5"
       />
       <span className="min-w-0 flex-1">
-        <span className="block truncate">{threadDisplayTitle(thread)}</span>
+        <span className="line-clamp-2 break-words">{threadDisplayTitle(thread)}</span>
         <span className="flex items-center gap-1 text-[11px] leading-4 text-muted-foreground">
           <span className="truncate">
             {provider?.displayName ?? thread.providerId} · {status}

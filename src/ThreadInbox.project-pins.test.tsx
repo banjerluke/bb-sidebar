@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from "vitest";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { createEvent, fireEvent, screen, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
 import { inbox, thread, listProps, loadInboxApp } from "./test-inbox";
 import { STORAGE_KEYS } from "./lib/storage-keys";
@@ -29,6 +29,82 @@ function renderProjects() {
 function openPicker() {
   fireEvent.keyDown(screen.getByRole("button", { name: /^Project scope:/ }), { key: "Enter" });
 }
+
+function shortcutOrder() {
+  return within(screen.getByRole("group", { name: "Pinned projects" }))
+    .getAllByRole("button")
+    .map((button) => button.textContent);
+}
+
+function dragProject(source: HTMLElement, target: HTMLElement, placement: "before" | "after") {
+  const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  vi.spyOn(target, "getBoundingClientRect").mockReturnValue(new DOMRect(100, 40, 80, 28));
+  fireEvent.dragStart(source, { dataTransfer });
+  const over = createEvent.dragOver(target, { dataTransfer });
+  Object.defineProperty(over, "clientX", { value: placement === "before" ? 110 : 170 });
+  fireEvent(target, over);
+  return () => {
+    const drop = createEvent.drop(target, { dataTransfer });
+    Object.defineProperty(drop, "clientX", { value: placement === "before" ? 110 : 170 });
+    fireEvent(target, drop);
+    fireEvent.dragEnd(source, { dataTransfer });
+  };
+}
+
+it("drags pinned projects before and after other shortcuts and persists the order without filtering", () => {
+  localStorage.setItem(STORAGE_KEYS.pinnedProjects.key, JSON.stringify(["Alpha", "Beta", "Empty"]));
+  const rendered = renderProjects();
+  const alpha = screen.getByRole("button", { name: "Filter by Alpha" });
+  const empty = screen.getByRole("button", { name: "Filter by Empty" });
+  expect(alpha.draggable).toBe(true);
+  const drop = dragProject(alpha, empty, "after");
+  expect(shortcutOrder()).toEqual(["Alpha", "Beta", "Empty"]);
+  drop();
+  expect(shortcutOrder()).toEqual(["Beta", "Empty", "Alpha"]);
+  dragProject(empty, screen.getByRole("button", { name: "Filter by Beta" }), "before")();
+  expect(shortcutOrder()).toEqual(["Empty", "Beta", "Alpha"]);
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.pinnedProjects.key)!)).toEqual(["Empty", "Beta", "Alpha"]);
+  expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
+  rendered.lifecycle.unmount();
+  renderProjects();
+  expect(shortcutOrder()).toEqual(["Empty", "Beta", "Alpha"]);
+  fireEvent.click(screen.getByRole("button", { name: "Filter by Beta" }));
+  expect(screen.getByRole("button", { name: "Filter by Beta", pressed: true })).toBeDefined();
+});
+
+it("leaves pin order and filters unchanged when a drag is cancelled or an external item is dropped", () => {
+  localStorage.setItem(STORAGE_KEYS.pinnedProjects.key, JSON.stringify(["Alpha", "Beta"]));
+  renderProjects();
+  const alpha = screen.getByRole("button", { name: "Filter by Alpha" });
+  const beta = screen.getByRole("button", { name: "Filter by Beta" });
+  dragProject(alpha, beta, "after");
+  fireEvent.dragEnd(alpha);
+  fireEvent.drop(beta);
+  expect(shortcutOrder()).toEqual(["Alpha", "Beta"]);
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.pinnedProjects.key)!)).toEqual(["Alpha", "Beta"]);
+  expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
+});
+
+it("reorders project pins with Alt+Left/Right, keeps focus, and stops at either end", () => {
+  localStorage.setItem(STORAGE_KEYS.pinnedProjects.key, JSON.stringify(["Alpha", "Beta", "Empty"]));
+  renderProjects();
+  const beta = screen.getByRole("button", { name: "Filter by Beta" });
+  beta.focus();
+  fireEvent.keyDown(beta, { key: "ArrowLeft" });
+  expect(shortcutOrder()).toEqual(["Alpha", "Beta", "Empty"]);
+  fireEvent.keyDown(beta, { key: "ArrowLeft", altKey: true });
+  expect(shortcutOrder()).toEqual(["Beta", "Alpha", "Empty"]);
+  expect(document.activeElement).toBe(beta);
+  fireEvent.keyDown(beta, { key: "ArrowLeft", altKey: true });
+  expect(shortcutOrder()).toEqual(["Beta", "Alpha", "Empty"]);
+  fireEvent.keyDown(beta, { key: "ArrowRight", altKey: true });
+  fireEvent.keyDown(beta, { key: "ArrowRight", altKey: true });
+  fireEvent.keyDown(beta, { key: "ArrowRight", altKey: true });
+  expect(shortcutOrder()).toEqual(["Alpha", "Empty", "Beta"]);
+  expect(document.activeElement).toBe(beta);
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.pinnedProjects.key)!)).toEqual(["Alpha", "Empty", "Beta"]);
+  expect(screen.getByRole("button", { name: "Project scope: All projects" })).toBeDefined();
+});
 
 it("pins independently of selection, persists shortcuts, and toggles multiple project filters", () => {
   const rendered = renderProjects();

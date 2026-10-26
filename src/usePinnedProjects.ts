@@ -4,6 +4,7 @@ import { reconcileProjectScope } from "./inbox";
 import { pinnedProjectsCodec } from "./lib/inbox-preference-codecs";
 import { STORAGE_KEYS } from "./lib/storage-keys";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
+import { movePinnedId } from "./pinned-order";
 
 export function usePinnedProjects({
   projects,
@@ -23,5 +24,10 @@ export function usePinnedProjects({
       ),
     [setPinnedProjects],
   );
-  return { pinnedProjects, toggleProjectPin };
+  const moveProjectPin = useCallback(
+    (projectId: string, targetId: string, placement: "before" | "after") =>
+      setPinnedProjects((current) => movePinnedId(current, projectId, targetId, placement)),
+    [setPinnedProjects],
+  );
+  return { pinnedProjects, toggleProjectPin, moveProjectPin };
 }

@@ -2,6 +2,40 @@ import { expect } from "@playwright/test";
 import { seededTest as test } from "./seeds.mjs";
 import { fixture, rpc, shelf, link, reset, open } from "./helpers.mjs";
 
+test("pinned projects can be drag sorted and keep their order after reload", async ({
+  page,
+  request,
+  secondProject,
+}) => {
+  await reset(request);
+  await open(page, { width: 280 });
+  await page.getByRole("button", { name: "Project scope: All projects", exact: true }).click();
+  for (const name of ["Sidebar smoke", secondProject.name]) {
+    await page.getByRole("button", { name: `Pin ${name}`, exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  const shortcuts = page.getByRole("group", { name: "Pinned projects" });
+  const first = shortcuts.getByRole("button", { name: "Filter by Sidebar smoke", exact: true });
+  const second = shortcuts.getByRole("button", { name: `Filter by ${secondProject.name}`, exact: true });
+  await expect(shortcuts.getByRole("button")).toHaveText(["Sidebar smoke", secondProject.name]);
+  const targetBox = await second.boundingBox();
+  await first.dragTo(second, { targetPosition: { x: targetBox.width - 3, y: targetBox.height / 2 } });
+  await expect(shortcuts.getByRole("button")).toHaveText([secondProject.name, "Sidebar smoke"]);
+  await expect(page.getByRole("button", { name: "Project scope: All projects", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(shortcuts.getByRole("button")).toHaveText([secondProject.name, "Sidebar smoke"]);
+  await first.dragTo(second, { targetPosition: { x: 3, y: targetBox.height / 2 } });
+  await expect(shortcuts.getByRole("button")).toHaveText(["Sidebar smoke", secondProject.name]);
+  await first.focus();
+  await first.press("Alt+ArrowRight");
+  await expect(shortcuts.getByRole("button")).toHaveText([secondProject.name, "Sidebar smoke"]);
+  await expect(first).toBeFocused();
+  await first.click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(second).toHaveAttribute("aria-pressed", "false");
+  await shortcuts.screenshot({ path: test.info().outputPath("pinned-project-order.png") });
+});
+
 test("project filter remembers multiple projects per window and All projects restores every thread", async ({
   page,
   request,
