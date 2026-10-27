@@ -306,5 +306,5 @@ export function createServerHandlers(
     ...modules.icons.handlers,
     ...modules.projects.handlers,
     ...handlers,
-  } satisfies ServerHandlers;
+  } satisfies Omit<ServerHandlers, "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue">;
 }

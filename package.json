@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "@get-bb/plugin-sdk": "0.6.75",
+    "@get-bb/plugin-sdk": "0.6.80",
     "@playwright/test": "1.64.0",
     "@radix-ui/react-context-menu": "^2.3.3",
     "@radix-ui/react-dialog": "^1.1.19",

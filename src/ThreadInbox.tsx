@@ -21,6 +21,7 @@ import {
 } from "./inbox-layout";
 import type { ThreadReorderControls } from "./ThreadCard";
 import { InboxProvider, useInboxContextValues } from "./InboxContext";
+import { RateLimitsProvider } from "./RateLimits";
 import { createInboxThreadRenderer } from "./InboxThreadRenderer";
 import { childThreadsByParent, collapsedChildThreads } from "./ChildThreadList";
 import { useChildThreadDisplayValue } from "./ChildThreadDisplay";
@@ -442,39 +443,41 @@ export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: P
   });
 
   return (
-    <InboxProvider
-      value={inboxContext}
-      listAnimationController={listAnimationController}
-      workingSince={workingSince}
-      childDisplay={childDisplay}
-    >
-      <ThreadInboxView
-        shelves={{
-          pinned: { threads: pinned, visibleThreads: visiblePinned },
-          inbox: { threads: inbox, visibleThreads: visibleInbox },
-          working: { threads: working, visibleThreads: visibleWorking },
-          inactive: { threads: inactive, visibleThreads: visibleInactive },
-          snoozed: { threads: snoozed, visibleThreads: visibleSnoozed },
-          parked: { threads: parked, visibleThreads: visibleParked },
-          settled: { threads: settled, visibleThreads: visibleSettled },
-        }}
-        scope={scope}
-        reorderAnnouncement={reorderAnnouncement}
-        attachScrollFadeRef={attachScrollFadeRef}
-        status={status}
-        expandedChildParentIds={expandedChildParentIds}
-        dockShelvesEnabled={dockShelvesEnabled}
-        attachShelvesMotionRef={attachShelvesMotionRef}
-        attachDockMotionRef={attachDockMotionRef}
-        expandedShelves={expandedShelves}
-        renderActiveThread={renderActiveThread}
-        activeSortMode={activeSortMode}
-        inboxProjectView={inboxProjectView}
-        environmentGrouping={projectGroups}
-        reorderControls={reorderControls}
-        sortedVisibleInbox={sortedVisibleInbox}
-        settledLimit={settledLimit}
-      />
-    </InboxProvider>
+    <RateLimitsProvider threads={threads}>
+      <InboxProvider
+        value={inboxContext}
+        listAnimationController={listAnimationController}
+        workingSince={workingSince}
+        childDisplay={childDisplay}
+      >
+        <ThreadInboxView
+          shelves={{
+            pinned: { threads: pinned, visibleThreads: visiblePinned },
+            inbox: { threads: inbox, visibleThreads: visibleInbox },
+            working: { threads: working, visibleThreads: visibleWorking },
+            inactive: { threads: inactive, visibleThreads: visibleInactive },
+            snoozed: { threads: snoozed, visibleThreads: visibleSnoozed },
+            parked: { threads: parked, visibleThreads: visibleParked },
+            settled: { threads: settled, visibleThreads: visibleSettled },
+          }}
+          scope={scope}
+          reorderAnnouncement={reorderAnnouncement}
+          attachScrollFadeRef={attachScrollFadeRef}
+          status={status}
+          expandedChildParentIds={expandedChildParentIds}
+          dockShelvesEnabled={dockShelvesEnabled}
+          attachShelvesMotionRef={attachShelvesMotionRef}
+          attachDockMotionRef={attachDockMotionRef}
+          expandedShelves={expandedShelves}
+          renderActiveThread={renderActiveThread}
+          activeSortMode={activeSortMode}
+          inboxProjectView={inboxProjectView}
+          environmentGrouping={projectGroups}
+          reorderControls={reorderControls}
+          sortedVisibleInbox={sortedVisibleInbox}
+          settledLimit={settledLimit}
+        />
+      </InboxProvider>
+    </RateLimitsProvider>
   );
 }

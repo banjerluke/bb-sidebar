@@ -20,6 +20,7 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Automatic project icons with custom overrides
 - Expandable child-thread indicators with running and attention states, on shelf rows too
 - Live status, branch, pull request, and provider details, plus statuses set by other plugins
+- Persistent provider-limit warnings with one-click scheduled Continue after reset and a cancel option
 - Workspace port discovery, hover-card details, and optional browser links
 - A Clean button in Settled that previews and closes live terminals and verified thread-owned listening ports, while protecting Active and Working threads
 - Configurable inactive-thread and automatic cleanup rules

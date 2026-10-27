@@ -377,7 +377,13 @@
                       "./**/useScrollFade.test",
                       "../**/useScrollFade.test",
                       "./**/wired.flows.test",
-                      "../**/wired.flows.test"
+                      "../**/wired.flows.test",
+                      "../**/RateLimitRecovery",
+                      "../**/RateLimits",
+                      "../**/ThreadInbox.rate-limits.test",
+                      "./**/RateLimitRecovery",
+                      "./**/RateLimits",
+                      "./**/ThreadInbox.rate-limits.test"
                     ],
                     "message": "Shared modules must not import TSX app modules."
                   },
@@ -818,7 +824,10 @@
                       "**/test-inbox",
                       "**/test-slot",
                       "**/useScrollFade.test",
-                      "**/wired.flows.test"
+                      "**/wired.flows.test",
+                      "**/RateLimitRecovery",
+                      "**/RateLimits",
+                      "**/ThreadInbox.rate-limits.test"
                     ],
                     "message": "Node runtime modules must not import TSX app modules."
                   },

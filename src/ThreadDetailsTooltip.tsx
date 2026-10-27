@@ -16,6 +16,8 @@ import { OpenPortDetails } from "./OpenPorts";
 import { ThreadPullRequestDetails } from "./ThreadPullRequests";
 import { compareChildThreads, useChildThreadDisplay } from "./ChildThreadDisplay";
 import { cn } from "./lib/utils";
+import { useThreadLimit } from "./RateLimits";
+import { limitDescription, limitStatus } from "./rate-limit-labels";
 
 export function ThreadDetailsTooltip({
   thread,
@@ -83,11 +85,16 @@ export function ThreadDetailsTooltip({
   const { sort: childSort } = useChildThreadDisplay();
   const statusThread = useThreadWithDraft(thread);
   const rowStatus = useThreadRowStatus(thread);
+  const limit = useThreadLimit(thread);
   const project = projects.find((entry) => entry.id === thread.projectId);
   const isWorktree =
     thread.environment?.workspaceDisplayKind === "managed-worktree" ||
     thread.environment?.workspaceDisplayKind === "unmanaged-worktree";
-  const status = thread.hasPendingInteraction ? "Needs you" : (statusThread.indicatorLabel ?? "Idle");
+  const status = thread.hasPendingInteraction
+    ? "Needs you"
+    : limit
+      ? limitStatus(limit)
+      : (statusThread.indicatorLabel ?? "Idle");
   const subthreads = visible
     ? threads
         .filter((child) => !child.isArchived && child.parentThreadId === thread.id && child.id !== thread.id)
@@ -142,6 +149,7 @@ export function ThreadDetailsTooltip({
           </span>
         </div>
         <span className="sr-only">Status: {status}</span>
+        {limit ? <DetailRow icon="Clock" label="Provider limit" value={limitDescription(limit)} /> : null}
         {rowStatus ? (
           // Another plugin's row status, spelled out: the row only has room for its glyph.
           <div className="flex items-center gap-2">

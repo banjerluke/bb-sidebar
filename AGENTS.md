@@ -62,7 +62,7 @@ Do not adopt the SDK's thread menu components for this sidebar.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The
-contract re-exports all five realtime channels from `src/realtime-channels.ts`;
+contract re-exports all six realtime channels from `src/realtime-channels.ts`;
 browser value imports use that pure module to avoid loading schemas. The host
 port contract lives in `src/port-scan-contract.ts`.
 
@@ -78,6 +78,8 @@ port contract lives in `src/port-scan-contract.ts`.
 - `server-settle-cleanup`: cleanup previews, cleanup, and runtime reclaim.
 - `server-settle-actions`: tree settle, return to Active, and Undo snapshots.
 - `server-policy`: automatic settle evaluation and settings revisions.
+- `server-rate-limits`: provider-limit reads and scheduled Continue queue actions.
+- `server-rate-limit-details`: failed-turn classification and provider reset times.
 - `server-handlers`: RPC handlers assembled from the modules.
 - `server.ts`: migrations, context creation, wiring, HTTP, and events.
 

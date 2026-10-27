@@ -12,6 +12,8 @@ import { cn } from "./lib/utils";
 import { relativeTimeLabel } from "./relative-time";
 import { useWorkingSinceContext } from "./useWorkingSince";
 import { statusWithDuration } from "./working-since";
+import { useThreadLimit } from "./RateLimits";
+import { RateLimitRecovery } from "./RateLimitRecovery";
 
 /**
  * The default trailing slot for cards and flat rows: fixed and right-aligned.
@@ -51,6 +53,10 @@ export function StatusOrTime({
   const thread = useThreadWithDraft(listedThread);
   const workingSince = useWorkingSinceContext();
   const rowStatus = useThreadRowStatus(listedThread);
+  const limit = useThreadLimit(listedThread);
+  if (limit && !thread.hasPendingInteraction && thread.indicator !== "runtime") {
+    return <RateLimitRecovery thread={listedThread} />;
+  }
   if (rowStatus) {
     // bb's glyph for another plugin's status, in place of the label; the age stays.
     return (
@@ -90,8 +96,10 @@ const ROW_STATUS_YIELDS_TO = new Set<PluginSidebarThreadIndicator>(["runtime", "
  */
 export function useThreadRowStatus(thread: PluginSidebarThread): PluginSidebarThreadRowStatus | null {
   const rowStatus = useSidebarThreadRowStatus(thread.id);
+  const limit = useThreadLimit(thread);
   if (
     !rowStatus ||
+    limit ||
     thread.hasPendingInteraction ||
     thread.queuedWork === "failed" ||
     ROW_STATUS_YIELDS_TO.has(thread.indicator)

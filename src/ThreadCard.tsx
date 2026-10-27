@@ -29,6 +29,7 @@ import { isWorkingTree } from "./working-tree";
 import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
 import { OpenPortsIndicator } from "./OpenPorts";
+import { useThreadLimit } from "./RateLimits";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { projectIconUrl as iconUrl } from "./project-icons";
@@ -90,6 +91,7 @@ export function ThreadCard({
   onRenamingChange?: (editing: boolean) => void;
 }) {
   const [pin] = useThreadActions(thread, { keys: ["bb--core/pin"] });
+  const limit = useThreadLimit(thread);
   const {
     providerById,
     projectNameById,
@@ -185,8 +187,7 @@ export function ThreadCard({
   // it starts from does not disappear when the cursor leaves the row.
   const holdParkActions = isSnoozeOpen || isSettling;
   const childListId = useId();
-  // A thread stays folded until everything under it is done; it unfolds at
-  // once when it needs you, fails, or just woke.
+  // Keep busy trees compact until a failure, question, or wake needs attention.
   const naturalCompact =
     compactAlways || (compactWhenWorking && !isWoke && isWorkingTree(thread, childThreads, childrenByParent));
   const compact = isRenaming ? compactAtRenameStart.current : naturalCompact;
@@ -197,8 +198,7 @@ export function ThreadCard({
     setIsRenaming(editing);
     onRenamingChange?.(editing);
   };
-  // A folded row stays one line: its children wait for the badge to expand
-  // them, whatever "Show children that need attention" says.
+  // Collapsed cards leave their child rows behind the expansion badge.
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
   const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
   const showParkActions = !isWoke && canPark && (snoozePresets.length > 0 || !!onPark);
@@ -407,8 +407,7 @@ export function ThreadCard({
                 ) : (
                   titleLine
                 )}
-                {/* bb's own rows trade their trailing status for the shortcut
-                  while the modifier is held; these do the same. */}
+                {/* Show bb's thread shortcut in place of the status while the modifier is held. */}
                 {shortcut ? (
                   <span className={cn(STATUS_SLOT_CLASS, "w-auto")}>
                     <ShortcutHint shortcut={shortcut} />
@@ -425,9 +424,8 @@ export function ThreadCard({
                       STATUS_SLOT_CLASS,
                       "group/status-slot pointer-events-auto relative h-5",
                       showParkActions && "[@media(hover:none)]:w-auto [@media(hover:none)]:gap-1.5",
-                      !showParkActions && "w-auto min-w-20",
-                      // Beside the title a fixed slot would cut every title short,
-                      // so it hugs the time and widens only while the actions show.
+                      (limit || !showParkActions) && "w-auto min-w-20",
+                      limit && "[&_[data-limit-control]]:static [&_[role=status]]:absolute [&_[role=status]]:right-0",
                       !showProject && "w-auto min-w-0",
                       !showProject &&
                         showParkActions &&
@@ -439,9 +437,10 @@ export function ThreadCard({
                       className={cn(
                         "flex items-center justify-end gap-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none",
                         showParkActions &&
+                          !limit &&
                           "[@media(hover:hover)]:group-hover/card:opacity-0 [@media(hover:hover)]:group-has-[:focus-visible]/status-slot:opacity-0 [@media(hover:none)]:static [@media(hover:none)]:opacity-100",
-                        showParkActions && showProject && "absolute inset-y-0 right-0",
-                        holdParkActions && "opacity-0 [@media(hover:none)]:opacity-100",
+                        showParkActions && !limit && showProject && "absolute inset-y-0 right-0",
+                        holdParkActions && !limit && "opacity-0 [@media(hover:none)]:opacity-100",
                       )}
                     >
                       {!showParkActions ? unpinButton : null}
@@ -452,6 +451,7 @@ export function ThreadCard({
                         className={cn(
                           "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 ease-out has-[:focus-visible]:pointer-events-auto has-[:focus-visible]:opacity-100 group-hover/card:pointer-events-auto group-hover/card:opacity-100 [@media(hover:none)]:static [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 motion-reduce:transition-none",
                           holdParkActions && "pointer-events-auto opacity-100",
+                          limit && "relative ml-1.5",
                         )}
                       >
                         {unpinButton}

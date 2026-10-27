@@ -6,6 +6,7 @@ import { ChildThreadBadge, ChildThreadList, collapsedChildThreads } from "./Chil
 import { CompactRow } from "./CompactRow";
 import { RowContextMenu } from "./RowContextMenu";
 import { StatusOrTime } from "./StatusSlot";
+import { useThreadLimit } from "./RateLimits";
 import { threadDisplayTitle } from "./inbox";
 import { snoozeWakeLabel } from "./lifecycle";
 import { useProjectColor } from "./ProjectColors";
@@ -66,6 +67,7 @@ export const SlimRow = memo(function SlimRow({
   const title = threadDisplayTitle(thread);
   const rowLabel = projectName ? `${projectName} · ${title}` : title;
   const [isRenaming, setIsRenaming] = useState(false);
+  const limit = useThreadLimit(thread);
 
   return (
     <RowContextMenu
@@ -116,6 +118,8 @@ export const SlimRow = memo(function SlimRow({
               On touch devices, show both side by side. */}
               {shortcut ? (
                 <ShortcutHint shortcut={shortcut} />
+              ) : limit ? (
+                <StatusOrTime thread={thread} now={now} />
               ) : (
                 <span className="pointer-events-none relative flex min-w-5 shrink-0 items-center justify-end tabular-nums text-2xs text-muted-foreground/60 [@media(hover:none)]:gap-2">
                   <span className="flex items-center transition-opacity duration-150 ease-out [@media(hover:hover)]:group-hover/slim:opacity-0 motion-reduce:transition-none">

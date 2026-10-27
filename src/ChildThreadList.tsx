@@ -8,6 +8,9 @@ import { Disc } from "./Disc";
 import { cn } from "./lib/utils";
 import { StatusGlyph } from "./StatusGlyph";
 import { STATUS_SLOT_CLASS, StatusOrTime, threadStatusLabel, useThreadWithDraft } from "./StatusSlot";
+import { RateLimitRecovery } from "./RateLimitRecovery";
+import { useThreadLimit } from "./RateLimits";
+import { limitStatus } from "./rate-limit-labels";
 import { useWorkingSinceContext } from "./useWorkingSince";
 import { threadDisplayTitle } from "./inbox";
 import { canParkThread } from "./lifecycle";
@@ -340,7 +343,10 @@ function ChildThreadRow({
   const effectiveNow = now ?? Date.now();
   const workingSince = useWorkingSinceContext();
   const statusThread = useThreadWithDraft(thread);
-  const visibleStatus = threadStatusLabel(statusThread, workingSince.get(thread.id), effectiveNow);
+  const limit = useThreadLimit(thread);
+  const visibleStatus = limit
+    ? limitStatus(limit)
+    : threadStatusLabel(statusThread, workingSince.get(thread.id), effectiveNow);
   const [isRenaming, setIsRenaming] = useState(false);
   const { splitProps } = useSidebarThreadSplit(thread.id);
   const RowAction = isRenaming ? "div" : "button";
@@ -351,7 +357,7 @@ function ChildThreadRow({
         data-child-thread-row=""
         data-active={isActive ? "true" : undefined}
         className={cn(
-          "flex w-full items-center rounded-md text-left",
+          "group/child flex w-full items-center rounded-md text-left",
           variant === "header" ? "hover:bg-accent" : "h-7 hover:bg-sidebar-accent/60",
           variant === "sidebar" &&
             needsYou &&
@@ -419,7 +425,7 @@ function ChildThreadRow({
                 <StatusGlyph indicator={statusThread.indicator} label={statusThread.indicatorLabel} />
               </span>
             ) : null}
-            {variant === "sidebar" ? (
+            {variant === "sidebar" && !limit ? (
               // Match parent cards: a recognized status owns the trailing
               // slot; an idle or future unknown status leaves it to the age.
               //
@@ -437,6 +443,11 @@ function ChildThreadRow({
             ) : null}
           </RowAction>
         </ThreadDetailsTooltip>
+        {limit ? (
+          <span className="shrink-0 pr-2">
+            <RateLimitRecovery thread={thread} />
+          </span>
+        ) : null}
         {disclosure ? <GrandchildDisclosureButton title={title} {...disclosure} /> : null}
       </div>
     </RowContextMenu>

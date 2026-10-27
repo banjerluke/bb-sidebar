@@ -5,6 +5,7 @@ import { cn } from "./lib/utils";
 import { relativeTimeLabel } from "./relative-time";
 import { shortStatusLabel, statusToneClass, StatusOrTime, threadShortStatus, useThreadWithDraft } from "./StatusSlot";
 import { useWorkingSinceContext } from "./useWorkingSince";
+import { useThreadLimit } from "./RateLimits";
 
 /**
  * This plugin's status glyphs, matching bb's own sidebar shape for shape: the
@@ -103,8 +104,9 @@ export function CompactStatusOrTime({
 }) {
   const thread = useThreadWithDraft(listedThread);
   const workingSince = useWorkingSinceContext();
+  const limit = useThreadLimit(listedThread);
   const status = threadShortStatus(thread);
-  if (status === null || !status.showsDuration) return <StatusOrTime thread={listedThread} now={now} />;
+  if (limit || status === null || !status.showsDuration) return <StatusOrTime thread={listedThread} now={now} />;
   const startedAt = workingSince.get(thread.id);
   const elapsed = startedAt === undefined ? "now" : relativeTimeLabel(startedAt, now);
   return (
