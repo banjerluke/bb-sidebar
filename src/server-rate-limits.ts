@@ -2,8 +2,13 @@ import type { ServerContext } from "./server-context";
 import { RATE_LIMITS_CHANNEL, type ThreadLimitState } from "./contract";
 import { rateLimitDetails } from "./server-rate-limit-details";
 import { runThreadTasks } from "./thread-tasks";
+import { portScanContract } from "./port-scan-contract";
+import type { createServerLifecycle } from "./server-lifecycle";
 
-export function createServerRateLimits({ bb }: ServerContext) {
+export function createServerRateLimits({ bb }: ServerContext, lifecycle: ReturnType<typeof createServerLifecycle>) {
+  const host = bb.hosts.experimental_client({ contract: portScanContract });
+  const controller = new AbortController();
+  bb.onDispose(() => controller.abort());
   const locks = new Map<string, Promise<unknown>>();
   const changed = () => bb.realtime.publish(RATE_LIMITS_CHANNEL, {});
   for (const event of ["thread.failed", "thread.active", "thread.idle", "thread.deleted"] as const) {
@@ -35,6 +40,22 @@ export function createServerRateLimits({ bb }: ServerContext) {
         types: ["provider/error", "system/error", "provider/rateLimits/updated", "turn/started", "turn/completed"],
       });
       limit = rateLimitDetails(events);
+      if (limit?.resetsAt === null && /try again at/i.test(limit.message) && thread.environmentId) {
+        try {
+          const environment = await bb.sdk.environments.get({ environmentId: thread.environmentId });
+          const { timeZone } = await host.call(
+            "timeZone",
+            {},
+            {
+              hostId: environment.hostId,
+              signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+            },
+          );
+          limit = rateLimitDetails(events, timeZone);
+        } catch {
+          // Without the provider machine's timezone, keep the manual time picker.
+        }
+      }
     }
     if (!scheduled) return limit;
     return {
@@ -63,6 +84,22 @@ export function createServerRateLimits({ bb }: ServerContext) {
     }
   }
 
+  async function snoozeScheduled(threadId: string, sendAt: number) {
+    if (sendAt <= Date.now() + 1000) return;
+    await lifecycle.withPinParentChange(threadId, async () => {
+      if (lifecycle.readOne(threadId)?.snoozedUntil === sendAt) return;
+      const thread = await bb.sdk.threads.get({ threadId });
+      if (thread.pinnedAt !== null) await bb.sdk.threads.unpin({ threadId });
+      lifecycle.write({
+        threadId,
+        settledAt: null,
+        settledOverride: null,
+        snoozedUntil: sendAt,
+        snoozedAt: Date.now(),
+      });
+    });
+  }
+
   return {
     async getThreadLimits({ keys }: { keys: string[] }) {
       const result: Record<string, ThreadLimitState | null> = {};
@@ -76,7 +113,9 @@ export function createServerRateLimits({ bb }: ServerContext) {
         const limit = await read(threadId);
         if (!limit) throw new Error("This thread is no longer stopped by a provider limit");
         const existing = await scheduledContinue(threadId);
-        if (existing)
+        if (existing) {
+          if (existing.state !== "failed_exhausted" && existing.state !== "failed_retrying")
+            await snoozeScheduled(threadId, existing.sendAt!);
           return {
             ...limit,
             scheduled: {
@@ -85,6 +124,7 @@ export function createServerRateLimits({ bb }: ServerContext) {
               failed: existing.state === "failed_exhausted" || existing.state === "failed_retrying",
             },
           };
+        }
         const now = Date.now();
         const at = sendAt ?? (limit.resetsAt === null ? null : Math.max(now + 1000, limit.resetsAt + 30_000));
         if (at === null) throw new Error("Choose a time because the provider did not report its reset time");
@@ -98,7 +138,11 @@ export function createServerRateLimits({ bb }: ServerContext) {
           originPluginId: bb.pluginId,
         });
         if (result.delivery !== "queued") throw new Error("BB did not queue the scheduled message");
-        changed();
+        try {
+          await snoozeScheduled(threadId, at);
+        } finally {
+          changed();
+        }
         return { ...limit, scheduled: { id: result.queuedMessage.id, sendAt: at, failed: false } };
       });
     },
@@ -108,6 +152,9 @@ export function createServerRateLimits({ bb }: ServerContext) {
         if (!entry || entry.id !== queuedMessageId) throw new Error("This scheduled Continue is no longer queued");
         if (entry.state === "claimed") throw new Error("The scheduled Continue is already being sent");
         await bb.sdk.threads.queuedMessages.delete({ threadId, queuedMessageId });
+        await lifecycle.withPinParentChange(threadId, async () => {
+          if (lifecycle.readOne(threadId)?.snoozedUntil === entry.sendAt) lifecycle.clear(threadId);
+        });
         changed();
         return { ok: true as const };
       });

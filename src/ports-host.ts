@@ -193,6 +193,9 @@ async function viewPullRequests(urls: string[], signal: AbortSignal) {
 export default experimental_defineHostEntry({
   contract: portScanContract,
   handlers: {
+    async timeZone() {
+      return { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null };
+    },
     async resolveRoots({ roots }) {
       return {
         roots: await Promise.all(

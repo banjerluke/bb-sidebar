@@ -55,8 +55,24 @@ type ActiveShelfKind = "pinned" | "inbox";
  * this list ignores the deprecated `searchQuery` prop. It adds the plugin's
  * project scope picker.
  */
-export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: PluginThreadListProps) {
-  const { status, threads, projects } = useSidebarThreads();
+export function ThreadInbox(props: PluginThreadListProps) {
+  const snapshot = useSidebarThreads();
+  return (
+    <RateLimitsProvider threads={snapshot.threads}>
+      <ThreadInboxContent {...props} snapshot={snapshot} />
+    </RateLimitsProvider>
+  );
+}
+
+function ThreadInboxContent({
+  activeThreadId,
+  onNavigate,
+  isCompactViewport,
+  snapshot,
+}: PluginThreadListProps & {
+  snapshot: ReturnType<typeof useSidebarThreads>;
+}) {
+  const { status, threads, projects } = snapshot;
   const workingSince = useWorkingSince(threads);
   const { providers } = useProviders();
   const navigate = useBbNavigate();
@@ -443,41 +459,39 @@ export function ThreadInbox({ activeThreadId, onNavigate, isCompactViewport }: P
   });
 
   return (
-    <RateLimitsProvider threads={threads}>
-      <InboxProvider
-        value={inboxContext}
-        listAnimationController={listAnimationController}
-        workingSince={workingSince}
-        childDisplay={childDisplay}
-      >
-        <ThreadInboxView
-          shelves={{
-            pinned: { threads: pinned, visibleThreads: visiblePinned },
-            inbox: { threads: inbox, visibleThreads: visibleInbox },
-            working: { threads: working, visibleThreads: visibleWorking },
-            inactive: { threads: inactive, visibleThreads: visibleInactive },
-            snoozed: { threads: snoozed, visibleThreads: visibleSnoozed },
-            parked: { threads: parked, visibleThreads: visibleParked },
-            settled: { threads: settled, visibleThreads: visibleSettled },
-          }}
-          scope={scope}
-          reorderAnnouncement={reorderAnnouncement}
-          attachScrollFadeRef={attachScrollFadeRef}
-          status={status}
-          expandedChildParentIds={expandedChildParentIds}
-          dockShelvesEnabled={dockShelvesEnabled}
-          attachShelvesMotionRef={attachShelvesMotionRef}
-          attachDockMotionRef={attachDockMotionRef}
-          expandedShelves={expandedShelves}
-          renderActiveThread={renderActiveThread}
-          activeSortMode={activeSortMode}
-          inboxProjectView={inboxProjectView}
-          environmentGrouping={projectGroups}
-          reorderControls={reorderControls}
-          sortedVisibleInbox={sortedVisibleInbox}
-          settledLimit={settledLimit}
-        />
-      </InboxProvider>
-    </RateLimitsProvider>
+    <InboxProvider
+      value={inboxContext}
+      listAnimationController={listAnimationController}
+      workingSince={workingSince}
+      childDisplay={childDisplay}
+    >
+      <ThreadInboxView
+        shelves={{
+          pinned: { threads: pinned, visibleThreads: visiblePinned },
+          inbox: { threads: inbox, visibleThreads: visibleInbox },
+          working: { threads: working, visibleThreads: visibleWorking },
+          inactive: { threads: inactive, visibleThreads: visibleInactive },
+          snoozed: { threads: snoozed, visibleThreads: visibleSnoozed },
+          parked: { threads: parked, visibleThreads: visibleParked },
+          settled: { threads: settled, visibleThreads: visibleSettled },
+        }}
+        scope={scope}
+        reorderAnnouncement={reorderAnnouncement}
+        attachScrollFadeRef={attachScrollFadeRef}
+        status={status}
+        expandedChildParentIds={expandedChildParentIds}
+        dockShelvesEnabled={dockShelvesEnabled}
+        attachShelvesMotionRef={attachShelvesMotionRef}
+        attachDockMotionRef={attachDockMotionRef}
+        expandedShelves={expandedShelves}
+        renderActiveThread={renderActiveThread}
+        activeSortMode={activeSortMode}
+        inboxProjectView={inboxProjectView}
+        environmentGrouping={projectGroups}
+        reorderControls={reorderControls}
+        sortedVisibleInbox={sortedVisibleInbox}
+        settledLimit={settledLimit}
+      />
+    </InboxProvider>
   );
 }

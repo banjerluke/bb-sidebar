@@ -11,6 +11,10 @@ import {
 const rootSchema = z.object({ environmentId: z.string(), path: z.string().min(1) });
 export type PortRoot = z.infer<typeof rootSchema>;
 export const portScanContract = defineRpcContract({
+  timeZone: {
+    input: z.object({}).strict(),
+    output: z.object({ timeZone: z.string().nullable() }),
+  },
   resolveRoots: {
     input: z.object({ roots: z.array(rootSchema).max(10000) }),
     output: z.object({ roots: z.array(z.object({ environmentId: z.string(), path: z.string().min(1).nullable() })) }),

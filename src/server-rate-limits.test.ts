@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { makeQueueEntry, makeThreadResponse } from "@get-bb/plugin-sdk/testing";
-import { loadPlugin } from "./test-server";
+import { createFakePluginHost, disposers, loadPlugin, type Environment } from "./test-server";
+import plugin from "./server";
 import { rateLimitDetails } from "./server-rate-limit-details";
 import { RATE_LIMITS_CHANNEL } from "./realtime-channels";
 import type { ThreadLimitState } from "./contract";
@@ -22,6 +23,15 @@ const failure: Event = {
 };
 const systemFailure: Event = { ...base, seq: 3, type: "system/error", data: { message: "Provider error" } };
 const started: Event = { ...base, seq: 1, type: "turn/started", data: { providerThreadId: "provider_1" } };
+const codexMessage = "You've hit your usage limit. Upgrade to Pro or try again at Oct 27th, 2026 1:40 AM.";
+const codexFailure: Event = {
+  ...failure,
+  data: {
+    providerThreadId: "provider_1",
+    message: "Provider error",
+    detail: `Internal error: ${JSON.stringify({ message: codexMessage, codexErrorInfo: "usageLimitExceeded" })}`,
+  },
+};
 
 afterEach(() => vi.useRealTimers());
 
@@ -71,6 +81,28 @@ async function setup() {
 }
 
 describe("provider limit detection", () => {
+  it.each([
+    ["America/Chicago", "2026-10-27T06:40:00Z"],
+    ["Europe/London", "2026-10-27T01:40:00Z"],
+    ["Asia/Tokyo", "2026-10-26T16:40:00Z"],
+  ])("reads Codex's dated reset in the provider host timezone (%s)", (timeZone, expected) => {
+    expect(rateLimitDetails([codexFailure, started], timeZone)).toMatchObject({
+      resetsAt: Date.parse(expected),
+      timeZone,
+    });
+    expect(rateLimitDetails([codexFailure, started])?.resetsAt).toBeNull();
+  });
+
+  it.each(["Feb 30th, 2026 1:40 AM", "Oct 27th, 2026 13:40 AM", "Oct 27th, 2026 1:99 AM"])(
+    "refuses an invalid dated reset (%s)",
+    (timestamp) => {
+      const event: Event = {
+        ...failure,
+        data: { ...failure.data, message: `Usage limit reached. Try again at ${timestamp}.` },
+      };
+      expect(rateLimitDetails([event], "America/Chicago")?.resetsAt).toBeNull();
+    },
+  );
   it("reads the screenshot's reset time in the provider's timezone", () => {
     expect(rateLimitDetails([failure, started])).toEqual({
       message,
@@ -154,6 +186,61 @@ describe("provider limit detection", () => {
 });
 
 describe("scheduled Continue RPC", () => {
+  it.each([
+    ["Asia/Tokyo", "2026-10-26T16:40:00Z", false],
+    ["America/Chicago", "2026-10-27T06:40:00Z", false],
+    ["America/Chicago", "2026-10-27T06:40:00Z", true],
+  ] as const)(
+    "uses the thread machine's timezone and preserves manual fallback when unavailable (%s)",
+    async (timeZone, resetTime, offline) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(failedAt);
+      const hostCall = vi.fn(async () => {
+        if (offline) throw new Error("Host offline");
+        return { timeZone };
+      });
+      const { bb, harness } = createFakePluginHost({
+        pluginId: "bb-sidebar",
+        experimental_callHostRpc: hostCall,
+        sdk: {
+          threads: {
+            get: async () => makeThreadResponse({ id: "thr_1", status: "error", environmentId: "env_remote" }),
+            events: { list: async () => [codexFailure, started] },
+            queuedMessages: { list: async () => [] },
+            send: async (args) => ({
+              ok: true,
+              delivery: "queued",
+              queuedMessage: makeQueueEntry({ id: "continue_remote", sendAt: args.sendAt!, content: args.input }),
+            }),
+          },
+          environments: { get: async () => ({ id: "env_remote", hostId: "host_remote" }) as Environment },
+        },
+      });
+      disposers.push(() => harness.lifecycle.dispose());
+      await plugin(bb);
+      const result = (await harness.behavior.callRpc("getThreadLimits", { keys: ["thr_1"] })) as Record<
+        string,
+        ThreadLimitState | null
+      >;
+      expect(harness.inspection.experimental_hostRpcCalls[0]).toMatchObject({
+        hostId: "host_remote",
+        method: "timeZone",
+        input: {},
+      });
+      expect(result.thr_1?.resetsAt).toBe(offline ? null : Date.parse(resetTime));
+      if (offline) {
+        await expect(harness.behavior.callRpc("scheduleLimitContinue", { threadId: "thr_1" })).rejects.toThrow(
+          /Choose a time/,
+        );
+        expect(harness.inspection.sdk.callsTo("threads.send")).toHaveLength(0);
+      } else {
+        expect(
+          ((await harness.behavior.callRpc("scheduleLimitContinue", { threadId: "thr_1" })) as ThreadLimitState)
+            .scheduled?.sendAt,
+        ).toBe(Math.max(failedAt + 1000, Date.parse(resetTime) + 30_000));
+      }
+    },
+  );
   it("discovers existing read failures and clears the warning once work resumes", async () => {
     const { call, setStatus } = await setup();
     expect(await call("getThreadLimits", { keys: ["thr_1"] })).toEqual({
@@ -170,6 +257,9 @@ describe("scheduled Continue RPC", () => {
       call("scheduleLimitContinue", { threadId: "thr_1" }),
     ])) as ThreadLimitState[];
     expect(first.scheduled).toEqual({ id: "continue_1", sendAt: resetsAt + 30_000, failed: false });
+    expect(await call("listLifecycle", {})).toMatchObject({
+      rows: [{ threadId: "thr_1", snoozedUntil: resetsAt + 30_000, snoozedAt: failedAt }],
+    });
     expect(second.scheduled).toEqual(first.scheduled);
     expect(harness.inspection.sdk.callsTo("threads.send")).toHaveLength(1);
     expect(harness.inspection.sdk.callsTo("threads.send")[0]?.[0]).toEqual({
@@ -183,10 +273,48 @@ describe("scheduled Continue RPC", () => {
       ((await call("getThreadLimits", { keys: ["thr_1"] })) as Record<string, ThreadLimitState>).thr_1?.scheduled,
     ).toEqual(first.scheduled);
     await call("cancelLimitContinue", { threadId: "thr_1", queuedMessageId: "continue_1" });
+    expect(await call("listLifecycle", {})).toEqual({ rows: [] });
+    expect(harness.inspection.sdk.callsTo("threads.stop")).toHaveLength(0);
     expect(
       ((await call("getThreadLimits", { keys: ["thr_1"] })) as Record<string, ThreadLimitState>).thr_1?.scheduled,
     ).toBeNull();
     expect(harness.inspection.realtimeSignals.some((signal) => signal.channel === RATE_LIMITS_CHANNEL)).toBe(true);
+  });
+
+  it("files an existing schedule in Snoozed without sending again or resetting its wake history", async () => {
+    const { call, setQueue, harness } = await setup();
+    setQueue([
+      makeQueueEntry({
+        id: "already_scheduled",
+        sendAt: resetsAt,
+        originPluginId: "bb-sidebar",
+        content: [{ type: "text", text: "Continue", mentions: [] }],
+        state: "scheduled",
+      }),
+    ]);
+    await call("scheduleLimitContinue", { threadId: "thr_1" });
+    const first = await call("listLifecycle", {});
+    vi.setSystemTime(failedAt + 60_000);
+    await call("scheduleLimitContinue", { threadId: "thr_1" });
+    expect(await call("listLifecycle", {})).toEqual(first);
+    expect(harness.inspection.sdk.callsTo("threads.send")).toHaveLength(0);
+  });
+
+  it("preserves a later manual snooze when cancelling Continue", async () => {
+    const { call } = await setup();
+    await call("scheduleLimitContinue", { threadId: "thr_1" });
+    await call("snooze", { threadId: "thr_1", snoozedUntil: resetsAt + 3_600_000 });
+    await call("cancelLimitContinue", { threadId: "thr_1", queuedMessageId: "continue_1" });
+    expect(await call("listLifecycle", {})).toMatchObject({ rows: [{ snoozedUntil: resetsAt + 3_600_000 }] });
+  });
+
+  it("keeps the thread Active if scheduling fails", async () => {
+    const { call, harness } = await setup();
+    harness.inspection.sdk.stub("threads.send", async () => {
+      throw new Error("Offline");
+    });
+    await expect(call("scheduleLimitContinue", { threadId: "thr_1" })).rejects.toThrow("Offline");
+    expect(await call("listLifecycle", {})).toEqual({ rows: [] });
   });
 
   it("allows a chosen future time for unknown resets and refuses past times", async () => {

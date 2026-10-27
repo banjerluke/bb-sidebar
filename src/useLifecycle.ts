@@ -21,6 +21,7 @@ import { createCachedRpcState } from "./lib/cached-rpc-state";
 import { lifecycleRowsCodec } from "./lib/lifecycle-cache-codec";
 import { threadsWithAskingDescendants } from "./child-status";
 import { resolveThreadTitlesIn } from "./inbox";
+import { useLimitActions } from "./RateLimits";
 
 export interface LifecycleApi {
   shelfFor(thread: PluginSidebarThread): ThreadShelf;
@@ -92,6 +93,7 @@ function errorDescription(error: unknown): string | undefined {
  * clock during render would make the classification unstable.
  */
 export function useLifecycle(threads: readonly PluginSidebarThread[]): LifecycleApi {
+  const recovery = useLimitActions();
   const rpc = useRpc<typeof bbSidebarRpcContract>();
   const [rows, setRows] = useState<ReadonlyMap<string, ThreadLifecycleRow>>(
     () => lifecycleCache.read(rpc) ?? new Map(),
@@ -172,6 +174,16 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
     // back from any shelf, ends a snooze, and blocks parking it again.
     const signalsFor = (thread: PluginSidebarThread) => {
       const signals = sidebarThreadSignals(thread);
+      const scheduled = recovery?.rows[thread.id]?.scheduled;
+      // This snooze waits for our own scheduled Continue; other queued work stays visible.
+      if (
+        scheduled &&
+        scheduled.sendAt > now &&
+        !scheduled.failed &&
+        thread.queuedWork !== "failed" &&
+        rows.get(thread.id)?.snoozedUntil === scheduled.sendAt
+      )
+        signals.hasQueuedWork = false;
       return askingParentIds.has(thread.id) ? { ...signals, hasPendingInteraction: true } : signals;
     };
     // One mutation per thread at a time. The write publishes on the realtime
@@ -323,5 +335,5 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       unsnooze: (threadId) => mutate({ method: "unsnooze", threadId }),
       snooze: (threadId, snoozedUntil) => mutate({ method: "snooze", threadId, snoozedUntil }),
     };
-  }, [askingParentIds, now, rows, rpc]);
+  }, [askingParentIds, now, rows, rpc, recovery]);
 }

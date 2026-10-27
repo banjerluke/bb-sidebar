@@ -2,6 +2,9 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ThreadLimitState } from "./contract";
+import type { BbPluginApi, PluginSidebarThread } from "@get-bb/plugin-sdk";
+import { makeQueueEntry, makeThreadResponse } from "@get-bb/plugin-sdk/testing";
+import { createWired } from "./test-wired";
 import { renderSlot } from "./test-slot";
 import {
   defaultSidebarSettings,
@@ -37,12 +40,16 @@ function mount({
   initial = warning,
   schedule,
   cancel,
+  snoozed = false,
+  overrides = {},
 }: {
   display?: string;
   child?: boolean;
   initial?: ThreadLimitState;
   schedule?: () => Promise<ThreadLimitState>;
   cancel?: () => Promise<void>;
+  snoozed?: boolean;
+  overrides?: Partial<PluginSidebarThread>;
 } = {}) {
   let state = initial;
   const scheduleCall = vi.fn(async () => {
@@ -64,6 +71,7 @@ function mount({
     indicator: "none",
     isUnread: false,
     parentThreadId: child ? "parent" : null,
+    ...overrides,
   });
   const slot = renderSlot(inbox, listProps, {
     sidebarThreads: {
@@ -73,7 +81,11 @@ function mount({
     },
     rpc: {
       getSidebarSettings: () => ({ ...defaultSidebarSettings, inactiveThreadsEnabled: false, threadDisplay: display }),
-      listLifecycle: () => ({ rows: [] }),
+      listLifecycle: () => ({
+        rows: snoozed
+          ? [{ threadId: "limited", snoozedUntil: scheduled.scheduled!.sendAt, snoozedAt: Date.now(), settledAt: null }]
+          : [],
+      }),
       getThreadLimits: () => ({ limited: state }),
       scheduleLimitContinue: scheduleCall,
       cancelLimitContinue: cancelCall,
@@ -92,6 +104,87 @@ function mount({
 }
 
 describe("sidebar rate-limit recovery", () => {
+  it("schedules into Snoozed and cancellation returns to Active through the real server", async () => {
+    const now = Date.now();
+    const limited = thread({
+      id: "limited",
+      title: "Limited work",
+      displayTitle: "Limited work",
+      status: "error",
+      runtimeStatus: "error",
+      queuedWork: "waiting",
+      updatedAt: now,
+      latestAttentionAt: now,
+    });
+    const wired = await createWired([limited]);
+    let queue: ReturnType<typeof makeQueueEntry>[] = [];
+    wired.harness.inspection.sdk.stub("threads.get", async () =>
+      makeThreadResponse({ id: "limited", status: "error", latestAttentionAt: now }),
+    );
+    wired.harness.inspection.sdk.stub("threads.events.list", async () => [
+      {
+        id: "limit",
+        threadId: "limited",
+        scope: { kind: "thread" },
+        seq: 1,
+        createdAt: now,
+        type: "provider/error",
+        data: {
+          providerThreadId: "p",
+          message: warning.message,
+          errorInfo: { category: "rate-limit", httpStatusCode: null, providerCode: null },
+        },
+      },
+    ]);
+    wired.harness.inspection.sdk.stub("threads.queuedMessages.list", async () => queue);
+    wired.harness.inspection.sdk.stub(
+      "threads.send",
+      async (args: Parameters<BbPluginApi["sdk"]["threads"]["send"]>[0]) => {
+        const entry = makeQueueEntry({
+          id: "continue_1",
+          sendAt: args.sendAt!,
+          originPluginId: "bb-sidebar",
+          content: args.input,
+          state: "scheduled",
+        });
+        queue.push(entry);
+        return { ok: true, delivery: "queued", queuedMessage: entry };
+      },
+    );
+    wired.harness.inspection.sdk.stub("threads.queuedMessages.delete", async () => {
+      queue = [];
+      return { ok: true };
+    });
+    wired.mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Continue at 5pm for Limited work" }));
+    await waitFor(() =>
+      expect(
+        wired.db.prepare("SELECT snoozed_until FROM thread_lifecycle WHERE thread_id = ?").get("limited"),
+      ).toBeDefined(),
+    );
+    await wired.flush();
+    const snoozed = await screen.findByRole("region", { name: "Snoozed" });
+    fireEvent.click(within(snoozed).getByRole("button", { name: /^Snoozed/ }));
+    fireEvent.click(await within(snoozed).findByRole("button", { name: "Cancel scheduled Continue for Limited work" }));
+    await waitFor(() => expect(queue).toHaveLength(0));
+    await wired.flush();
+    const active = await screen.findByRole("region", { name: "Active" });
+    expect(within(active).getByRole("link", { name: "Limited work" })).toBeDefined();
+    expect(wired.harness.inspection.sdk.callsTo("threads.send")).toHaveLength(1);
+    expect(wired.harness.inspection.sdk.callsTo("threads.stop")).toHaveLength(0);
+  });
+
+  it.each([
+    ["waiting", {}, true],
+    ["failed", {}, false],
+    ["waiting", { status: "active", indicator: "runtime" }, false],
+    ["waiting", { hasPendingInteraction: true }, false],
+  ] as const)("keeps only waiting recovery asleep (%s, %j)", async (queuedWork, overrides, asleep) => {
+    const { slot } = mount({ initial: scheduled, snoozed: true, overrides: { ...overrides, queuedWork } });
+    await waitFor(() => expect(slot.inspection.rpcCalls.some((call) => call.method === "getThreadLimits")).toBe(true));
+    await act(async () => {});
+    expect(screen.queryByRole("region", { name: "Snoozed" }) !== null).toBe(asleep);
+  });
   it.each([
     ["before reset", warning, "Continue at 5pm for Limited work"],
     ["after reset", { ...warning, resetsAt: 1 }, "Continue now for Limited work"],

@@ -52,6 +52,12 @@ function commands(docker: () => string = () => "") {
 }
 
 describe("host port scan", () => {
+  it("reports the host timezone for provider reset timestamps", async () => {
+    expect(await harness.experimental_call("timeZone", {})).toEqual({
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+    expect(mocks.run).not.toHaveBeenCalled();
+  });
   it("enriches process listeners with Docker metadata without losing ownership or bind address", async () => {
     commands(() => "abc\tapp-web-1\t0.0.0.0:3000->3000/tcp, 0.0.0.0:8080->8080/tcp\t/workspace/app\tweb");
     const result = await harness.experimental_call("scan", { roots });
