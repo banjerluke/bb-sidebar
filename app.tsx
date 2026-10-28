@@ -7,6 +7,7 @@ import { ThreadInbox } from "./src/ThreadInbox";
 import { ParentChip } from "./src/ParentChip";
 import { SubagentsChip } from "./src/SubagentsChip";
 import { SidebarSettings } from "./src/SidebarSettings";
+import { registerThreadHeaderAction } from "./src/bb-sdk";
 
 export default definePluginApp((app) => {
   app.slots.settingsSection({
@@ -26,7 +27,7 @@ export default definePluginApp((app) => {
   //
   // The hidden child is otherwise a dead end — it is not in the list, so this
   // chip is its only route back to the parent.
-  app.slots.experimental_threadHeaderAction({
+  registerThreadHeaderAction(app.slots, {
     id: "parent",
     title: "Parent thread",
     component: ParentChip,
@@ -34,7 +35,7 @@ export default definePluginApp((app) => {
 
   // A flat inbox has nowhere to nest child threads, so the list hides them
   // and this chip gives them a home on their parent's header.
-  app.slots.experimental_threadHeaderAction({
+  registerThreadHeaderAction(app.slots, {
     id: "children",
     title: "Child threads",
     component: SubagentsChip,

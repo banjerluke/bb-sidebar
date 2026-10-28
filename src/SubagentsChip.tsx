@@ -1,6 +1,7 @@
 import { useProviders, useSidebarThreads } from "./bb-sdk";
 import { useEffect, useMemo, useState } from "react";
-import { useBbNavigate, type PluginThreadHeaderActionProps } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate } from "@get-bb/plugin-sdk/app";
+import type { ThreadHeaderActionProps } from "./bb-sdk";
 import { useSidebarSettings } from "./useSidebarSettings";
 import {
   ChildThreadDots,
@@ -22,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/Popover";
  * bb's in-turn subagents are activity counters on the parent, not threads, so
  * the label deliberately says "children".
  */
-export function SubagentsChip({ threadId, isCompactViewport }: PluginThreadHeaderActionProps) {
+export function SubagentsChip({ threadId, isCompactViewport }: ThreadHeaderActionProps) {
   const { threads } = useSidebarThreads();
   const navigate = useBbNavigate();
   const [open, setOpen] = useState(false);

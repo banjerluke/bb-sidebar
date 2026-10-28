@@ -1,7 +1,8 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { completeCloudTitle } from "./cloud-title";
 
-type Timeline = Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["timeline"]>>;
+// A read without afterTag returns a full page; ReturnType sees only the delta overload.
+type Timeline = Extract<Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["timeline"]>>, { rows: unknown }>;
 type Row = Timeline["rows"][number];
 const MESSAGE_LIMIT = 3;
 const MESSAGE_CHAR_LIMIT = 8_000;
@@ -28,7 +29,7 @@ export async function lastUserMessages(bb: BbPluginApi, threadId: string) {
   let cursor: Timeline["timelinePage"]["olderCursor"] = null;
   const cursors = new Set<string>();
   while (found.size < MESSAGE_LIMIT) {
-    const page = await bb.sdk.threads.timeline({
+    const page: Timeline = await bb.sdk.threads.timeline({
       threadId,
       segmentLimit: "3",
       includeNestedRows: "true",

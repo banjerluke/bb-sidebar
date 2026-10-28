@@ -1,5 +1,7 @@
 import { experimental_useRpcKeyedQuery, experimental_useThreadActions } from "@get-bb/plugin-sdk/app";
+import type { ComponentType } from "react";
 import type {
+  PluginAppSlots,
   PluginRpcContract,
   PluginSidebarThread,
   PluginThreadActionsOptions,
@@ -18,6 +20,33 @@ export {
   experimental_ThreadStatusGlyph as ThreadStatusGlyph,
   experimental_ShortcutHint as ShortcutHint,
 } from "@get-bb/plugin-sdk/app";
+
+/** Props bb passes to a thread header action. */
+export interface ThreadHeaderActionProps {
+  threadId: string;
+  projectId: string;
+  isCompactViewport: boolean;
+}
+
+interface RetiredHeaderSlot {
+  experimental_threadHeaderAction(registration: {
+    id: string;
+    title: string;
+    component: ComponentType<ThreadHeaderActionProps>;
+  }): void;
+}
+
+/**
+ * SDK 0.6.94 dropped this slot from its types, but bb 0.47 and 0.48 still
+ * render it (`bb plugin build` warns). Header thread actions are plain buttons,
+ * so the parent and children chips keep this slot until they are redesigned.
+ */
+export function registerThreadHeaderAction(
+  slots: PluginAppSlots,
+  registration: Parameters<RetiredHeaderSlot["experimental_threadHeaderAction"]>[0],
+) {
+  (slots as PluginAppSlots & RetiredHeaderSlot).experimental_threadHeaderAction(registration);
+}
 
 export function useThreadActions(thread: PluginSidebarThread, options?: PluginThreadActionsOptions) {
   const environment = thread.environment?.id ? { id: thread.environment.id, path: thread.environment.path } : null;
