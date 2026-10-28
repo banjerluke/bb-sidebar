@@ -10,6 +10,7 @@
 
 ### Changed
 
+- **Settle finished pull requests** replaces "Settle merged pull requests" and covers closed pull requests too, so turning it off stops all pull-request settling. Before, a thread whose pull request closed without merging was always settled. The option is off for new installs; existing installs keep their current choice. With it and inactivity settling both off, the sidebar no longer checks GitHub every five minutes.
 - Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
 - Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
 

@@ -152,25 +152,30 @@ export function createServerPolicy(
       // Repair older trees before any decision reads their children's rows.
       const backfilled = backfillSettledChildRows(threads);
       const lifecycleByThreadId = new Map(readAll().map((row) => [row.threadId, row]));
-      const environmentIds = [
-        ...new Set(
-          threads.flatMap((thread) => {
-            if (
-              thread.environmentId === null ||
-              !autoSettleNeedsPullRequest(lifecycleByThreadId.get(thread.id) ?? null, thread)
-            ) {
-              return [];
-            }
-            return [thread.environmentId];
-          }),
-        ),
-      ];
-      const pullRequests = await loadPullRequests(environmentIds);
-      const now = Date.now();
       const policySettings = {
         afterDays: parseAutoSettleAfterDays(configured.autoSettleInactive, String(configured.autoSettleAfterDays)),
         onMerge: configured.autoSettleOnMerge,
       };
+      // With both rules off, every known PR outcome leads to the same decision,
+      // so skip GitHub entirely and treat each environment as having no PR.
+      const readsPullRequests = policySettings.onMerge || policySettings.afterDays !== null;
+      const environmentIds = readsPullRequests
+        ? [
+            ...new Set(
+              threads.flatMap((thread) => {
+                if (
+                  thread.environmentId === null ||
+                  !autoSettleNeedsPullRequest(lifecycleByThreadId.get(thread.id) ?? null, thread)
+                ) {
+                  return [];
+                }
+                return [thread.environmentId];
+              }),
+            ),
+          ]
+        : [];
+      const pullRequests = await loadPullRequests(environmentIds);
+      const now = Date.now();
       const decide = (keepThreadIds: ReadonlySet<string>) =>
         threads.flatMap((thread) => {
           if (keepThreadIds.has(thread.id) || (thread.visibility === "hidden" && thread.parentThreadId === null))
@@ -181,7 +186,7 @@ export function createServerPolicy(
             lifecycle: row,
             now,
             pullRequest:
-              thread.environmentId === null
+              thread.environmentId === null || !readsPullRequests
                 ? { outcome: "absent" }
                 : (pullRequests.get(thread.environmentId) ?? {
                     outcome: "unknown",

@@ -145,26 +145,18 @@ describe("automatic settle policy", () => {
     }
   });
 
-  it("settles closed PRs and optionally merged PRs", () => {
+  it.each(["merged", "closed"] as const)("settles a %s PR only when finished PRs are enabled", (state) => {
     const updatedAt = new Date(NOW).toISOString();
-    expect(
+    const decide = (onMerge: boolean) =>
       decideAutoSettle({
         lifecycle: null,
         now: NOW,
-        pullRequest: { outcome: "available", state: "closed", updatedAt },
-        settings: { afterDays: null, onMerge: false },
+        pullRequest: { outcome: "available", state, updatedAt },
+        settings: { afterDays: null, onMerge },
         thread: quietThread,
-      }),
-    ).toBe("settle");
-    expect(
-      decideAutoSettle({
-        lifecycle: null,
-        now: NOW,
-        pullRequest: { outcome: "available", state: "merged", updatedAt },
-        settings: { afterDays: null, onMerge: false },
-        thread: quietThread,
-      }),
-    ).toBe("keep");
+      });
+    expect(decide(true)).toBe("settle");
+    expect(decide(false)).toBe("keep");
   });
 
   it("does not re-settle when activity postdates the terminal PR", () => {

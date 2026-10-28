@@ -202,7 +202,7 @@ function assertSettingsControls(container: HTMLElement, settings: (typeof snapsh
     ["Dock shelves to the bottom", "dockShelves"],
     ["Project colors", "projectColorsEnabled"],
     ["Settle inactive threads", "autoSettleInactive"],
-    ["Settle merged pull requests", "autoSettleOnMerge"],
+    ["Settle finished pull requests", "autoSettleOnMerge"],
     ["Show children that need attention", "showRunningChildrenWhenCollapsed"],
   ] as const) {
     expect(ui.getByRole("switch", { name: label }).getAttribute("aria-checked")).toBe(String(settings[field]));

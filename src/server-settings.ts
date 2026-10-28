@@ -14,12 +14,33 @@ const storedSettingsSchema = z.object(
   ),
 );
 
+// Settling finished pull requests became opt-in. Installs that already had
+// sidebar data keep it on until they save their own settings; a new install
+// has empty tables when this runs, so it gets the new default.
+export const INSTALL_DEFAULTS_MIGRATIONS = [
+  `CREATE TABLE IF NOT EXISTS install_defaults (name TEXT PRIMARY KEY)`,
+  `INSERT OR IGNORE INTO install_defaults (name)
+   SELECT 'settle-finished-pull-requests'
+    WHERE EXISTS (SELECT 1 FROM thread_lifecycle)
+       OR EXISTS (SELECT 1 FROM inbox_order)
+       OR EXISTS (SELECT 1 FROM project_icons)
+       OR EXISTS (SELECT 1 FROM project_colors)
+       OR EXISTS (SELECT 1 FROM title_recovery_attempts)
+       OR EXISTS (SELECT 1 FROM sidebar_settings WHERE settings_json IS NOT NULL)`,
+];
+
 export async function createServerSettings(ctx: ServerContext) {
+  const keepsFinishedPullRequestSettling =
+    ctx.db.prepare(`SELECT 1 FROM install_defaults WHERE name = 'settle-finished-pull-requests'`).get() !== undefined;
+  const defaults: SidebarSettingsValues = keepsFinishedPullRequestSettling
+    ? { ...DEFAULT_SIDEBAR_SETTINGS, autoSettleOnMerge: true }
+    : DEFAULT_SIDEBAR_SETTINGS;
+
   const readSidebarSettings = (): SidebarSettingsValues => {
     const row = ctx.db.prepare("SELECT settings_json FROM sidebar_settings WHERE id = 1").get() as
       | { settings_json: string | null }
       | undefined;
-    if (row?.settings_json == null) return { ...DEFAULT_SIDEBAR_SETTINGS };
+    if (row?.settings_json == null) return { ...defaults };
     try {
       const stored: unknown = JSON.parse(row.settings_json);
       if (stored === null || typeof stored !== "object" || Array.isArray(stored)) {
@@ -30,7 +51,7 @@ export async function createServerSettings(ctx: ServerContext) {
       const threadDisplay = threadDisplayOf(stored);
       return sidebarSettingsSchema.parse(
         storedSettingsSchema.parse({
-          ...DEFAULT_SIDEBAR_SETTINGS,
+          ...defaults,
           ...stored,
           threadDisplay,
           compactWorkingThreads: threadDisplay !== "full",
@@ -40,7 +61,7 @@ export async function createServerSettings(ctx: ServerContext) {
       ctx.bb.log.warn(
         `Could not parse sidebar_settings.settings_json; using defaults: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return { ...DEFAULT_SIDEBAR_SETTINGS };
+      return { ...defaults };
     }
   };
 
@@ -66,7 +87,7 @@ export async function createServerSettings(ctx: ServerContext) {
         "autoSettleOnMerge",
       ].some((key) => key in values);
       const migrated = sidebarSettingsSchema.safeParse({
-        ...DEFAULT_SIDEBAR_SETTINGS,
+        ...defaults,
         snoozePresets:
           typeof values.snoozePresets === "string" ? values.snoozePresets : DEFAULT_SIDEBAR_SETTINGS.snoozePresets,
         inactiveThreadsEnabled:
@@ -90,9 +111,7 @@ export async function createServerSettings(ctx: ServerContext) {
             ? Number(values.autoSettleAfterDays)
             : DEFAULT_SIDEBAR_SETTINGS.autoSettleAfterDays,
         autoSettleOnMerge:
-          typeof values.autoSettleOnMerge === "boolean"
-            ? values.autoSettleOnMerge
-            : DEFAULT_SIDEBAR_SETTINGS.autoSettleOnMerge,
+          typeof values.autoSettleOnMerge === "boolean" ? values.autoSettleOnMerge : defaults.autoSettleOnMerge,
       });
       if (hasLegacyValues && migrated.success) {
         writeSidebarSettings(migrated.data);

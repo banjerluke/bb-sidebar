@@ -15,7 +15,7 @@ describe("lifecycle RPC", () => {
       showRunningChildrenWhenCollapsed: true,
       autoSettleInactive: true,
       autoSettleAfterDays: 3,
-      autoSettleOnMerge: true,
+      autoSettleOnMerge: false,
       childSortField: "created",
       childSortDirection: "ascending",
       childIconStyle: "disc",
@@ -292,5 +292,20 @@ it("keeps the legacy switch in step when thread display changes", async () => {
   await expect(harness.behavior.callRpc("updateSidebarSettings", { threadDisplay: "full" })).resolves.toMatchObject({
     threadDisplay: "full",
     compactWorkingThreads: false,
+  });
+});
+
+it("keeps settling finished pull requests on for installs that already had sidebar data", async () => {
+  const { bb, harness } = createFakePluginHost({ pluginId: "bb-sidebar" });
+  // The shape the first release created, with one stored shelf choice.
+  bb.storage.database().exec(
+    `CREATE TABLE thread_lifecycle (thread_id TEXT PRIMARY KEY, settled_at INTEGER, snoozed_until INTEGER, snoozed_at INTEGER);
+       INSERT INTO thread_lifecycle VALUES ('thr_old', 1, NULL, NULL);`,
+  );
+  await plugin(bb);
+  disposers.push(() => harness.lifecycle.dispose());
+  await expect(harness.behavior.callRpc("getSidebarSettings", {})).resolves.toMatchObject({ autoSettleOnMerge: true });
+  await expect(harness.behavior.callRpc("updateSidebarSettings", { autoSettleOnMerge: false })).resolves.toMatchObject({
+    autoSettleOnMerge: false,
   });
 });

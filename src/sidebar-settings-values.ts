@@ -60,7 +60,7 @@ export const DEFAULT_SIDEBAR_SETTINGS: SidebarSettingsValues = {
   showRunningChildrenWhenCollapsed: true,
   autoSettleInactive: true,
   autoSettleAfterDays: 3,
-  autoSettleOnMerge: true,
+  autoSettleOnMerge: false,
   childSortField: "created",
   childSortDirection: "ascending",
   childIconStyle: "disc",

@@ -126,7 +126,8 @@ export function decideAutoSettle({
   let shouldSettle = false;
 
   if (pullRequest.outcome === "available") {
-    const terminal = pullRequest.state === "closed" || (pullRequest.state === "merged" && settings.onMerge);
+    // Merged and closed both count as finished, and only when the user opted in.
+    const terminal = settings.onMerge && (pullRequest.state === "merged" || pullRequest.state === "closed");
     if (terminal) {
       const pullRequestUpdatedAt = Date.parse(pullRequest.updatedAt);
       // A malformed terminal timestamp is not evidence that the PR finished

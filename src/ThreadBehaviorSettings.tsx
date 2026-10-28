@@ -87,11 +87,11 @@ export function ThreadBehaviorSettings({
           ) : null}
         </SettingRow>
         <SettingRow
-          title="Settle merged pull requests"
-          description="Closed pull requests always count as finished. Pull request status comes from the GitHub PR Status plugin; while it is off, threads with a workspace are not settled automatically."
+          title="Settle finished pull requests"
+          description="Settles a thread when its pull request is merged or closed after the thread's last activity. Pull request status comes from the GitHub PR Status plugin; while it is off, threads with a workspace are not settled automatically."
           control={
             <Switch
-              label="Settle merged pull requests"
+              label="Settle finished pull requests"
               checked={draft.autoSettleOnMerge}
               onChange={(checked) => update("autoSettleOnMerge", checked)}
             />

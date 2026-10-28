@@ -468,7 +468,10 @@ describe("automatic settle evaluation", () => {
               }),
             ]),
         },
-        plugins: { callRpc: pullRequestStatus(() => availablePullRequest("merged"), batches) },
+        plugins: {
+          callRpc: pullRequestStatus(() => availablePullRequest("merged"), batches),
+          getSettings: async () => ({ ok: true as const, schema: {}, values: { autoSettleOnMerge: true } }),
+        },
       },
     });
     await plugin(bb);
@@ -536,10 +539,11 @@ describe("automatic settle evaluation", () => {
     await expect(firstEvaluation).resolves.toEqual({
       changedThreadIds: [],
     });
-    for (let attempt = 0; attempt < 10 && pullRequestCalls < 2; attempt += 1) {
+    // The queued pass runs with both rules off, so it never asks GitHub.
+    for (let attempt = 0; attempt < 10; attempt += 1) {
       await Promise.resolve();
     }
-    expect(pullRequestCalls).toBe(2);
+    expect(pullRequestCalls).toBe(1);
     let lifecycle = (await harness.behavior.callRpc("listLifecycle", {})) as LifecycleListResult;
     for (let attempt = 0; attempt < 10 && lifecycle.rows.length > 0; attempt += 1) {
       await Promise.resolve();
@@ -547,6 +551,42 @@ describe("automatic settle evaluation", () => {
     }
     expect(lifecycle).toEqual({ rows: [] });
     expect(harness.inspection.sdk.callsTo("threads.stop")).toHaveLength(0);
+  });
+
+  it("asks GitHub nothing when both settle rules are off", async () => {
+    const batches: string[][] = [];
+    const old = Date.now() - 30 * 24 * 60 * 60_000;
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "bb-sidebar",
+      sdk: {
+        projects: {
+          list: async () =>
+            projectsWith([
+              projectThread({
+                id: "thr_closed",
+                environmentId: "env_closed",
+                createdAt: old,
+                updatedAt: old,
+                latestAttentionAt: old,
+                status: "idle",
+              }),
+            ]),
+        },
+        plugins: {
+          callRpc: pullRequestStatus(() => availablePullRequest("closed"), batches),
+          getSettings: async () => ({
+            ok: true as const,
+            schema: {},
+            values: { autoSettleInactive: false, autoSettleOnMerge: false },
+          }),
+        },
+      },
+    });
+    await plugin(bb);
+    disposers.push(() => harness.lifecycle.dispose());
+
+    await expect(harness.behavior.callRpc("evaluateAutoSettle", {})).resolves.toEqual({ changedThreadIds: [] });
+    expect(batches).toEqual([]);
   });
 
   it("returns a policy-settled thread when its PR reopens", async () => {
@@ -568,7 +608,10 @@ describe("automatic settle evaluation", () => {
               }),
             ]),
         },
-        plugins: { callRpc: pullRequestStatus(() => availablePullRequest(pullRequestState)) },
+        plugins: {
+          callRpc: pullRequestStatus(() => availablePullRequest(pullRequestState)),
+          getSettings: async () => ({ ok: true as const, schema: {}, values: { autoSettleOnMerge: true } }),
+        },
       },
     });
     await plugin(bb);

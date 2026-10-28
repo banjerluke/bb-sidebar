@@ -89,7 +89,9 @@ The Node override uses `src/server-*.ts`; shared modules exclude that pattern.
 Browser/shared imports of those modules are forbidden, including types.
 
 Settings live in the single `sidebar_settings.settings_json` column. The
-server derives per-field fallbacks from `DEFAULT_SIDEBAR_SETTINGS`, validates
+server derives per-field fallbacks from `DEFAULT_SIDEBAR_SETTINGS`, except that
+installs marked in `install_defaults` (data before that migration) keep
+`autoSettleOnMerge` on until they save settings. It validates
 with `sidebarSettingsSchema`, and keeps strict RPC input validation. The
 migration copies old columns into camelCase JSON with real boolean values.
 Old columns remain unused after migration and can be dropped with a table
