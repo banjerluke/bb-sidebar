@@ -81,7 +81,9 @@ port contract lives in `src/port-scan-contract.ts`.
 - `server-rate-limits`: provider-limit reads and scheduled Continue queue actions.
 - `server-rate-limit-details`: failed-turn classification and provider reset times.
 - `server-handlers`: RPC handlers assembled from the modules.
-- `server.ts`: migrations, context creation, wiring, HTTP, and events.
+- `server-cli`: the `bb sidebar` agent command over those handlers. Keep it to
+  a few subcommands; each one adds a line to the `plugin-commands` skill.
+- `server.ts`: migrations, context creation, wiring, HTTP, CLI, and events.
 
 The Node override uses `src/server-*.ts`; shared modules exclude that pattern.
 Browser/shared imports of those modules are forbidden, including types.
