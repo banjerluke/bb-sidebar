@@ -54,6 +54,7 @@
     "test:measure": "node scripts/measure-tests.mjs",
     "test:stress": "node scripts/measure-tests.mjs --runs 5 --load",
     "e2e:smoke": "node scripts/e2e-smoke.mjs",
+    "e2e:cli": "node scripts/e2e-cli.mjs",
     "e2e": "node scripts/e2e/run.mjs"
   },
   "dependencies": {

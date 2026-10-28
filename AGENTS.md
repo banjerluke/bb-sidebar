@@ -137,7 +137,8 @@ SB-14 split SidebarSettings.tsx into section components; keep draft and save log
 
 ## Checks
 
-E2E: `env -i PATH="$PATH" HOME="$HOME" npm run e2e`; quick: `e2e:smoke`.
+E2E: `env -i PATH="$PATH" HOME="$HOME" npm run e2e`; quick: `e2e:smoke`;
+`bb sidebar` CLI against the scratch server: `e2e:cli`.
 Only drive/install/seed on the runner's scratch server; never the live host.
 macOS: `npm run e2e -- --update-snapshots` with the same clean environment.
 Review `e2e/__snapshots__/` diffs; see `e2e/README.md`. Outside `npm run check`.

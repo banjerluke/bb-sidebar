@@ -10,6 +10,8 @@ npx --no-install playwright install --with-deps chromium
 
 env -i PATH="$PATH" HOME="$HOME" npm run e2e
 env -i PATH="$PATH" HOME="$HOME" npm run e2e:smoke
+# Drive every `bb sidebar` subcommand against the scratch server (no browser):
+env -i PATH="$PATH" HOME="$HOME" npm run e2e:cli
 # Run a focused flow through the same scratch launcher:
 env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'settle moves'
 # Exercise motion with 60 loaded settled rows, with timing attached to the report:
@@ -19,7 +21,10 @@ env -i PATH="$PATH" HOME="$HOME" npm run e2e -- --grep 'toggle sequence'
 ```
 
 `@playwright/test` supplies role locators, retrying assertions, PNG comparisons,
-and failure screenshots/traces. Both commands use `scripts/e2e/server.mjs` and
+and failure screenshots/traces. `e2e:cli` seeds three idle threads and runs each
+`bb sidebar` subcommand through the scratch CLI, checking the result with
+`bb sidebar list --json` and the plugin RPC; its command transcript is saved to
+`e2e-artifacts/cli-transcript.log`. All three commands use `scripts/e2e/server.mjs` and
 bb-app 0.47.0. Neither runs as part of `npm run check`. Run e2e separately from
 Vitest; the scratch server and Chromium compete with the unit suite for CPU.
 Before releases on macOS: `npm run e2e`; CI: `gh workflow run "Browser e2e"`.
