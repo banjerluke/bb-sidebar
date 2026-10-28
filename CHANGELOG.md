@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **`bb sidebar`** lets agents manage threads from the bb CLI: `list`, `snooze`, `unsnooze`, `settle`, `park`, `resume`, `pin`, and `parent`. Each command acts on the calling thread unless `--thread` names another, follows the same rules as the sidebar's menus, and adds nothing to an agent's prompt until the agent looks the command up. `list` shows each thread's shelf and pages with `--limit` and `--offset` under any filter; `--json` returns `{ threads, total, offset, nextOffset }`.
+- **Provider-limit recovery.** A thread stopped by a usage limit keeps a warning in the sidebar with one click to send Continue 30 seconds after the limit resets. When the provider gives no reset time, you choose one. A scheduled Continue moves the thread to Snoozed until it is sent and can be cancelled from the row. Codex reset times are read from its limit message in the provider's timezone.
+- Pinned projects can be reordered by dragging, or with Alt+Left/Right, and keep their order after a reload.
+
+### Changed
+
+- Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
+- Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
+
 ## [0.3.7] - 2026-10-23
 
 ### Added
