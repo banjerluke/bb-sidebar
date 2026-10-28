@@ -17,8 +17,7 @@ export function isActiveSortMode(value: string): value is ActiveSortMode {
 }
 
 // A project needs this many Active threads before it earns a header; below
-// it, its threads stay ordinary cards, so a list of one-thread projects reads
-// exactly like manual order.
+// it, its thread stays an ordinary card in the project's slot.
 const MIN_PROJECT_GROUP_SIZE = 2;
 
 export type ProjectViewUnit =
@@ -48,37 +47,40 @@ export function projectUnitKey(projectId: string): string {
 }
 
 /**
- * The project view in manual order: a lone thread stays where it is, and a
- * project with enough threads is drawn once, where its first thread sits.
- * Moving a unit moves all of its threads, so a dragged group stays together.
+ * The project view. Each project holds one slot, taken from the saved project
+ * order, so a project stays put while its threads leave Active and come back.
+ * Projects the order has not seen yet come first, in the order their first
+ * threads appear. Threads keep the inbox order within their project. A project
+ * with enough threads is drawn as a group; a smaller one is its lone thread.
  */
-export function layoutActiveThreadsByProject(inbox: readonly PluginSidebarThread[]): ProjectUnit[] {
-  const counts = new Map<string, number>();
+export function layoutActiveThreadsByProject(
+  inbox: readonly PluginSidebarThread[],
+  projectOrder: readonly string[] = [],
+): ProjectUnit[] {
+  const threadsByProject = new Map<string, PluginSidebarThread[]>();
   for (const thread of inbox) {
-    counts.set(thread.projectId, (counts.get(thread.projectId) ?? 0) + 1);
+    const threads = threadsByProject.get(thread.projectId);
+    if (threads) threads.push(thread);
+    else threadsByProject.set(thread.projectId, [thread]);
   }
-  const units: ProjectUnit[] = [];
-  const groups = new Map<string, PluginSidebarThread[]>();
-  for (const thread of inbox) {
-    if ((counts.get(thread.projectId) ?? 0) < MIN_PROJECT_GROUP_SIZE) {
-      units.push({ kind: "thread", key: thread.id, thread });
-      continue;
-    }
-    const existing = groups.get(thread.projectId);
-    if (existing) {
-      existing.push(thread);
-      continue;
-    }
-    const threads = [thread];
-    groups.set(thread.projectId, threads);
-    units.push({
-      kind: "group",
-      key: projectUnitKey(thread.projectId),
-      projectId: thread.projectId,
-      threads,
-    });
-  }
-  return units;
+  return mergeProjectOrder(projectOrder, [...threadsByProject.keys()]).flatMap((projectId): ProjectUnit[] => {
+    const threads = threadsByProject.get(projectId);
+    if (!threads) return [];
+    if (threads.length < MIN_PROJECT_GROUP_SIZE) return [{ kind: "thread", key: threads[0]!.id, thread: threads[0]! }];
+    return [{ kind: "group", key: projectUnitKey(projectId), projectId, threads }];
+  });
+}
+
+/** The saved project order with projects it has not seen yet put first. */
+export function mergeProjectOrder(saved: readonly string[], projectIds: readonly string[]): string[] {
+  const known = new Set(saved);
+  const unseen = projectIds.filter((projectId) => !known.has(projectId));
+  return unseen.length ? [...new Set(unseen), ...saved] : [...saved];
+}
+
+/** The project a top-level unit of the project view stands for. */
+export function unitProjectId(unit: ProjectUnit): string {
+  return unit.kind === "thread" ? unit.thread.projectId : unit.projectId;
 }
 
 export function projectOrderUnits(units: readonly ProjectUnit[]): OrderUnit[] {

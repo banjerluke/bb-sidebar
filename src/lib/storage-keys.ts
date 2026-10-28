@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   projectScope: { key: "bb-sidebar:project-scope:v1", evictionPriority: 85 },
   // Project shortcuts saved on this device, in pin order.
   pinnedProjects: { key: "bb-sidebar:pinned-projects:v1", evictionPriority: 90 },
+  // Project slots in the Active shelf's project view, on this device.
+  projectOrder: { key: "bb-sidebar:project-order:v1", evictionPriority: 88 },
   environmentCollapse: { key: "bb-sidebar:environment-collapse:v1", evictionPriority: 55 },
   environmentGrouping: { key: "bb-sidebar:environment-grouping:v1", evictionPriority: 71 },
   // Shelf disclosure booleans.

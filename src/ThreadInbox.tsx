@@ -217,6 +217,8 @@ function ThreadInboxContent({
     activeThreadId: activeListThreadId,
     attentionIds: attentionParentIds,
     projectNameById,
+    projectMode: activeSortMode === "project",
+    orderReady: status === "ready" && inboxReorder.loaded,
   });
   const {
     inbox,

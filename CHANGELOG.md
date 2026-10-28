@@ -11,6 +11,7 @@
 ### Changed
 
 - **Settle finished pull requests** replaces "Settle merged pull requests" and covers closed pull requests too, so turning it off stops all pull-request settling. Before, a thread whose pull request closed without merging was always settled. The option is off for new installs; existing installs keep their current choice. With it and inactivity settling both off, the sidebar no longer checks GitHub every five minutes.
+- **Project sort keeps each project in place.** A project's position in Active no longer follows its top thread, so settling, snoozing or running a thread, or a project dropping to one thread, no longer moves the project. A project new to the view starts at the top. Dragging a project or a lone thread at the top level moves the project, saved on this device; it no longer rewrites the manual thread order.
 - Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
 - Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
 

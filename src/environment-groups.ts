@@ -45,8 +45,12 @@ function environmentUnits(threads: PluginSidebarThread[]): ProjectUnit[] {
   });
 }
 
-export function layoutActiveGroups(threads: readonly PluginSidebarThread[], groupEnvironments: boolean): ProjectUnit[] {
-  return layoutActiveThreadsByProject(threads).map((unit) => {
+export function layoutActiveGroups(
+  threads: readonly PluginSidebarThread[],
+  groupEnvironments: boolean,
+  projectOrder: readonly string[] = [],
+): ProjectUnit[] {
+  return layoutActiveThreadsByProject(threads, projectOrder).map((unit) => {
     if (unit.kind === "thread" || !groupEnvironments) return unit;
     const children = environmentUnits(unit.threads);
     return {

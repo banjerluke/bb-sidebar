@@ -13,6 +13,8 @@ const orderCache = createCachedRpcState(STORAGE_KEYS.inboxOrder.key, inboxOrderC
 interface InboxReorderApi {
   threads: PluginSidebarThread[];
   ids: string[];
+  // False until a saved order, cached or fetched, is known.
+  loaded: boolean;
   isReordering: boolean;
   reorder(nextIds: readonly string[]): Promise<boolean>;
 }
@@ -94,5 +96,5 @@ export function useInboxReorder(inboxThreads: readonly PluginSidebarThread[]): I
     [ids, refresh, rpc],
   );
 
-  return { threads, ids, isReordering, reorder };
+  return { threads, ids, loaded: storedIds !== null, isReordering, reorder };
 }

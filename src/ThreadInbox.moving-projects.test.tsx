@@ -8,6 +8,8 @@ vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
 await loadInboxApp();
 
+const savedProjectOrder = () => JSON.parse(window.localStorage.getItem("bb-sidebar:project-order:v1") ?? "null");
+
 describe("ThreadInbox", () => {
   describe("moving projects as a whole", () => {
     it.each([true, false])(
@@ -115,8 +117,9 @@ describe("ThreadInbox", () => {
           within(active)
             .getAllByRole("link")
             .map((row) => row.getAttribute("aria-label"));
+        // A folded shelf keeps its rows in their projects' slots.
         await waitFor(() =>
-          expect(rowOrder()).toEqual(singleton ? ["Web a", "Hidden other project", "Web b"] : ["Web a", "Web b"]),
+          expect(rowOrder()).toEqual(singleton ? ["Web a", "Web b", "Hidden other project"] : ["Web a", "Web b"]),
         );
         expect(within(active).queryByRole("button", { name: "Web (3)" })).toBeNull();
         expect(within(active).getByText("Deep failed")).toBeDefined();
@@ -134,12 +137,23 @@ describe("ThreadInbox", () => {
           preview = rowOrder();
           fireEvent.pointerUp(window, { clientX: 20, clientY: singleton ? 30 : 60, pointerId: 1 });
         }
-        await waitFor(() => expect(rendered.rpcCalls.filter((call) => call.method === "reorderInbox")).toHaveLength(1));
         const expectedVisible = singleton ? ["Hidden other project", "Web a", "Web b"] : ["Web b", "Web a"];
-        expect({ preview, input: rendered.rpcCalls.find((call) => call.method === "reorderInbox")!.input }).toEqual({
-          preview: gesture === "pointer" ? expectedVisible : undefined,
-          input: { inboxThreadIds: [...(singleton ? ["x", "a", "b", "c"] : ["b", "x", "a", "c"]), ...childIds] },
-        });
+        if (singleton) {
+          // Moving a lone thread moves its project; the thread order stays.
+          await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "web"]));
+          expect({ preview, reorders: rendered.rpcCalls.filter((call) => call.method === "reorderInbox") }).toEqual({
+            preview: gesture === "pointer" ? expectedVisible : undefined,
+            reorders: [],
+          });
+        } else {
+          await waitFor(() =>
+            expect(rendered.rpcCalls.filter((call) => call.method === "reorderInbox")).toHaveLength(1),
+          );
+          expect({ preview, input: rendered.rpcCalls.find((call) => call.method === "reorderInbox")!.input }).toEqual({
+            preview: gesture === "pointer" ? expectedVisible : undefined,
+            input: { inboxThreadIds: ["b", "x", "a", "c", ...childIds] },
+          });
+        }
         await waitFor(() => expect(rowOrder()).toEqual(expectedVisible));
         fireEvent.click(within(active).getByRole("button", { name: /^Active/, expanded: false }));
         expect(within(active).getByRole("button", { name: "Web (3)" })).toBeDefined();
@@ -251,9 +265,14 @@ describe("ThreadInbox", () => {
         fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 30, pointerId: 1 });
         fireEvent.pointerUp(window, { clientX: 20, clientY: 30, pointerId: 1 });
       }
-      await waitFor(() => expect(rendered.rpcCalls.filter((c) => c.method === "reorderInbox")).toHaveLength(1));
-      const actual = rendered.rpcCalls.find((c) => c.method === "reorderInbox")!.input;
-      expect(actual).toEqual({ inboxThreadIds: ["x", "hidden-project", "a", "b", "ca", "cx"] });
+      // The unshown project keeps its slot after the project it followed.
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "web", "hidden-project"]));
+      expect(rendered.rpcCalls.filter((c) => c.method === "reorderInbox")).toEqual([]);
+      expect(
+        within(active)
+          .getAllByRole("link")
+          .map((e) => e.getAttribute("aria-label")),
+      ).toEqual(["x", "a"]);
     });
 
     it("F1 rebases participating siblings onto a pushed order without moving hidden slots", async () => {
@@ -437,6 +456,71 @@ describe("ThreadInbox", () => {
       expect(active.querySelector("[data-drag-preview]")).toBeNull();
     });
 
+    it("keeps each project's slot while its threads settle and come back", async () => {
+      window.localStorage.setItem("bb-sidebar:active-sort:v1", "project");
+      const settledRow = (threadId: string) => ({
+        threadId,
+        settledAt: Date.now(),
+        snoozedUntil: null,
+        snoozedAt: null,
+      });
+      let lifecycleRows: Array<ReturnType<typeof settledRow>> = [];
+      const rows = [
+        thread({ id: "w1", projectId: "web", title: "Web one", updatedAt: Date.now() }),
+        thread({ id: "x", projectId: "api", title: "Loose X", updatedAt: Date.now() }),
+        thread({ id: "y", projectId: "zed", title: "Loose Y", updatedAt: Date.now() }),
+        thread({ id: "w2", projectId: "web", title: "Web two", updatedAt: Date.now() }),
+      ];
+      const rendered = renderSlot(inbox, listProps, {
+        sidebarThreads: {
+          status: "ready",
+          threads: rows,
+          projects: ["web", "api", "zed", "new"].map((id) => ({
+            id,
+            name: id[0]!.toUpperCase() + id.slice(1),
+            isPersonal: false,
+            href: "",
+            settingsHref: "",
+          })),
+        },
+        rpc: {
+          getSidebarSettings: () => defaultSidebarSettings,
+          listLifecycle: () => ({ rows: lifecycleRows }),
+          listInboxOrder: () => ({ inboxThreadIds: ["w1", "x", "y", "w2"] }),
+        },
+      });
+      const active = await screen.findByRole("region", { name: "Active" });
+      const layout = () =>
+        [...active.querySelectorAll("[aria-label]")]
+          .map((element) => element.getAttribute("aria-label"))
+          .filter((label) => /^(Web|Api|Zed|New) \(|^(Web one|Web two|Loose X|Loose Y|New one)$/.test(label ?? ""));
+      const settle = async (...threadIds: string[]) => {
+        lifecycleRows = threadIds.map(settledRow);
+        await rendered.behavior.emitRealtime("lifecycle", {});
+      };
+      await waitFor(() => expect(layout()).toEqual(["Web (2)", "Web one", "Web two", "Loose X", "Loose Y"]));
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["web", "api", "zed"]));
+
+      // The project's first thread leaves: its other thread keeps the slot.
+      await settle("w1");
+      await waitFor(() => expect(layout()).toEqual(["Web two", "Loose X", "Loose Y"]));
+      // And it comes back to the same place.
+      await settle();
+      await waitFor(() => expect(layout()).toEqual(["Web (2)", "Web one", "Web two", "Loose X", "Loose Y"]));
+      // A project with nothing in Active keeps its slot for when it returns.
+      await settle("x");
+      await waitFor(() => expect(layout()).toEqual(["Web (2)", "Web one", "Web two", "Loose Y"]));
+      await settle();
+      await waitFor(() => expect(layout()).toEqual(["Web (2)", "Web one", "Web two", "Loose X", "Loose Y"]));
+
+      // A project new to the view starts at the top.
+      rows.push(thread({ id: "n1", projectId: "new", title: "New one", createdAt: Date.now(), updatedAt: Date.now() }));
+      await rendered.behavior.emitRealtime("lifecycle", {});
+      await waitFor(() => expect(layout()).toEqual(["New one", "Web (2)", "Web one", "Web two", "Loose X", "Loose Y"]));
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["new", "web", "api", "zed"]));
+      expect(rendered.rpcCalls.filter((call) => call.method.startsWith("reorder"))).toEqual([]);
+    });
+
     function renderProjects(onReorder: (ids: string[]) => void) {
       window.localStorage.setItem("bb-sidebar:active-sort:v1", "project");
       const storedIds = ["w1", "x", "w2", "y"];
@@ -489,7 +573,8 @@ describe("ThreadInbox", () => {
       fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 30, pointerId: 1 });
       fireEvent.pointerUp(window, { clientX: 20, clientY: 30, pointerId: 1 });
 
-      await waitFor(() => expect(saved).toEqual(["x", "y", "w1", "w2"]));
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "zed", "web"]));
+      expect(saved).toBeNull();
       // The drag must not also toggle the project it started on.
       expect(header.getAttribute("aria-expanded")).toBe("true");
     });
@@ -499,7 +584,8 @@ describe("ThreadInbox", () => {
       renderProjects((ids) => (saved = ids));
       const card = await screen.findByRole("link", { name: "Loose X" });
       fireEvent.keyDown(card, { key: "ArrowUp", altKey: true });
-      await waitFor(() => expect(saved).toEqual(["x", "w1", "w2", "y"]));
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "web", "zed"]));
+      expect(saved).toBeNull();
     });
 
     it("moves a project header from the keyboard", async () => {
@@ -507,7 +593,8 @@ describe("ThreadInbox", () => {
       renderProjects((ids) => (saved = ids));
       const header = await screen.findByRole("button", { name: "Web (2)" });
       fireEvent.keyDown(header, { key: "ArrowDown", altKey: true });
-      await waitFor(() => expect(saved).toEqual(["x", "w1", "w2", "y"]));
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "web", "zed"]));
+      expect(saved).toBeNull();
     });
 
     it("reorders inside a project without moving the project", async () => {

@@ -23,6 +23,11 @@ export const pinnedProjectsCodec: PreferenceCodec<string[]> = {
   storage: "local",
 };
 
+export const projectOrderCodec: PreferenceCodec<string[]> = {
+  ...projectScopeCodec,
+  storage: "local",
+};
+
 export const environmentGroupingCodec: PreferenceCodec<boolean> = {
   fallback: () => false,
   decode: (stored) => (stored === "true" ? true : stored === "false" ? false : null),

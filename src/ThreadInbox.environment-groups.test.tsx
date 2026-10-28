@@ -263,7 +263,8 @@ it.each([false, true].flatMap((enabled) => ["keyboard", "pointer"].map((gesture)
       within(active)
         .getAllByRole("link")
         .map((link) => link.getAttribute("aria-label"));
-    expect(visible()).toEqual(["A", "X", "C", "Y"]);
+    // Folded rows stay in their projects' slots.
+    expect(visible()).toEqual(["A", "C", "X", "Y"]);
     const row = within(active).getByRole("link", { name: "A" });
     if (gesture === "keyboard") {
       await act(async () => {
@@ -276,13 +277,13 @@ it.each([false, true].flatMap((enabled) => ["keyboard", "pointer"].map((gesture)
       );
       fireEvent.pointerDown(row, { button: 0, clientX: 20, clientY: 0, pointerId: 1 });
       fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 30, pointerId: 1 });
-      expect(visible()).toEqual(["A", "X", "C", "Y"]);
+      expect(visible()).toEqual(["A", "C", "X", "Y"]);
       expect(rendered.save).not.toHaveBeenCalled();
       vi.mocked(document.elementFromPoint).mockReturnValue(
         within(active).getByRole("link", { name: "C" }).closest("li")!,
       );
       fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 60, pointerId: 1 });
-      expect(visible()).toEqual(["C", "X", "A", "Y"]);
+      expect(visible()).toEqual(["C", "A", "X", "Y"]);
       fireEvent.pointerUp(window, { clientX: 20, clientY: 60, pointerId: 1 });
       expect(screen.getByRole("status").textContent).toBe("");
     }
@@ -291,7 +292,7 @@ it.each([false, true].flatMap((enabled) => ["keyboard", "pointer"].map((gesture)
         inboxThreadIds: ["c", "x", "b", "a", "y", "d", "child-x", "child-c", "child-y"],
       }),
     );
-    expect(visible()).toEqual(["C", "X", "A", "Y"]);
+    expect(visible()).toEqual(["C", "A", "X", "Y"]);
     if (gesture === "keyboard") {
       fireEvent.keyDown(row, { key: "ArrowDown", altKey: true });
       expect(screen.getByRole("status").textContent).toBe("A is already last in Active");
@@ -337,5 +338,8 @@ it("targets the containing project when dragging a project over a nested environ
   });
   fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 40, pointerId: 1 });
   fireEvent.pointerUp(window, { clientX: 20, clientY: 40, pointerId: 1 });
-  await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["c", "d", "a", "b"] }));
+  await waitFor(() =>
+    expect(JSON.parse(localStorage.getItem("bb-sidebar:project-order:v1") ?? "null")).toEqual(["other", "proj_1"]),
+  );
+  expect(rendered.save).not.toHaveBeenCalled();
 });

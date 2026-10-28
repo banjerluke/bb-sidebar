@@ -9,6 +9,7 @@ import {
   projectUnitKey,
   type ProjectUnit,
   layoutActiveThreadsByProject,
+  mergeProjectOrder,
   sortActiveThreads,
   visibleShelfThreads,
   activeRepresentativeThreadId,
@@ -79,6 +80,40 @@ describe("layoutActiveThreadsByProject", () => {
     const a = thread({ id: "a" });
     expect(layoutActiveThreadsByProject([a])).toEqual([{ kind: "thread", key: "a", thread: a }]);
     expect(layoutActiveThreadsByProject([])).toEqual([]);
+  });
+  it("places projects by the saved order, whichever of their threads leads", () => {
+    const a = thread({ id: "a", projectId: "p" });
+    const b = thread({ id: "b", projectId: "q" });
+    const c = thread({ id: "c", projectId: "p" });
+    const d = thread({ id: "d", projectId: "r" });
+    expect(layoutActiveThreadsByProject([b, d, c, a], ["r", "p", "q"])).toEqual([
+      { kind: "thread", key: "d", thread: d },
+      { kind: "group", key: "project:p", projectId: "p", threads: [c, a] },
+      { kind: "thread", key: "b", thread: b },
+    ]);
+    // A project down to one thread keeps its slot as a plain row.
+    expect(layoutActiveThreadsByProject([b, d, c], ["r", "p", "q"])).toEqual([
+      { kind: "thread", key: "d", thread: d },
+      { kind: "thread", key: "c", thread: c },
+      { kind: "thread", key: "b", thread: b },
+    ]);
+  });
+  it("puts projects the saved order has not seen first, in thread order", () => {
+    const a = thread({ id: "a", projectId: "p" });
+    const b = thread({ id: "b", projectId: "new2" });
+    const c = thread({ id: "c", projectId: "new1" });
+    const d = thread({ id: "d", projectId: "new2" });
+    expect(layoutActiveThreadsByProject([a, b, c, d], ["p"])).toEqual([
+      { kind: "group", key: "project:new2", projectId: "new2", threads: [b, d] },
+      { kind: "thread", key: "c", thread: c },
+      { kind: "thread", key: "a", thread: a },
+    ]);
+  });
+});
+describe("mergeProjectOrder", () => {
+  it("adds unseen projects first, once each, and keeps absent saved ones", () => {
+    expect(mergeProjectOrder(["p", "gone"], ["q", "p", "q", "r"])).toEqual(["q", "r", "p", "gone"]);
+    expect(mergeProjectOrder(["p"], ["p"])).toEqual(["p"]);
   });
 });
 describe("sortActiveThreads", () => {
