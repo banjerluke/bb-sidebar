@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { loadPlugin } from "./test-server";
+import { makeThreadResponse } from "@get-bb/plugin-sdk/testing";
+import plugin from "./server";
+import { createFakePluginHost, disposers, loadPlugin, projectThread, projectsWith } from "./test-server";
 
 const HOUR_MS = 60 * 60_000;
 
@@ -50,10 +52,55 @@ describe("bb sidebar CLI", () => {
     const harness = await loadPlugin();
     await harness.behavior.runCli(["snooze", "1d"], { threadId: "thr_1" });
     const snoozed = await harness.behavior.runCli(["list", "--all", "--state", "snoozed", "--json"]);
-    expect(JSON.parse(snoozed.stdout)).toMatchObject([{ threadId: "thr_1", shelf: "snoozed" }]);
+    expect(JSON.parse(snoozed.stdout)).toMatchObject({
+      threads: [{ threadId: "thr_1", shelf: "snoozed" }],
+      total: 1,
+      offset: 0,
+      nextOffset: null,
+    });
     expect(await harness.behavior.runCli(["list", "--all", "--state", "active"])).toMatchObject({
       stdout: "No threads\n",
     });
+  });
+
+  it("pages through every filter with --offset", async () => {
+    const threads = ["thr_a", "thr_b", "thr_c", "thr_d", "thr_e"].map((id, index) =>
+      projectThread({ id, title: id, latestAttentionAt: 100 - index, projectId: index < 4 ? "proj_1" : "proj_2" }),
+    );
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "bb-sidebar",
+      sdk: {
+        projects: { list: async () => projectsWith(threads) },
+        threads: {
+          get: async ({ threadId }) => makeThreadResponse({ id: threadId }),
+          unpin: async ({ threadId }) => makeThreadResponse({ id: threadId }),
+        },
+      },
+    });
+    await plugin(bb);
+    disposers.push(() => harness.lifecycle.dispose());
+    const page = async (args: string[]) =>
+      JSON.parse((await harness.behavior.runCli(["list", ...args, "--json"], { projectId: "proj_1" })).stdout) as {
+        threads: { threadId: string }[];
+        total: number;
+        nextOffset: number | null;
+      };
+    const ids = (result: { threads: { threadId: string }[] }) => result.threads.map((thread) => thread.threadId);
+
+    expect(await page(["--limit", "2"])).toMatchObject({ total: 4, nextOffset: 2 });
+    expect(ids(await page(["--limit", "2", "--offset", "2"]))).toEqual(["thr_c", "thr_d"]);
+    expect(await page(["--limit", "2", "--offset", "2"])).toMatchObject({ nextOffset: null });
+    expect(ids(await page(["--all", "--limit", "2", "--offset", "4"]))).toEqual(["thr_e"]);
+
+    await harness.behavior.runCli(["snooze", "1h", "--thread", "thr_b"]);
+    await harness.behavior.runCli(["snooze", "1h", "--thread", "thr_d"]);
+    expect(await page(["--state", "snoozed", "--limit", "1"])).toMatchObject({ total: 2, nextOffset: 1 });
+    expect(ids(await page(["--state", "snoozed", "--limit", "1", "--offset", "1"]))).toEqual(["thr_d"]);
+
+    const text = await harness.behavior.runCli(["list", "--limit", "2"], { projectId: "proj_1" });
+    expect(text.stdout.trim().split("\n").at(-1)).toBe("Showing 1-2 of 4; next page: --offset 2");
+    const past = await harness.behavior.runCli(["list", "--offset", "9"], { projectId: "proj_1" });
+    expect(past.stdout).toBe("No threads at offset 9; 4 match\n");
   });
 
   it("needs exactly one of a parent or --clear", async () => {

@@ -80,12 +80,25 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
         options: {
           state: { type: "enum", values: SHELVES, description: "Only threads on this shelf" },
           all: { type: "boolean", description: "Every project, not just the calling thread's" },
-          limit: { type: "integer", min: 1, max: 500, default: 30, description: "Most recent first; 1-500" },
-          json: { type: "boolean", description: "Emit JSON" },
+          limit: {
+            type: "integer",
+            min: 1,
+            max: 500,
+            default: 30,
+            description: "Threads per page, most recent first; 1-500",
+          },
+          offset: {
+            type: "integer",
+            min: 0,
+            max: 1_000_000,
+            default: 0,
+            description: "Skip this many matching threads; the output names the next page's offset",
+          },
+          json: { type: "boolean", description: "Emit JSON: { threads, total, offset, nextOffset }" },
         },
         async run({ options }, ctx) {
           const now = Date.now();
-          const threads = (await loadPolicyThreads())
+          const matching = (await loadPolicyThreads())
             .filter((thread) => options.all || !ctx.projectId || thread.projectId === ctx.projectId)
             .map((thread) => {
               const row = readOne(thread.id);
@@ -93,8 +106,16 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
               return { thread, row, shelf };
             })
             .filter(({ shelf }) => !options.state || shelf === options.state)
-            .sort((left, right) => right.thread.latestAttentionAt - left.thread.latestAttentionAt)
-            .slice(0, options.limit);
+            // Ties break by id so pages stay stable between calls.
+            .sort(
+              (left, right) =>
+                right.thread.latestAttentionAt - left.thread.latestAttentionAt ||
+                left.thread.id.localeCompare(right.thread.id),
+            );
+          const total = matching.length;
+          const { offset } = options;
+          const threads = matching.slice(offset, offset + options.limit);
+          const nextOffset = offset + threads.length < total ? offset + threads.length : null;
           if (options.json) {
             const rows = threads.map(({ thread, row, shelf }) => ({
               threadId: thread.id,
@@ -104,7 +125,7 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
               parentThreadId: thread.parentThreadId,
               snoozedUntil: shelf === "snoozed" ? (row?.snoozedUntil ?? null) : null,
             }));
-            return { exitCode: 0, stdout: `${JSON.stringify(rows)}\n` };
+            return { exitCode: 0, stdout: `${JSON.stringify({ threads: rows, total, offset, nextOffset })}\n` };
           }
           const lines = threads.map(({ thread, row, shelf }) => {
             const until =
@@ -113,7 +134,11 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
             const parent = thread.parentThreadId ? ` (child of ${thread.parentThreadId})` : "";
             return `${thread.id}\t${shelf}${pinned}${until}\t${thread.title ?? "Untitled"}${parent}`;
           });
-          return { exitCode: 0, stdout: lines.length ? `${lines.join("\n")}\n` : "No threads\n" };
+          if (total === 0) return { exitCode: 0, stdout: "No threads\n" };
+          if (threads.length === 0) return { exitCode: 0, stdout: `No threads at offset ${offset}; ${total} match\n` };
+          const page = `Showing ${offset + 1}-${offset + threads.length} of ${total}`;
+          const footer = nextOffset === null ? (offset > 0 ? page : "") : `${page}; next page: --offset ${nextOffset}`;
+          return { exitCode: 0, stdout: `${[...lines, ...(footer ? [footer] : [])].join("\n")}\n` };
         },
       }),
       snooze: cliCommand({

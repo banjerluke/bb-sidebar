@@ -27,7 +27,7 @@ async function rows() {
 }
 async function shelves() {
   const result = await sidebar(["list", "--all", "--json"]);
-  return new Map(JSON.parse(result.stdout).map((row) => [row.threadId, row]));
+  return new Map(JSON.parse(result.stdout).threads.map((row) => [row.threadId, row]));
 }
 async function step(name, check) {
   try {
@@ -113,6 +113,13 @@ try {
   await step("--json errors use the envelope", async () => {
     const result = await sidebar(["list", "--state", "nope", "--json"]);
     expect(result.code !== 0 && JSON.parse(result.stdout).ok === false, result.stdout);
+  });
+  await step("list pages with --limit and --offset", async () => {
+    const first = JSON.parse((await sidebar(["list", "--all", "--limit", "2", "--json"])).stdout);
+    const second = JSON.parse((await sidebar(["list", "--all", "--limit", "2", "--offset", "2", "--json"])).stdout);
+    expect(first.total === 3 && first.nextOffset === 2 && second.nextOffset === null, JSON.stringify([first, second]));
+    const seen = [...first.threads, ...second.threads].map((row) => row.threadId);
+    expect(new Set(seen).size === 3, seen.join(","));
   });
   await step("isolation guard stayed clean", () => server.checkIsolation("complete"));
 } finally {
