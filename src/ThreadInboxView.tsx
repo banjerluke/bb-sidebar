@@ -10,7 +10,7 @@ import {
   Shelf,
   SETTLED_PAGE_SIZE,
 } from "./ThreadInboxShelves";
-import type { ActiveView, ProjectViewUnit } from "./inbox-layout";
+import { canReorderInActive, type ActiveView, type ProjectViewUnit } from "./inbox-layout";
 import { cn } from "./lib/utils";
 import { ActiveSortPicker } from "./ActiveSortPicker";
 import { ProjectScopeControls } from "./ProjectScopeControls";
@@ -171,7 +171,7 @@ export function ThreadInboxView({
                         units={inboxProjectView}
                         onToggleEnvironment={environmentGrouping.toggleEnvironmentCollapse}
                         reorderControls={(unit, name) =>
-                          activeView.order === "manual"
+                          canReorderInActive(activeView, unit.key)
                             ? reorderControls(
                                 unit.key,
                                 "inbox",
