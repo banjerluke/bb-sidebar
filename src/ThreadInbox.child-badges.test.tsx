@@ -22,7 +22,7 @@ describe("ThreadInbox", () => {
           branchName: "main",
           workspaceDisplayKind: "managed-worktree",
           path: null,
-          isWorktree: null,
+          isWorktree: true,
           providerId: null,
         },
       }),

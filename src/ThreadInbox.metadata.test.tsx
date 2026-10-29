@@ -95,7 +95,7 @@ describe("card metadata", () => {
           branchName: "bb/feature",
           workspaceDisplayKind: "managed-worktree",
           path: null,
-          isWorktree: null,
+          isWorktree: true,
           providerId: null,
         },
       }),
@@ -126,33 +126,36 @@ describe("card metadata", () => {
   });
 
   it.each([
-    ["managed-worktree", "FolderGit", "Worktree branch"],
-    ["unmanaged-worktree", "FolderGit", "Worktree branch"],
-    ["other", "GitBranch", "Branch"],
-  ] as const)("shows one branch line with matching icons for %s", async (workspaceDisplayKind, icon, branchLabel) => {
-    render([
-      thread({
-        title: "Unnamed worktree thread",
-        environment: {
-          id: "env_worktree",
-          name: null,
-          branchName: "bb/feature",
-          path: null,
-          isWorktree: null,
-          providerId: null,
-          workspaceDisplayKind,
-        },
-      }),
-    ]);
+    ["managed-worktree", true, "FolderGit", "Worktree branch"],
+    ["unmanaged-worktree", true, "FolderGit", "Worktree branch"],
+    ["other", false, "GitBranch", "Branch"],
+  ] as const)(
+    "shows one branch line with matching icons for %s",
+    async (workspaceDisplayKind, isWorktree, icon, branchLabel) => {
+      render([
+        thread({
+          title: "Unnamed worktree thread",
+          environment: {
+            id: "env_worktree",
+            name: null,
+            branchName: "bb/feature",
+            path: null,
+            isWorktree,
+            providerId: null,
+            workspaceDisplayKind,
+          },
+        }),
+      ]);
 
-    expect(screen.getByLabelText(branchLabel).getAttribute("data-icon")).toBe(icon);
-    act(() => screen.getByRole("link", { name: "Unnamed worktree thread" }).focus());
-    const details = await screen.findByRole("dialog", { name: "Thread details" });
-    const label = within(details).getByText(`${branchLabel}:`);
-    expect(label.className).toContain("sr-only");
-    expect(label.parentElement?.previousElementSibling?.getAttribute("data-icon")).toBe(icon);
-    expect(within(details).getAllByText("bb/feature")).toHaveLength(1);
-  });
+      expect(screen.getByLabelText(branchLabel).getAttribute("data-icon")).toBe(icon);
+      act(() => screen.getByRole("link", { name: "Unnamed worktree thread" }).focus());
+      const details = await screen.findByRole("dialog", { name: "Thread details" });
+      const label = within(details).getByText(`${branchLabel}:`);
+      expect(label.className).toContain("sr-only");
+      expect(label.parentElement?.previousElementSibling?.getAttribute("data-icon")).toBe(icon);
+      expect(within(details).getAllByText("bb/feature")).toHaveLength(1);
+    },
+  );
 
   it("reduces read idle emphasis without weakening unread rows", async () => {
     render([
@@ -186,7 +189,7 @@ describe("card metadata", () => {
           branchName: "bb/details",
           workspaceDisplayKind: "unmanaged-worktree",
           path: null,
-          isWorktree: null,
+          isWorktree: true,
           providerId: null,
         },
         activity: {

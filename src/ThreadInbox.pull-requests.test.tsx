@@ -38,7 +38,7 @@ describe("pull request badge", () => {
     branchName: "bb/fix-flake",
     workspaceDisplayKind: "managed-worktree" as const,
     path: null,
-    isWorktree: null,
+    isWorktree: true,
     providerId: null,
   };
   const withPr = (attention: string, state = "open") =>

@@ -33,9 +33,7 @@ export function ThreadPullRequestDetails({ thread }: { thread: PluginSidebarThre
     };
   }, [call, thread.id]);
 
-  const ownsWorkspace =
-    thread.environment?.workspaceDisplayKind === "managed-worktree" ||
-    thread.environment?.workspaceDisplayKind === "unmanaged-worktree";
+  const ownsWorkspace = thread.environment?.isWorktree === true;
   const pullRequests = mergeThreadPullRequests(pullRequest, history, ownsWorkspace);
   if (!pullRequests.length) return null;
   const scrolls = pullRequests.length > 4;

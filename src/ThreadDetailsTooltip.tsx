@@ -86,9 +86,7 @@ export function ThreadDetailsTooltip({
   const rowStatus = useThreadRowStatus(thread);
   const limit = useThreadLimit(thread);
   const project = projects.find((entry) => entry.id === thread.projectId);
-  const isWorktree =
-    thread.environment?.workspaceDisplayKind === "managed-worktree" ||
-    thread.environment?.workspaceDisplayKind === "unmanaged-worktree";
+  const isWorktree = thread.environment?.isWorktree === true;
   const status = thread.hasPendingInteraction
     ? "Needs you"
     : limit

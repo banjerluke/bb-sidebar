@@ -147,7 +147,7 @@ describe("row context menu", () => {
           branchName: "feature/context-menu",
           workspaceDisplayKind: "managed-worktree",
           path: null,
-          isWorktree: null,
+          isWorktree: true,
           providerId: null,
         },
       }),

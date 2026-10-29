@@ -8,9 +8,7 @@ import { Icon } from "./components/Icon";
 export function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
   const branchName = thread.environment?.branchName;
   if (branchName) {
-    const isWorktree =
-      thread.environment?.workspaceDisplayKind === "managed-worktree" ||
-      thread.environment?.workspaceDisplayKind === "unmanaged-worktree";
+    const isWorktree = thread.environment?.isWorktree === true;
     return (
       <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
         <Icon
