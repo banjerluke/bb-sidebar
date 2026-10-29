@@ -20,8 +20,6 @@ function isProjectDrag(dragOrder: InboxDragOrder | null, projectMode: boolean): 
   );
 }
 
-const NO_PROJECT_ORDER: readonly string[] = [];
-
 function toggleId(ids: Set<string>, id: string): Set<string> {
   const next = new Set(ids);
   if (!next.delete(id)) next.add(id);
@@ -44,7 +42,6 @@ export function useInboxProjectGroups({
   activeThreadId: string | null;
   attentionIds: ReadonlySet<string>;
   projectNameById: ReadonlyMap<string, string>;
-  // The project view in manual order, where each project keeps a saved slot.
   projectMode: boolean;
   // Threads and their saved order are both known, so new projects can be told apart.
   orderReady: boolean;
@@ -76,11 +73,7 @@ export function useInboxProjectGroups({
     }),
     [projectNameById],
   );
-  const [savedProjectOrder, setProjectOrder] = usePersistedPreference(
-    STORAGE_KEYS.projectOrder.key,
-    projectOrderPruneCodec,
-  );
-  const projectOrder = projectMode ? savedProjectOrder : NO_PROJECT_ORDER;
+  const [projectOrder, setProjectOrder] = usePersistedPreference(STORAGE_KEYS.projectOrder.key, projectOrderPruneCodec);
   // A project gets its slot the first time the project view shows it, so the
   // layout it first appears in is the one it keeps while its threads come and go.
   useEffect(() => {

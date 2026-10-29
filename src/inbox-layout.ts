@@ -55,6 +55,15 @@ export function projectUnitKey(projectId: string): string {
 }
 
 /**
+ * Whether an Active row or header moves by drag or Alt+Arrow. A sorted order
+ * leaves threads no manual slot, but projects keep their own saved order, so a
+ * project header still moves.
+ */
+export function canReorderInActive(view: ActiveView, key: string): boolean {
+  return view.order === "manual" || (view.group === "project" && key.startsWith(PROJECT_UNIT_KEY_PREFIX));
+}
+
+/**
  * The project view. Every project is drawn once, as a group, in the slot the
  * saved project order gives it, so a project stays put while its threads leave
  * Active and come back. Projects the order has not seen yet come first, in the

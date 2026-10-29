@@ -358,10 +358,10 @@ describe("ThreadInbox", () => {
       });
     }
 
-    it("puts the project with the newest thread first in a sorted order, ignoring saved slots", async () => {
+    it("keeps saved project slots in a sorted order and sorts threads within each project", async () => {
       window.localStorage.setItem("bb-sidebar:project-order:v1", JSON.stringify(["web", "zed"]));
       window.localStorage.setItem("bb-sidebar:active-view:v1", JSON.stringify({ group: "project", order: "activity" }));
-      renderSlot(inbox, listProps, {
+      const rendered = renderSlot(inbox, listProps, {
         sidebarThreads: {
           status: "ready",
           threads: [
@@ -374,14 +374,13 @@ describe("ThreadInbox", () => {
         rpc: { listLifecycle: () => ({ rows: [] }), listInboxOrder: () => ({ inboxThreadIds: ["w1", "w2", "y"] }) },
       });
       const active = await screen.findByRole("region", { name: "Active" });
-      await waitFor(() =>
-        expect(rowLinks(active).map((row) => row.getAttribute("aria-label"))).toEqual([
-          "Loose Y",
-          "Web two",
-          "Web one",
-        ]),
-      );
-      expect(savedProjectOrder()).toEqual(["web", "zed"]);
+      const rowOrder = () => rowLinks(active).map((row) => row.getAttribute("aria-label"));
+      await waitFor(() => expect(rowOrder()).toEqual(["Web two", "Web one", "Loose Y"]));
+      // A project header still moves, since projects keep their own order.
+      fireEvent.keyDown(within(active).getByRole("button", { name: "web (2)" }), { key: "ArrowDown", altKey: true });
+      await waitFor(() => expect(savedProjectOrder()).toEqual(["zed", "web"]));
+      expect(rowOrder()).toEqual(["Loose Y", "Web two", "Web one"]);
+      expect(rendered.rpcCalls.filter((call) => call.method === "reorderInbox")).toEqual([]);
     });
 
     it("drags a project header past a lone thread, taking its threads along", async () => {

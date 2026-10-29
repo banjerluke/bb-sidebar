@@ -17,7 +17,7 @@
 - Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
 - **Opening a thread from the sidebar keeps its Full Screen.** Thread rows, child-thread rows, and the hover card's subthreads are now real links that bb opens, so a thread you left in Full Screen comes back that way. Cmd/Ctrl-click opens the thread in a split, and middle-click or Shift-click opens it in a new window or tab. Child-thread rows open with Enter; Space no longer opens them.
 - Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
-- The Active sort picker now has two parts: Group by (No grouping, Project, or Section) and Order (Manual order, Recent activity, or Date created), so Project and Section grouping can sort by activity or creation date. Your current choice carries over. With a sorted order, rows and project headers do not drag, and the project with the newest thread comes first.
+- The Active sort picker now has two parts: Group by (No grouping, Project, or Section) and Order (Manual order, Recent activity, or Date created), so Project and Section grouping can sort by activity or creation date. Your current choice carries over. With a sorted order, rows do not drag, while projects keep their saved slots, sort their own threads, and still move by their headers.
 - Project grouping gives every project a header, including projects with one Active thread.
 
 ## [0.3.7] - 2026-10-23

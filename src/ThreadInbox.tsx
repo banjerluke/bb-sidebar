@@ -12,6 +12,7 @@ import { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 import { useDragClickSuppression } from "./useDragClickSuppression";
 import { useListMotion, createListAnimationController } from "./useListMotion";
 import {
+  canReorderInActive,
   sameOrder,
   sortActiveThreads,
   visibleShelfThreads,
@@ -215,8 +216,7 @@ function ThreadInboxContent({
     activeThreadId: activeListThreadId,
     attentionIds: attentionParentIds,
     projectNameById,
-    // A sorted order lets each project follow its newest thread instead of a saved slot.
-    projectMode: activeView.group === "project" && activeView.order === "manual",
+    projectMode: activeView.group === "project",
     orderReady: status === "ready" && inboxReorder.loaded,
   });
   const {
@@ -293,7 +293,7 @@ function ThreadInboxContent({
     (key: string, shelf: DragShelf): ReorderScope => {
       if (shelf === "sections" || (shelf === "inbox" && sectionsShown)) return sectionGroups.reorderScope(key);
       // Sorted rows have no manual slot; a drag can at most file them.
-      if (shelf === "inbox" && activeView.order !== "manual") return { mode: "thread", ids: [key] };
+      if (shelf === "inbox" && !canReorderInActive(activeView, key)) return { mode: "thread", ids: [key] };
       if (shelf === "inbox" && activeView.group === "section") return sectionGroups.scopeAmong(key, visibleInbox);
       if (shelf === "inbox" && activeView.group === "project") {
         return projectGroups.reorderScope(key);
@@ -303,7 +303,7 @@ function ThreadInboxContent({
         ids: (shelf === "pinned" ? visiblePinned : visibleInbox).map((candidate) => candidate.id),
       };
     },
-    [activeView.group, activeView.order, projectGroups, sectionGroups, sectionsShown, visibleInbox, visiblePinned],
+    [activeView, projectGroups, sectionGroups, sectionsShown, visibleInbox, visiblePinned],
   );
   const reorderScopeRef = useRef(reorderScope);
   reorderScopeRef.current = reorderScope;
@@ -367,8 +367,7 @@ function ThreadInboxContent({
           if (!event.altKey || target.isReordering || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
             return;
           }
-          // Sorted rows have no manual slot to move to.
-          if (shelf === "inbox" && activeView.order !== "manual") return;
+          if (shelf === "inbox" && !canReorderInActive(activeView, key)) return;
           event.preventDefault();
           event.stopPropagation();
           const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
@@ -387,7 +386,7 @@ function ThreadInboxContent({
       pinnedReorder.isReordering,
       inboxReorder.isReordering,
       sectionGroups.isReordering,
-      activeView.order,
+      activeView,
       dragOrder,
       listAnimationController,
       suppressDragClick,
