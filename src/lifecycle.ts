@@ -118,6 +118,45 @@ export function sidebarThreadSignals(thread: PluginSidebarThread): ThreadActivit
   };
 }
 
+/** The fields of a bb queued-message row that say when it will send. */
+interface QueuedSendRow {
+  threadId: string;
+  state: string;
+  sendAt: number | null;
+}
+
+/**
+ * The earliest send time of each thread whose queued rows are all scheduled.
+ *
+ * A thread with any row that is not waiting on the clock has work about to
+ * start, so it is left out.
+ */
+export function scheduledSendTimes(rows: readonly QueuedSendRow[]): Map<string, number> {
+  const sendAts = new Map<string, number>();
+  const unscheduled = new Set<string>();
+  for (const row of rows) {
+    if (row.state !== "scheduled" || row.sendAt === null) {
+      unscheduled.add(row.threadId);
+      continue;
+    }
+    sendAts.set(row.threadId, Math.min(row.sendAt, sendAts.get(row.threadId) ?? row.sendAt));
+  }
+  for (const threadId of unscheduled) sendAts.delete(threadId);
+  return sendAts;
+}
+
+/**
+ * Whether a thread is only waiting on a scheduled send, as from
+ * `bb thread spawn --send-at`.
+ *
+ * bb reports such a thread as a pending turn with queued work, but nothing
+ * runs until the send time. Any other live work keeps it in the inbox.
+ */
+export function isAwaitingScheduledSend(thread: PluginSidebarThread): boolean {
+  const turnRunning = thread.status === "active" || thread.status === "starting" || thread.status === "stopping";
+  return !thread.hasPendingInteraction && thread.queuedWork === "waiting" && !hasLiveWork(thread.activity, turnRunning);
+}
+
 /** Whether a sidebar thread is idle enough for archive and parking actions. */
 export function canParkThread(thread: PluginSidebarThread): boolean {
   return canPark(sidebarThreadSignals(thread));

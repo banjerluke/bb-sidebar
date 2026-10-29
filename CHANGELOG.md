@@ -20,6 +20,7 @@
 - The Active sort picker now has two parts: Group by (No grouping, Project, or Section) and Order (Manual order, Recent activity, or Date created), so Project and Section grouping can sort by activity or creation date. Your current choice carries over. With a sorted order, rows and project headers do not drag, and the project with the newest thread comes first.
 - Project grouping gives every project a header, including projects with one Active thread.
 - The clock and check on a hovered thread are now one split button. Click the check to settle, as before. The three-dots button beside it opens the snooze presets, Pick date & time…, Park thread, and Archive, which was only in the context menu until now.
+- Scheduled threads, such as ones spawned with `--send-at`, wait on the Snoozed shelf with a countdown to their send time instead of sitting in Active.
 
 ## [0.3.7] - 2026-10-23
 
