@@ -7,6 +7,8 @@
 - **`bb sidebar`** lets agents manage threads from the bb CLI: `list`, `snooze`, `unsnooze`, `settle`, `park`, `resume`, `pin`, and `parent`. Each command acts on the calling thread unless `--thread` names another, follows the same rules as the sidebar's menus, and adds nothing to an agent's prompt until the agent looks the command up. `list` shows each thread's shelf and pages with `--limit` and `--offset` under any filter; `--json` returns `{ threads, total, offset, nextOffset }`.
 - **Provider-limit recovery.** A thread stopped by a usage limit keeps a warning in the sidebar with one click to send Continue 30 seconds after the limit resets. When the provider gives no reset time, you choose one. A scheduled Continue moves the thread to Snoozed until it is sent and can be cancelled from the row. Codex reset times are read from its limit message in the provider's timezone.
 - Pinned projects can be reordered by dragging, or with Alt+Left/Right, and keep their order after a reload.
+- Section grouping for Active, using the sections bb's own thread list creates. Choose Section under Group by in the Active sort picker. Sections come first in an order you set by dragging their headers or with Alt+Arrow keys, then unfiled threads under Threads. Sections with no Active threads fold into one "empty sections" row that says where their threads went, such as 2 parked. Rename or remove a section from its header's context menu.
+- Move to section in a thread's context menu files the thread and all of its child threads, archived ones included, into a section, back to Threads, or into a new section named right in the menu. In Section grouping, dragging a row onto another section's header or onto Threads files it too.
 
 ### Changed
 
@@ -15,6 +17,8 @@
 - Titles in the hover card and its child-thread rows wrap to two lines instead of being cut off.
 - **Opening a thread from the sidebar keeps its Full Screen.** Thread rows, child-thread rows, and the hover card's subthreads are now real links that bb opens, so a thread you left in Full Screen comes back that way. Cmd/Ctrl-click opens the thread in a split, and middle-click or Shift-click opens it in a new window or tab. Child-thread rows open with Enter; Space no longer opens them.
 - Built against plugin SDK 0.6.94, the version in bb 0.48.0. bb 0.47.0 remains supported.
+- The Active sort picker now has two parts: Group by (No grouping, Project, or Section) and Order (Manual order, Recent activity, or Date created), so Project and Section grouping can sort by activity or creation date. Your current choice carries over. With a sorted order, rows and project headers do not drag, and the project with the newest thread comes first.
+- Project grouping gives every project a header, including projects with one Active thread.
 
 ## [0.3.7] - 2026-10-23
 

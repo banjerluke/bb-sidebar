@@ -73,7 +73,9 @@ function setup({
 it("shows environment grouping only inside the Project sort picker and remembers it across modes", async () => {
   const rendered = setup({ enabled: false });
   expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
-  fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Project" }), { key: "Enter" });
+  fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Project, Manual order" }), {
+    key: "Enter",
+  });
   const picker = screen.getByRole("dialog", { name: "Sort active threads" });
   const toggle = within(picker).getByRole("checkbox", { name: "Group by worktree" });
   expect((toggle as HTMLInputElement).checked).toBe(false);
@@ -81,7 +83,7 @@ it("shows environment grouping only inside the Project sort picker and remembers
   fireEvent.click(toggle);
   expect(screen.getByRole("region", { name: "search worktree" })).toBeDefined();
   expect(localStorage.getItem("bb-sidebar:environment-grouping:v1")).toBe("true");
-  fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }), { detail: 1 });
+  fireEvent.click(within(picker).getByRole("radio", { name: "No grouping" }), { detail: 1 });
   expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
   expect(screen.queryByRole("region", { name: "search worktree" })).toBeNull();
   expect(rowLinks()).toHaveLength(4);

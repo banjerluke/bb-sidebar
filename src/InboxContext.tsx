@@ -20,7 +20,7 @@ import { WorkingSinceContext } from "./useWorkingSince";
 import type { WorkingSince } from "./working-since";
 import { ChildThreadDisplayContext, type ChildThreadDisplay } from "./ChildThreadDisplay";
 import { OpenPortsProvider } from "./OpenPorts";
-import type { ActiveSortMode } from "./inbox-layout";
+import type { ActiveView } from "./inbox-layout";
 import type { useRenamingShelfLocks } from "./useRenamingShelfLocks";
 
 interface InboxContextInputs {
@@ -42,7 +42,7 @@ interface InboxContextInputs {
   setRenamingShelfLocks: ReturnType<typeof useRenamingShelfLocks>[1];
   setScope: Dispatch<SetStateAction<string[]>>;
   setExpandedShelves: Dispatch<SetStateAction<ShelfExpansionState>>;
-  setActiveSortMode: Dispatch<SetStateAction<ActiveSortMode>>;
+  setActiveView: Dispatch<SetStateAction<ActiveView>>;
   setSettledLimit: Dispatch<SetStateAction<number>>;
   toggleProjectCollapse: (projectId: string) => void;
 }
@@ -67,7 +67,7 @@ export function useInboxContextValues({
   setRenamingShelfLocks,
   setScope,
   setExpandedShelves,
-  setActiveSortMode,
+  setActiveView,
   setSettledLimit,
   toggleProjectCollapse,
 }: InboxContextInputs) {
@@ -103,7 +103,7 @@ export function useInboxContextValues({
       setRenamingShelfLocks,
       setScope,
       setExpandedShelves,
-      setActiveSortMode,
+      setActiveView,
       setSettledLimit,
       toggleProjectCollapse,
       acknowledgeWake: (threadId: string) => void lifecycle.acknowledgeWake(threadId),
@@ -117,7 +117,7 @@ export function useInboxContextValues({
       setRenamingShelfLocks,
       setScope,
       setExpandedShelves,
-      setActiveSortMode,
+      setActiveView,
       setSettledLimit,
       toggleProjectCollapse,
       lifecycle,

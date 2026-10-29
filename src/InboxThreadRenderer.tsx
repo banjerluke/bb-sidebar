@@ -2,7 +2,7 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
 import { memo, useCallback } from "react";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
-import type { ActiveSortMode } from "./inbox-layout";
+import type { ActiveView } from "./inbox-layout";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -24,7 +24,7 @@ const InboxThread = memo(function InboxThread({
   isWoke,
   childrenExpanded,
   threadReorderControls,
-  activeSortMode,
+  activeView,
 }: {
   thread: PluginSidebarThread;
   shelf: ActiveShelfKind;
@@ -36,7 +36,7 @@ const InboxThread = memo(function InboxThread({
   isWoke: boolean;
   childrenExpanded: boolean;
   threadReorderControls: ReorderControls;
-  activeSortMode: ActiveSortMode;
+  activeView: ActiveView;
 }) {
   const { sidebarSettings, lifecycle, childrenByParentId } = useInboxEnvironment();
   const { activeThreadId } = useInboxActivity();
@@ -68,7 +68,8 @@ const InboxThread = memo(function InboxThread({
       reorder={
         !reorderable ||
         (shelf === "pinned" && thread.pinSortKey == null) ||
-        (shelf === "inbox" && (activeSortMode === "activity" || activeSortMode === "created"))
+        // Sorted rows have no manual slot, but in sections they still drag to be filed.
+        (shelf === "inbox" && activeView.order !== "manual" && activeView.group !== "section")
           ? undefined
           : threadReorderControls(thread, shelf)
       }
@@ -86,12 +87,12 @@ export function createInboxThreadRenderer({
   wokeThreadIds,
   expandedChildParentIds,
   threadReorderControls,
-  activeSortMode,
+  activeView,
 }: {
   wokeThreadIds: ReadonlySet<string>;
   expandedChildParentIds: ReadonlySet<string>;
   threadReorderControls: ReorderControls;
-  activeSortMode: ActiveSortMode;
+  activeView: ActiveView;
 }) {
   return (
     thread: PluginSidebarThread,
@@ -114,7 +115,7 @@ export function createInboxThreadRenderer({
       isWoke={wokeThreadIds.has(thread.id)}
       childrenExpanded={expandedChildParentIds.has(thread.id)}
       threadReorderControls={threadReorderControls}
-      activeSortMode={activeSortMode}
+      activeView={activeView}
     />
   );
 }

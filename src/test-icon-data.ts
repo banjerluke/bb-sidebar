@@ -16,6 +16,7 @@ export { default as ComputerTerminal01Icon } from "@hugeicons/core-free-icons/Co
 export { default as Mail01Icon } from "@hugeicons/core-free-icons/Mail01Icon";
 export { default as MailOpen01Icon } from "@hugeicons/core-free-icons/MailOpen01Icon";
 export { default as Edit02Icon } from "@hugeicons/core-free-icons/Edit02Icon";
+export { default as Folder01Icon } from "@hugeicons/core-free-icons/Folder01Icon";
 export { default as FolderGitIcon } from "@hugeicons/core-free-icons/FolderGitIcon";
 export { default as GitBranchIcon } from "@hugeicons/core-free-icons/GitBranchIcon";
 export { default as GitPullRequestIcon } from "@hugeicons/core-free-icons/GitPullRequestIcon";
@@ -25,6 +26,7 @@ export { default as PauseCircleIcon } from "@hugeicons/core-free-icons/PauseCirc
 export { default as PinIcon } from "@hugeicons/core-free-icons/PinIcon";
 export { default as PinOffIcon } from "@hugeicons/core-free-icons/PinOffIcon";
 export { default as PlugSocketIcon } from "@hugeicons/core-free-icons/PlugSocketIcon";
+export { default as PlusSignIcon } from "@hugeicons/core-free-icons/PlusSignIcon";
 export { default as Pulse01Icon } from "@hugeicons/core-free-icons/Pulse01Icon";
 export { default as Search01Icon } from "@hugeicons/core-free-icons/Search01Icon";
 export { default as StopCircleIcon } from "@hugeicons/core-free-icons/StopCircleIcon";

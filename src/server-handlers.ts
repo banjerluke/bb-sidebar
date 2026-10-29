@@ -5,6 +5,7 @@ import type { createServerProjectIcons } from "./server-project-icons";
 import type { createServerProjectColors } from "./server-project-colors";
 import type { createServerProjectManagement } from "./server-project-management";
 import type { createServerSettleActions } from "./server-settle-actions";
+import type { createServerSections } from "./server-sections";
 import type { createServerSettings } from "./server-settings";
 import type { createServerPolicy } from "./server-policy";
 import type { createServerSettleCleanup } from "./server-settle-cleanup";
@@ -31,6 +32,7 @@ export function createServerHandlers(
     colors: ReturnType<typeof createServerProjectColors>;
     projects: ReturnType<typeof createServerProjectManagement>;
     settle: ReturnType<typeof createServerSettleActions>;
+    sections: ReturnType<typeof createServerSections>;
   },
 ) {
   const { readSidebarSettings, writeSidebarSettings } = settings;
@@ -305,6 +307,7 @@ export function createServerHandlers(
     ...modules.colors.handlers,
     ...modules.icons.handlers,
     ...modules.projects.handlers,
+    ...modules.sections.handlers,
     ...handlers,
   } satisfies Omit<ServerHandlers, "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue">;
 }

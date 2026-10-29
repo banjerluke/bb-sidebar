@@ -10,7 +10,7 @@ import {
   Shelf,
   SETTLED_PAGE_SIZE,
 } from "./ThreadInboxShelves";
-import type { ActiveSortMode, ProjectViewUnit } from "./inbox-layout";
+import type { ActiveView, ProjectViewUnit } from "./inbox-layout";
 import { cn } from "./lib/utils";
 import { ActiveSortPicker } from "./ActiveSortPicker";
 import { ProjectScopeControls } from "./ProjectScopeControls";
@@ -18,6 +18,17 @@ import type { ThreadReorderControls } from "./ThreadCard";
 import { useInboxActions } from "./InboxContext";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
 import type { useInboxProjectGroups } from "./useInboxProjectGroups";
+import type { useInboxSections } from "./useInboxSections";
+import type { DragShelf } from "./drag-reorder-geometry";
+import { SectionGroups } from "./SectionGroups";
+
+// Sorted projects keep their place by activity, so their headers do not drag.
+const NO_REORDER: ThreadReorderControls = {
+  disabled: true,
+  isDragging: false,
+  onPointerDown: () => undefined,
+  onKeyDown: () => undefined,
+};
 
 export interface ShelfExpansionState {
   active: boolean;
@@ -54,14 +65,17 @@ interface ThreadInboxViewProps {
     renameShelf?: "active" | "working" | "inactive",
     showEnvironment?: boolean,
   ) => ReactNode;
-  activeSortMode: ActiveSortMode;
+  activeView: ActiveView;
   inboxProjectView: readonly ProjectViewUnit[];
+  sections: Pick<
+    ReturnType<typeof useInboxSections>,
+    "view" | "dropTarget" | "emptyExpanded" | "toggleEmptyExpanded" | "toggleSectionCollapse"
+  >;
   environmentGrouping: Pick<
     ReturnType<typeof useInboxProjectGroups>,
     "groupEnvironments" | "setGroupEnvironments" | "toggleEnvironmentCollapse"
   >;
-  reorderControls: (key: string, shelf: "pinned" | "inbox", title: string) => ThreadReorderControls;
-  sortedVisibleInbox: readonly PluginSidebarThread[];
+  reorderControls: (key: string, shelf: DragShelf, title: string) => ThreadReorderControls;
   settledLimit: number;
 }
 
@@ -77,14 +91,14 @@ export function ThreadInboxView({
   attachDockMotionRef,
   expandedShelves,
   renderActiveThread,
-  activeSortMode,
+  activeView,
   inboxProjectView,
+  sections,
   environmentGrouping,
   reorderControls,
-  sortedVisibleInbox,
   settledLimit,
 }: ThreadInboxViewProps) {
-  const { setExpandedShelves, setActiveSortMode, setSettledLimit } = useInboxActions();
+  const { setExpandedShelves, setActiveView, setSettledLimit } = useInboxActions();
   const { pinned, inbox, working, inactive, snoozed, parked, settled } = shelves;
   return (
     <div data-bb-sidebar-root="" className="flex min-h-0 flex-1 flex-col">
@@ -145,27 +159,43 @@ export function ThreadInboxView({
                     }
                     action={
                       <ActiveSortPicker
-                        mode={activeSortMode}
-                        onModeChange={setActiveSortMode}
+                        view={activeView}
+                        onViewChange={setActiveView}
                         groupEnvironments={environmentGrouping.groupEnvironments}
                         onGroupEnvironmentsChange={environmentGrouping.setGroupEnvironments}
                       />
                     }
                   >
-                    {activeSortMode === "project" ? (
+                    {activeView.group === "project" ? (
                       <ProjectGroups
                         units={inboxProjectView}
                         onToggleEnvironment={environmentGrouping.toggleEnvironmentCollapse}
                         reorderControls={(unit, name) =>
-                          reorderControls(unit.key, "inbox", `${name} ${unit.environment ? "environment" : "project"}`)
+                          activeView.order === "manual"
+                            ? reorderControls(
+                                unit.key,
+                                "inbox",
+                                `${name} ${unit.environment ? "environment" : "project"}`,
+                              )
+                            : NO_REORDER
                         }
                         renderThread={(thread, grouped, environmentGrouped) =>
                           renderActiveThread(thread, "inbox", true, !grouped, false, "active", !environmentGrouped)
                         }
                       />
+                    ) : activeView.group === "section" && expandedShelves.active ? (
+                      <SectionGroups
+                        view={sections.view}
+                        dropTarget={sections.dropTarget}
+                        emptyExpanded={sections.emptyExpanded}
+                        onToggleEmpty={sections.toggleEmptyExpanded}
+                        onToggleSection={sections.toggleSectionCollapse}
+                        reorderControls={(key, name) => reorderControls(key, "sections", `${name} section`)}
+                        renderThread={(thread) => renderActiveThread(thread, "inbox")}
+                      />
                     ) : inbox.visibleThreads.length > 0 ? (
                       <Shelf label={null}>
-                        {sortedVisibleInbox.map((thread) => renderActiveThread(thread, "inbox"))}
+                        {inbox.visibleThreads.map((thread) => renderActiveThread(thread, "inbox"))}
                       </Shelf>
                     ) : null}
                   </CollapsibleShelf>
