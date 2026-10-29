@@ -1,4 +1,5 @@
 // Actual package icons, loaded through leaf exports in isolated test workers.
+export { default as Archive02Icon } from "@hugeicons/core-free-icons/Archive02Icon";
 export { default as ArrowDown01Icon } from "@hugeicons/core-free-icons/ArrowDown01Icon";
 export { default as ArrowLeft01Icon } from "@hugeicons/core-free-icons/ArrowLeft01Icon";
 export { default as ArrowRight01Icon } from "@hugeicons/core-free-icons/ArrowRight01Icon";
@@ -15,6 +16,7 @@ export { default as ComputerIcon } from "@hugeicons/core-free-icons/ComputerIcon
 export { default as ComputerTerminal01Icon } from "@hugeicons/core-free-icons/ComputerTerminal01Icon";
 export { default as Mail01Icon } from "@hugeicons/core-free-icons/Mail01Icon";
 export { default as MailOpen01Icon } from "@hugeicons/core-free-icons/MailOpen01Icon";
+export { default as MoreHorizontalIcon } from "@hugeicons/core-free-icons/MoreHorizontalIcon";
 export { default as Edit02Icon } from "@hugeicons/core-free-icons/Edit02Icon";
 export { default as Folder01Icon } from "@hugeicons/core-free-icons/Folder01Icon";
 export { default as FolderGitIcon } from "@hugeicons/core-free-icons/FolderGitIcon";

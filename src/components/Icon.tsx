@@ -1,5 +1,6 @@
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
+  Archive02Icon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -16,6 +17,7 @@ import {
   ComputerTerminal01Icon,
   Mail01Icon,
   MailOpen01Icon,
+  MoreHorizontalIcon,
   Edit02Icon,
   Folder01Icon,
   FolderGitIcon,
@@ -40,6 +42,7 @@ import {
 import { cn } from "../lib/utils";
 
 const ICON_MAP = {
+  Archive: Archive02Icon,
   ArrowTurnBackward: ArrowTurnBackwardIcon,
   ArrowUpDown: ArrowUpDownIcon,
   Clean: BrushCleaningIcon,
@@ -63,6 +66,7 @@ const ICON_MAP = {
   Loading: Loading03Icon,
   Mail: Mail01Icon,
   MailOpen: MailOpen01Icon,
+  More: MoreHorizontalIcon,
   Meditation: Yoga02Icon,
   PauseCircle: PauseCircleIcon,
   Pin: PinIcon,

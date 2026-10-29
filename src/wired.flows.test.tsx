@@ -28,7 +28,7 @@ it("snoozes through the picker, wakes on the clock, and dismisses the durable Wo
   wired.mount();
   await screen.findByText("Work a");
   vi.useFakeTimers();
-  fireEvent.keyDown(within(row()).getByRole("combobox", { name: "Snooze thread" }), { key: "Enter" });
+  fireEvent.keyDown(within(row()).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
   fireEvent.click(screen.getByRole("option", { name: "1 hour" }));
   await wired.advance(1);
   const storedSnooze = lifecycle(wired) as { snoozed_until: number; snoozed_at: number };

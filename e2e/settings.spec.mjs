@@ -18,7 +18,7 @@ test("sidebar settings change snooze shortcuts and persist after reload", async 
     .filter({ has: page.getByRole("link", { name: thread.title, exact: true }) });
   for (let pass = 0; pass < 2; pass++) {
     await link(page, thread.title).hover();
-    await row.getByRole("combobox", { name: "Snooze thread" }).click();
+    await row.getByRole("combobox", { name: "Snooze, park, or archive" }).click();
     await expect(page.getByRole("option", { name: "E2E break", exact: true })).toBeVisible();
     await expect(page.getByRole("option", { name: "2 hours", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");

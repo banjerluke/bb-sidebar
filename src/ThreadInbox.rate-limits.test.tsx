@@ -189,11 +189,11 @@ describe("sidebar rate-limit recovery", () => {
     ["before reset", warning, "Continue at 5pm for Limited work"],
     ["after reset", { ...warning, resetsAt: 1 }, "Continue now for Limited work"],
     ["scheduled", scheduled, "Cancel scheduled Continue for Limited work"],
-  ])("keeps Settle and Snooze alongside limit recovery (%s)", async (_state, initial, label) => {
+  ])("keeps Settle and its menu alongside limit recovery (%s)", async (_state, initial, label) => {
     const { settleCall, scheduleCall, cancelCall, slot } = mount({ initial });
     const continueButton = await screen.findByRole("button", { name: label });
     const row = continueButton.closest("li")!;
-    expect(within(row).getByRole("combobox", { name: "Snooze thread" })).toBeDefined();
+    expect(within(row).getByRole("combobox", { name: "Snooze, park, or archive" })).toBeDefined();
     fireEvent.click(within(row).getByRole("button", { name: "Settle thread" }));
     await waitFor(() => expect(settleCall).toHaveBeenCalledWith({ threadId: "limited" }));
     expect(scheduleCall).not.toHaveBeenCalled();
