@@ -100,7 +100,7 @@ export function ThreadCard({
     childrenByParentId: childrenByParent,
     sidebarSettings,
   } = useInboxEnvironment();
-  const { navigate, onNavigate, parkThread, settleThread, snoozeThread, acknowledgeWake, toggleChildExpansion } =
+  const { onNavigate, parkThread, settleThread, snoozeThread, acknowledgeWake, toggleChildExpansion } =
     useInboxActions();
   const { activeThreadId, now } = useInboxActivity();
   const provider = providerById.get(thread.providerId) ?? null;
@@ -280,7 +280,6 @@ export function ThreadCard({
               onRenamingChange={changeRenaming}
               onOpen={() => {
                 if (isWoke) onAcknowledgeWake();
-                navigate.toThread(thread.id, { split: false });
                 onNavigate();
               }}
               rowProps={{ "data-parent-card": "", "data-settling": isSettling ? "" : undefined }}
@@ -353,7 +352,7 @@ export function ThreadCard({
                   // Both attributes, or bb's nine thread shortcuts stop finding rows.
                   data-sidebar-thread-shortcut-target=""
                   data-sidebar-thread-id={thread.id}
-                  href="#"
+                  href={thread.href}
                   aria-label={threadDisplayTitle(thread)}
                   aria-current={isActive ? "page" : undefined}
                   draggable={false}
@@ -364,10 +363,11 @@ export function ThreadCard({
                   }}
                   onKeyDown={reorder?.onKeyDown}
                   onClick={(event) => {
-                    event.preventDefault();
-                    if (isRenaming || event.detail > 1) return;
+                    if (isRenaming || event.detail > 1) {
+                      event.preventDefault();
+                      return;
+                    }
                     if (isWoke) onAcknowledgeWake();
-                    navigate.toThread(thread.id, { split: false });
                     onNavigate();
                   }}
                   onDoubleClick={(event) => {

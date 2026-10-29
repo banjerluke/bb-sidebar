@@ -15,7 +15,7 @@ describe("ThreadInbox", () => {
     ]);
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
 
-    fireEvent.contextMenu(screen.getByRole("button", { name: "Open child thread: Child" }));
+    fireEvent.contextMenu(screen.getByRole("link", { name: "Open child thread: Child" }));
 
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
     expect(rendered.threadActionCalls).toContainEqual({
@@ -68,7 +68,7 @@ describe("ThreadInbox", () => {
       render([thread({ id: "parent", title: "Parent" }), { ...busyChild, parentThreadId: "parent" }]);
       fireEvent.click(screen.getByRole("button", { name: /^1 child thread/ }));
       fireEvent.contextMenu(
-        screen.getByRole("button", {
+        screen.getByRole("link", {
           name: `Open child thread: ${busyChild.title}${busyChild.hasPendingInteraction ? ", Needs you" : ", Working"}`,
         }),
       );
@@ -126,15 +126,11 @@ describe("ThreadInbox", () => {
     expect(disclosure.querySelector('[data-icon="ChevronUp"]')).not.toBeNull();
 
     fireEvent.click(
-      within(grandchildList).getByRole("button", {
+      within(grandchildList).getByRole("link", {
         name: "Open grandchild thread: Grandchild",
       }),
     );
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "grandchild",
-      options: { split: false },
-    });
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/grandchild", split: false });
   });
 
   it("removes archived children from the sidebar badge and list", () => {

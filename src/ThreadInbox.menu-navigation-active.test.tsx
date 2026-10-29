@@ -50,6 +50,7 @@ describe("row context menu", () => {
       await waitFor(() => expect(toastMocks.success).toHaveBeenCalled());
       expect([
         ...rendered.navigateCalls,
+        ...rendered.linkCalls,
         ...rendered.sdkCalls,
         ...rendered.splitSourceCalls,
         ...rendered.threadActionCalls,

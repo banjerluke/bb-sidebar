@@ -157,6 +157,7 @@ export function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSide
     lastReadAt: 100,
     latestAttentionAt: 100,
     ...overrides,
+    href: overrides.href ?? `/projects/${overrides.projectId ?? "proj_1"}/threads/${overrides.id ?? "thr_1"}`,
   };
 }
 
@@ -200,6 +201,13 @@ export const listProps = {
   searchQuery: "",
   Original: () => null,
 };
+
+/** Top-level row links. Child rows are links too, but bb's shortcuts skip them. */
+export function rowLinks(scope: HTMLElement = document.body) {
+  return within(scope)
+    .getAllByRole("link")
+    .filter((link) => link.hasAttribute("data-sidebar-thread-shortcut-target"));
+}
 
 export function render(
   threads: PluginSidebarThread[],

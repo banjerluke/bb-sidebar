@@ -37,7 +37,7 @@ describe("four-level sidebar hierarchy", () => {
     );
     const badge = screen.getByRole("button", { name: /^1 child thread/ });
     expect(badge.getAttribute("data-child-status")).toBe(status);
-    const deep = screen.getByRole("button", { name: /^Open great-grandchild thread: Deep/ });
+    const deep = screen.getByRole("link", { name: /^Open great-grandchild thread: Deep/ });
     expect(deep.getAttribute("aria-current")).toBe(active ? "page" : null);
     expect(screen.queryByText("Idle sibling")).toBeNull();
     const disclosure = screen.getByRole("button", { name: `Show 2 great-grandchild threads for Grandchild${phrase}` });
@@ -47,6 +47,7 @@ describe("four-level sidebar hierarchy", () => {
     expect(screen.getByText("Idle sibling")).toBeDefined();
     expect([
       ...rendered.navigateCalls,
+      ...rendered.linkCalls,
       ...rendered.sdkCalls,
       ...rendered.splitSourceCalls,
       ...rendered.threadActionCalls,
@@ -56,13 +57,14 @@ describe("four-level sidebar hierarchy", () => {
     fireEvent.pointerDown(deep, { button: 0 });
     expect(rendered.splitSourceCalls).toEqual([{ threadId: "deep" }]);
     expect(rendered.navigateCalls).toEqual([]);
+    expect(rendered.linkCalls).toEqual([]);
     expect(rendered.sdkCalls).toEqual([]);
     expect(rendered.threadActionCalls).toEqual([]);
     expect(rendered.rpcCalls.filter((call) => /Parent|reorder|Pinned/.test(call.method))).toEqual([]);
     {
       fireEvent.click(screen.getByRole("button", { name: "Active" }));
       expect(screen.getByRole("link", { name: "Root" })).toBeDefined();
-      expect(screen.getByRole("button", { name: /^Open great-grandchild thread: Deep/ })).toBeDefined();
+      expect(screen.getByRole("link", { name: /^Open great-grandchild thread: Deep/ })).toBeDefined();
     }
   });
 
@@ -86,7 +88,7 @@ describe("four-level sidebar hierarchy", () => {
       },
     );
     expect(screen.getByRole("button", { name: "1 child thread" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: /^Open great-grandchild/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Open great-grandchild/ })).toBeNull();
   });
 });
 it("guards cyclic child DTOs while expanding and retains deep sibling sort", async () => {
@@ -105,22 +107,22 @@ it("guards cyclic child DTOs while expanding and retains deep sibling sort", asy
         childrenByParent={map}
         variant="sidebar"
         activeThreadId="earlier"
-        onOpenThread={() => {}}
+        onThreadOpen={() => {}}
       />
     );
   }
   renderSlot({ component: Fixture }, {}, { sidebarThreads: { status: "ready", threads: rows, projects: [] } });
-  expect(screen.getByRole("button", { name: "Open great-grandchild thread: Earlier" })).toBeDefined();
+  expect(screen.getByRole("link", { name: "Open great-grandchild thread: Earlier" })).toBeDefined();
   const disclosure = screen.getByRole("button", { name: "Show 2 great-grandchild threads for Grandchild" });
   fireEvent.click(disclosure);
-  const names = screen.getAllByRole("button", { name: /^Open / }).map((row) => row.getAttribute("aria-label"));
+  const names = screen.getAllByRole("link", { name: /^Open / }).map((row) => row.getAttribute("aria-label"));
   expect(names).toEqual([
     "Open child thread: Child",
     "Open grandchild thread: Grandchild",
     "Open great-grandchild thread: Earlier",
     "Open great-grandchild thread: Later",
   ]);
-  expect(screen.queryByRole("button", { name: /^Open descendant/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^Open descendant/ })).toBeNull();
 });
 it("honors disabled attention retention for fourth-level descendants", async () => {
   const rendered = renderSlot(inbox, listProps, {
@@ -141,11 +143,11 @@ it("honors disabled attention retention for fourth-level descendants", async () 
   });
   const badge = await screen.findByRole("button", { name: "1 child thread, 1 need you" });
   await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "getSidebarSettings")).toBe(true));
-  expect(screen.queryByRole("button", { name: /^Open great-grandchild/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^Open great-grandchild/ })).toBeNull();
   fireEvent.click(badge);
   fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Child, 1 need you" }));
   fireEvent.click(screen.getByRole("button", { name: "Show 1 great-grandchild thread for Grandchild, 1 need you" }));
-  expect(screen.getByRole("button", { name: "Open great-grandchild thread: Deep, Needs you" })).toBeDefined();
+  expect(screen.getByRole("link", { name: "Open great-grandchild thread: Deep, Needs you" })).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Active" }));
   expect(screen.queryByRole("link", { name: "Root" })).toBeNull();
 });

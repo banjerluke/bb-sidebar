@@ -1,6 +1,6 @@
 import { useProviders, useSidebarThreadSplit, useSidebarThreads } from "./bb-sdk";
 import { useEffect, useId, useState, type ReactElement } from "react";
-import { useBbNavigate, useRpc, useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useRpc, useRealtime, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { bbSidebarRpcContract } from "./contract";
 import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { ThreadHoverCard } from "./components/ThreadHoverCard";
@@ -31,7 +31,6 @@ export function ThreadDetailsTooltip({
   const { providers } = useProviders();
   const provider = providers.find((entry) => entry.id === thread.providerId);
   const { projects, threads } = useSidebarThreads();
-  const navigate = useBbNavigate();
   const { call } = useRpc<typeof bbSidebarRpcContract>();
   const [iconRevision, setIconRevision] = useState(0);
   useRealtime(PROJECT_ICONS_CHANNEL, () => {
@@ -187,13 +186,7 @@ export function ThreadDetailsTooltip({
               >
                 {subthreads.map((child) => (
                   <li key={child.id} className="min-w-0 pl-5">
-                    <SubthreadRow
-                      thread={child}
-                      onOpen={() => {
-                        setOpen(false);
-                        navigate.toThread(child.id);
-                      }}
-                    />
+                    <SubthreadRow thread={child} onOpen={() => setOpen(false)} />
                   </li>
                 ))}
               </ul>
@@ -213,6 +206,7 @@ export function ThreadDetailsTooltip({
   );
 }
 
+/** bb's link routing opens the subthread; `onOpen` only closes the card. */
 function SubthreadRow({ thread, onOpen }: { thread: PluginSidebarThread; onOpen: () => void }) {
   const { splitProps } = useSidebarThreadSplit(thread.id);
   const { providers } = useProviders();
@@ -220,15 +214,12 @@ function SubthreadRow({ thread, onOpen }: { thread: PluginSidebarThread; onOpen:
   const statusThread = useThreadWithDraft(thread);
   const status = thread.hasPendingInteraction ? "Needs you" : (statusThread.indicatorLabel ?? "Idle");
   return (
-    <button
-      type="button"
+    <a
+      href={thread.href}
       aria-label={`Open subthread: ${threadDisplayTitle(thread)}`}
       draggable={false}
       onPointerDown={splitProps.onPointerDown}
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpen();
-      }}
+      onClick={onOpen}
       className={cn(
         "flex w-full min-w-0 items-start gap-2 rounded-sm text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
         splitProps.onPointerDown ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
@@ -252,7 +243,7 @@ function SubthreadRow({ thread, onOpen }: { thread: PluginSidebarThread; onOpen:
           />
         </span>
       </span>
-    </button>
+    </a>
   );
 }
 

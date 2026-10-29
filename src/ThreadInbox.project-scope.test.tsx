@@ -2,7 +2,7 @@
 import { expect, it, onTestFinished, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
-import { inbox, thread, listProps, loadInboxApp, defaultSidebarSettings } from "./test-inbox";
+import { inbox, thread, listProps, loadInboxApp, defaultSidebarSettings, rowLinks } from "./test-inbox";
 import { STORAGE_KEYS } from "./lib/storage-keys";
 
 await loadInboxApp();
@@ -139,7 +139,7 @@ it("filters every shelf without changing lifecycle or order", async () => {
   });
   for (const shelf of shelves) {
     const region = await screen.findByRole("region", { name: shelf });
-    await waitFor(() => expect(within(region).getAllByRole("link")).toHaveLength(2));
+    await waitFor(() => expect(rowLinks(region)).toHaveLength(2));
     expect(within(region).getByText(`Alpha ${shelf}`)).toBeDefined();
     expect(within(region).getByText(`Gamma ${shelf}`)).toBeDefined();
     expect(screen.queryByText(`Beta ${shelf}`)).toBeNull();

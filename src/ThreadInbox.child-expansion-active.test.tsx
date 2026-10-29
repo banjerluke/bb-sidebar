@@ -52,7 +52,7 @@ describe("ThreadInbox", () => {
     expect(badge.getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByText("Child A")).toBeDefined();
     expect(screen.queryByText("Child B")).toBeNull();
-    const activeRow = screen.getByRole("button", {
+    const activeRow = screen.getByRole("link", {
       name: "Open child thread: Child A",
     });
     expect(activeRow.getAttribute("aria-current")).toBe("page");

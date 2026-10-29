@@ -74,11 +74,11 @@ describe("ThreadInbox", () => {
       },
     );
 
-    const childRow = screen.getByRole("button", {
+    const childRow = screen.getByRole("link", {
       name: "Open child thread: Child",
     });
     expect(childRow.getAttribute("aria-current")).toBeNull();
-    const grandchildRow = screen.getByRole("button", {
+    const grandchildRow = screen.getByRole("link", {
       name: "Open grandchild thread: Grandchild",
     });
     expect(grandchildRow.getAttribute("aria-current")).toBe("page");
@@ -116,12 +116,12 @@ describe("ThreadInbox", () => {
       },
     );
 
-    const childRow = screen.getByRole("button", {
+    const childRow = screen.getByRole("link", {
       name: "Open child thread: Child, in project xPlan",
     });
     expect(childRow.querySelector("[data-foreign-project]")?.getAttribute("data-foreign-project")).toBe("proj_2");
     // Same project as its own parent, so no mark.
-    const grandchildRow = screen.getByRole("button", {
+    const grandchildRow = screen.getByRole("link", {
       name: "Open grandchild thread: Grandchild",
     });
     expect(grandchildRow.querySelector("[data-foreign-project]")).toBeNull();
@@ -217,18 +217,18 @@ describe("ThreadInbox", () => {
       "Open child thread: Pending runtime child, Needs you",
       "Open child thread: Idle child",
     ]) {
-      expect(within(childList).getByRole("button", { name })).toBeDefined();
+      expect(within(childList).getByRole("link", { name })).toBeDefined();
     }
     // Tint plus a leading rule: in dark the amber fill is only a 1.07:1 step
     // off the sidebar, so the rule is what actually finds the row.
-    const needsYouRow = within(childList).getByRole("button", {
+    const needsYouRow = within(childList).getByRole("link", {
       name: "Open child thread: Pending runtime child, Needs you",
     }).parentElement!;
     expect(needsYouRow.className).toContain("bg-[color:var(--bb-sidebar-needs-you-tint)]");
     expect(needsYouRow.className).toContain("shadow-[inset_2px_0_0_0_var(--bb-sidebar-needs-you-accent)]");
     // and only that row: the rule is the tint's partner, not a row border.
     expect(
-      within(childList).getByRole("button", {
+      within(childList).getByRole("link", {
         name: "Open child thread: Failed child, Failed",
       }).parentElement?.className,
     ).not.toContain("--bb-sidebar-needs-you-accent");
@@ -246,15 +246,11 @@ describe("ThreadInbox", () => {
     expect(idleSlot.className.split(" ")).not.toContain("min-w-20");
 
     fireEvent.click(
-      within(childList).getByRole("button", {
+      within(childList).getByRole("link", {
         name: "Open child thread: Monitoring child, Monitoring · 5m",
       }),
     );
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "monitoring",
-      options: { split: false },
-    });
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/monitoring", split: false });
     await waitFor(() =>
       expect(JSON.parse(window.localStorage.getItem("bb-sidebar:child-expansion:v1") ?? "[]")).toEqual(["parent"]),
     );
@@ -294,7 +290,7 @@ describe("ThreadInbox", () => {
     expect(within(childList).getByText("4m")).toBeDefined();
     expect(within(childList).queryByText("Doing something new")).toBeNull();
     expect(
-      within(childList).getByRole("button", {
+      within(childList).getByRole("link", {
         name: "Open child thread: Future child",
       }),
     ).toBeDefined();
@@ -310,7 +306,7 @@ describe("ThreadInbox", () => {
     expect(within(grandchildList).getByText("7m")).toBeDefined();
     expect(within(grandchildList).queryByText("Also new")).toBeNull();
     expect(
-      within(grandchildList).getByRole("button", {
+      within(grandchildList).getByRole("link", {
         name: "Open grandchild thread: Future grandchild",
       }),
     ).toBeDefined();
@@ -353,7 +349,7 @@ describe("ThreadInbox", () => {
     );
     const childList = screen.getByRole("list", { name: "Child threads" });
     const childRow = within(childList)
-      .getByRole("button", { name: "Open child thread: Busy child, Working · 5m" })
+      .getByRole("link", { name: "Open child thread: Busy child, Working · 5m" })
       .closest("[data-child-thread-row]") as HTMLElement;
     const disclosure = within(childRow).getByRole("button", {
       name: "Show 2 grandchild threads for Busy child, 1 failed, 1 need you",
@@ -372,18 +368,14 @@ describe("ThreadInbox", () => {
       "Open grandchild thread: Failed grandchild, Failed",
       "Open grandchild thread: Asking grandchild, Needs you",
     ]) {
-      expect(within(grandchildList).getByRole("button", { name })).toBeDefined();
+      expect(within(grandchildList).getByRole("link", { name })).toBeDefined();
     }
 
     fireEvent.click(
-      within(grandchildList).getByRole("button", {
+      within(grandchildList).getByRole("link", {
         name: "Open grandchild thread: Failed grandchild, Failed",
       }),
     );
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "failed-grandchild",
-      options: { split: false },
-    });
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/failed-grandchild", split: false });
   });
 });

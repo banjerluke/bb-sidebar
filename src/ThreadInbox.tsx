@@ -440,7 +440,6 @@ function ThreadInboxContent({
     childrenByParentId,
     activeThreadId,
     now,
-    navigate,
     onNavigate,
     parkThread,
     settleThread,

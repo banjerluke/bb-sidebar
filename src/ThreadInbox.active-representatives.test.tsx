@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
-import { inbox, thread, listProps, loadInboxApp } from "./test-inbox";
+import { inbox, thread, listProps, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -48,7 +48,7 @@ describe("scoped active representative regressions", () => {
     const shelf = await screen.findByRole("region", { name: "Settled" });
     expect(within(shelf).getByRole("button", { name: /^Settled/, expanded: false })).toBeDefined();
     expect(within(shelf).getByText(expected === "parent" ? "Parent A" : "Child B")).toBeDefined();
-    expect(within(shelf).getAllByRole("link")).toHaveLength(1);
+    expect(rowLinks(shelf)).toHaveLength(1);
     expect(rendered.rpcCalls.filter((call) => /Parent|reorder|Pinned/.test(call.method))).toEqual([]);
   });
 
@@ -128,13 +128,13 @@ describe("scoped active representative regressions", () => {
       const expected = mode === "same-project" ? "Representative" : "Orphan";
       if (mode === "unknown") {
         expect(within(shelf).queryByText("Representative")).toBeNull();
-        expect(within(shelf).getAllByRole("link")).toHaveLength(10);
+        expect(rowLinks(shelf)).toHaveLength(10);
       } else {
         expect(within(shelf).getByText(expected)).toBeDefined();
-        expect(within(shelf).getAllByRole("link")).toHaveLength(11);
+        expect(rowLinks(shelf)).toHaveLength(11);
         fireEvent.click(within(shelf).getByRole("button", { expanded: true }));
         expect(within(shelf).getByText(expected)).toBeDefined();
-        expect(within(shelf).getAllByRole("link")).toHaveLength(1);
+        expect(rowLinks(shelf)).toHaveLength(1);
       }
     },
   );

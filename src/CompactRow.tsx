@@ -40,6 +40,7 @@ export function CompactRow({
   isDragging?: boolean;
   isRenaming: boolean;
   onRenamingChange: (editing: boolean) => void;
+  /** Runs on a click that bb's link routing opens; it does not navigate. */
   onOpen: () => void;
   rowProps?: HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, string | undefined>;
   linkProps?: Pick<
@@ -73,13 +74,16 @@ export function CompactRow({
           // Both attributes, or bb's nine thread shortcuts stop finding rows.
           data-sidebar-thread-shortcut-target=""
           data-sidebar-thread-id={thread.id}
-          href="#"
+          // bb routes a plain click in place and a Cmd/Ctrl-click to a split.
+          href={thread.href}
           aria-label={label}
           aria-current={isActive ? "page" : undefined}
           {...linkProps}
           onClick={(event) => {
-            event.preventDefault();
-            if (isRenaming || event.detail > 1) return;
+            if (isRenaming || event.detail > 1) {
+              event.preventDefault();
+              return;
+            }
             onOpen();
           }}
           onDoubleClick={(event) => {

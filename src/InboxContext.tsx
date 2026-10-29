@@ -7,7 +7,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { PluginSidebarThread, useBbNavigate } from "@get-bb/plugin-sdk/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { useSidebarThreads } from "./bb-sdk";
 import type { SidebarProvider } from "./ProviderGlyph";
 import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-settings";
@@ -34,7 +34,6 @@ interface InboxContextInputs {
   childrenByParentId: ReadonlyMap<string, readonly PluginSidebarThread[]>;
   activeThreadId: string | null;
   now: number;
-  navigate: ReturnType<typeof useBbNavigate>;
   onNavigate: () => void;
   parkThread: (thread: PluginSidebarThread) => void;
   settleThread: (thread: PluginSidebarThread) => void;
@@ -60,7 +59,6 @@ export function useInboxContextValues({
   childrenByParentId,
   activeThreadId,
   now,
-  navigate,
   onNavigate,
   parkThread,
   settleThread,
@@ -97,7 +95,6 @@ export function useInboxContextValues({
   );
   const actions = useMemo(
     () => ({
-      navigate,
       onNavigate,
       parkThread,
       settleThread,
@@ -110,13 +107,8 @@ export function useInboxContextValues({
       setSettledLimit,
       toggleProjectCollapse,
       acknowledgeWake: (threadId: string) => void lifecycle.acknowledgeWake(threadId),
-      openThread: (threadId: string) => {
-        navigate.toThread(threadId, { split: false });
-        onNavigate();
-      },
     }),
     [
-      navigate,
       onNavigate,
       parkThread,
       settleThread,
@@ -201,7 +193,8 @@ export function useInboxActivity() {
 
 type ExplicitChildListInputs = {
   childrenByParent: ReadonlyMap<string, readonly PluginSidebarThread[]>;
-  onOpenThread: (threadId: string) => void;
+  /** Runs on a click that bb's link routing opens; it does not navigate. */
+  onThreadOpen: () => void;
 };
 
 export type InboxChildListInputs = {
@@ -216,11 +209,11 @@ export function useInboxChildList<T extends InboxChildListInputs>(props: T) {
   const activity = useContext(InboxActivityContext);
   const sidebar = props.variant === "sidebar";
   const childrenByParent = props.childrenByParent ?? requireInboxContext(environment).childrenByParentId;
-  const onOpenThread = props.onOpenThread ?? requireInboxContext(actions).openThread;
+  const onThreadOpen = props.onThreadOpen ?? requireInboxContext(actions).onNavigate;
   return {
     ...props,
     childrenByParent,
-    onOpenThread,
+    onThreadOpen,
     now: props.now ?? (sidebar ? activity?.now : undefined),
     activeThreadId:
       props.activeThreadId !== undefined ? props.activeThreadId : sidebar ? activity?.activeThreadId : undefined,

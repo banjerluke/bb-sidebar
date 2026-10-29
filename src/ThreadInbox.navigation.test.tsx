@@ -18,7 +18,9 @@ describe("ThreadInbox", () => {
     expect(row.getAttribute("data-sidebar-thread-id")).toBe("thr_x");
   });
 
-  it("opens a thread on click and closes the mobile drawer", () => {
+  // bb routes the row's link. toThread would also turn off the thread's saved
+  // Full Screen, so a row click must leave navigation to bb.
+  it("leaves a click to bb's link routing and closes the mobile drawer", () => {
     let navigated = 0;
     const rendered = renderSlot(
       inbox,
@@ -32,13 +34,16 @@ describe("ThreadInbox", () => {
         rpc: { listLifecycle: () => ({ rows: [] }) },
       },
     );
-    fireEvent.click(screen.getByRole("link"));
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "thr_open",
-      options: { split: false },
-    });
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toBe("/projects/proj_1/threads/thr_open");
+    fireEvent.click(link);
+    expect(rendered.linkCalls).toEqual([{ href: "/projects/proj_1/threads/thr_open", split: false }]);
+    expect(rendered.navigateCalls).toEqual([]);
     expect(navigated).toBe(1);
+
+    // A double-click renames; its second click must not open the thread again.
+    fireEvent.click(link, { detail: 2 });
+    expect(rendered.linkCalls).toHaveLength(1);
   });
 
   // bb owns the modifier hold and numbering; rows draw what it assigns.
@@ -70,15 +75,12 @@ describe("ThreadInbox", () => {
     expect(keys("Thread B")).toBe("Alt+ArrowUp Alt+ArrowDown");
   });
 
-  it("opens a thread normally when the platform modifier is held", () => {
+  it("leaves a platform-modifier click to bb, which opens a split", () => {
     const rendered = render([thread({ id: "thr_modifier" })]);
     fireEvent.click(screen.getByRole("link"), { metaKey: true });
 
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "thr_modifier",
-      options: { split: false },
-    });
+    expect(rendered.linkCalls).toEqual([{ href: "/projects/proj_1/threads/thr_modifier", split: true }]);
+    expect(rendered.navigateCalls).toEqual([]);
     expect(screen.queryByRole("toolbar", { name: /threads selected/ })).toBeNull();
   });
 });

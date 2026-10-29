@@ -42,6 +42,7 @@ function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThre
     lastReadAt: 100,
     latestAttentionAt: 100,
     ...overrides,
+    href: overrides.href ?? `/projects/${overrides.projectId ?? "proj_1"}/threads/${overrides.id ?? "thr_1"}`,
   };
 }
 
@@ -104,7 +105,7 @@ const orderedChildren = [
 
 function childRowNames(): string[] {
   return within(screen.getByRole("list", { name: "Child threads" }))
-    .getAllByRole("button", { name: /^Open child thread:/ })
+    .getAllByRole("link", { name: /^Open child thread:/ })
     .map((row) => row.getAttribute("aria-label") ?? "");
 }
 
@@ -137,7 +138,7 @@ describe("SubagentsChip", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
     expect(requests).toBe(0);
-    const row = screen.getByRole("button", { name: "Open child thread: Child" });
+    const row = screen.getByRole("link", { name: "Open child thread: Child" });
     fireEvent.pointerMove(row, { pointerType: "mouse" });
     await waitFor(() => {
       const tooltip = screen.getByRole("dialog", { name: "Thread details" });
@@ -173,15 +174,15 @@ describe("SubagentsChip", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Away" }));
 
     expect(
-      screen.getByRole("button", { name: "Open child thread: Here" }).querySelector("[data-foreign-project]"),
+      screen.getByRole("link", { name: "Open child thread: Here" }).querySelector("[data-foreign-project]"),
     ).toBeNull();
-    const away = screen.getByRole("button", { name: "Open child thread: Away, in project xPlan" });
+    const away = screen.getByRole("link", { name: "Open child thread: Away, in project xPlan" });
     expect(away.textContent).toContain("thread · xPlan");
     expect(away.querySelector("[data-foreign-project]")?.getAttribute("data-foreign-project")).toBe("proj_2");
     // Compared with its own parent, not the root: back in bb under an xPlan child.
     expect(
       screen
-        .getByRole("button", { name: "Open grandchild thread: Back, in project bb" })
+        .getByRole("link", { name: "Open grandchild thread: Back, in project bb" })
         .querySelector("[data-foreign-project]")
         ?.getAttribute("data-foreign-project"),
     ).toBe("proj_1");
@@ -215,15 +216,16 @@ describe("SubagentsChip", () => {
       }
       const title = targetId === "child" ? "Child" : targetId === "grandchild" ? "Grandchild" : "Great-grandchild";
       const startRename = async () => {
-        fireEvent.contextMenu(screen.getByRole("button", { name: `Open ${targetId} thread: ${title}` }));
+        fireEvent.contextMenu(screen.getByRole("link", { name: `Open ${targetId} thread: ${title}` }));
         fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Rename"));
         return screen.findByRole("textbox", { name: `Rename ${title}` });
       };
       let input = await startRename();
-      expect(input.closest("button")).toBeNull();
+      expect(input.closest("a, button")).toBeNull();
       fireEvent.pointerDown(input, { button: 0 });
       expect([
         ...rendered.navigateCalls,
+        ...rendered.linkCalls,
         ...rendered.sdkCalls,
         ...rendered.splitSourceCalls,
         ...rendered.threadActionCalls,
@@ -233,6 +235,7 @@ describe("SubagentsChip", () => {
       expect(screen.getByRole("region", { name: "Child threads" })).toBeTruthy();
       expect([
         ...rendered.navigateCalls,
+        ...rendered.linkCalls,
         ...rendered.sdkCalls,
         ...rendered.splitSourceCalls,
         ...rendered.threadActionCalls,
@@ -247,6 +250,7 @@ describe("SubagentsChip", () => {
         ]),
       );
       expect(rendered.navigateCalls).toEqual([]);
+      expect(rendered.linkCalls).toEqual([]);
       expect(rendered.splitSourceCalls).toEqual([]);
       expect(rendered.threadActionCalls).toEqual([
         { key: "bb--core/rename", threadId: targetId },
@@ -279,6 +283,7 @@ describe("SubagentsChip", () => {
     fireEvent.pointerDown(disclosure, { button: 0 });
     expect([
       ...rendered.navigateCalls,
+      ...rendered.linkCalls,
       ...rendered.sdkCalls,
       ...rendered.splitSourceCalls,
       ...rendered.threadActionCalls,
@@ -289,6 +294,7 @@ describe("SubagentsChip", () => {
     fireEvent.click(deepDisclosure);
     expect([
       ...rendered.navigateCalls,
+      ...rendered.linkCalls,
       ...rendered.sdkCalls,
       ...rendered.splitSourceCalls,
       ...rendered.threadActionCalls,
@@ -298,13 +304,14 @@ describe("SubagentsChip", () => {
       ["grandchild", "Grandchild", "grandchild"],
       ["great-grandchild", "Great-grandchild", "great-grandchild"],
     ]) {
-      const source = screen.getByRole("button", { name: `Open ${relation} thread: ${title}` });
+      const source = screen.getByRole("link", { name: `Open ${relation} thread: ${title}` });
       expect(source.draggable).toBe(false);
       fireEvent.pointerDown(source, { button: 0 });
       expect(rendered.splitSourceCalls.at(-1)).toEqual({ threadId: id });
     }
     expect(rendered.splitSourceCalls).toHaveLength(3);
     expect(rendered.navigateCalls).toEqual([]);
+    expect(rendered.linkCalls).toEqual([]);
     expect(rendered.sdkCalls).toEqual([]);
     expect(rendered.threadActionCalls).toEqual([]);
   });
@@ -342,12 +349,8 @@ describe("SubagentsChip", () => {
     expect(trigger.getAttribute("aria-controls")).toBe(popup.id);
     const list = screen.getByRole("list", { name: "Child threads" });
     expect(list.getAttribute("data-child-thread-list")).toBe("header");
-    fireEvent.click(screen.getByRole("button", { name: "Open child thread: Child B" }));
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "child-b",
-      options: undefined,
-    });
+    fireEvent.click(screen.getByRole("link", { name: "Open child thread: Child B" }));
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/child-b", split: false });
   });
 
   // The header variant draws a glyph rather than the sidebar's text slot, so
@@ -409,7 +412,7 @@ describe("SubagentsChip", () => {
       "Open child thread: Future child",
       "Open child thread: Idle child",
     ]) {
-      expect(within(list).getByRole("button", { name })).toBeDefined();
+      expect(within(list).getByRole("link", { name })).toBeDefined();
     }
     // No text status slot in this variant, and no leftover raw host labels.
     expect(within(list).queryByText("Monitoring")).toBeNull();
@@ -458,15 +461,11 @@ describe("SubagentsChip", () => {
     });
     expect(grandchildList.getAttribute("data-grandchild-thread-list")).toBe("header");
     fireEvent.click(
-      within(grandchildList).getByRole("button", {
+      within(grandchildList).getByRole("link", {
         name: "Open grandchild thread: Grandchild",
       }),
     );
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "grandchild",
-      options: undefined,
-    });
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/grandchild", split: false });
   });
 
   it("archives the selected child or grandchild from the header list", async () => {
@@ -491,7 +490,7 @@ describe("SubagentsChip", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
-    fireEvent.contextMenu(screen.getByRole("button", { name: "Open child thread: Child" }));
+    fireEvent.contextMenu(screen.getByRole("link", { name: "Open child thread: Child" }));
     fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Archive"));
     expect(rendered.threadActionCalls).toContainEqual({
       key: "bb--core/archive",
@@ -504,7 +503,7 @@ describe("SubagentsChip", () => {
       }),
     );
     fireEvent.contextMenu(
-      screen.getByRole("button", {
+      screen.getByRole("link", {
         name: "Open grandchild thread: Grandchild",
       }),
     );
@@ -739,7 +738,7 @@ describe("SubagentsChip", () => {
     );
     const trigger = screen.getByRole("button", { name: "1 child thread" });
     fireEvent.click(trigger);
-    const row = screen.getByRole("button", { name: /^Open child thread: Child/ });
+    const row = screen.getByRole("link", { name: /^Open child thread: Child/ });
     const disc = trigger.querySelector<HTMLElement>("[data-child-thread-dot] span");
     expect(disc?.style.backgroundColor).toContain("oklch");
     expect(within(row).queryByRole("img", { name: "Codex" })).toBeNull();
@@ -780,8 +779,8 @@ it("renders header hierarchy relative to the current child thread", () => {
     },
   );
   fireEvent.click(screen.getByRole("button", { name: "1 child thread" }));
-  expect(screen.getByRole("button", { name: "Open child thread: Grandchild" })).toBeDefined();
+  expect(screen.getByRole("link", { name: "Open child thread: Grandchild" })).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Show 1 grandchild thread for Grandchild, 1 need you" }));
-  expect(screen.getByRole("button", { name: "Open grandchild thread: Deep, Needs you" })).toBeDefined();
-  expect(screen.queryByRole("button", { name: /^Open child thread: Current child/ })).toBeNull();
+  expect(screen.getByRole("link", { name: "Open grandchild thread: Deep, Needs you" })).toBeDefined();
+  expect(screen.queryByRole("link", { name: /^Open child thread: Current child/ })).toBeNull();
 });

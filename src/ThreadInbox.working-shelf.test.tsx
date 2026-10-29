@@ -11,6 +11,7 @@ import {
   listProps,
   toastMocks,
   loadInboxApp,
+  rowLinks,
 } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
@@ -395,9 +396,7 @@ describe("parking threads", () => {
       });
       await screen.findByRole("link", { name: "Busy work" });
       const titlesIn = (name: string) =>
-        within(screen.getByRole("region", { name }))
-          .getAllByRole("link")
-          .map((link) => link.getAttribute("aria-label"));
+        rowLinks(screen.getByRole("region", { name })).map((link) => link.getAttribute("aria-label"));
 
       if (!workingShelf) {
         await waitFor(() => expect(titlesIn("Active")).toContain("Busy work"));

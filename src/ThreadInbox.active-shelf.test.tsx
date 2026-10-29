@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings-values";
-import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
+import { inbox, thread, listProps, render, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -229,11 +229,7 @@ describe("ThreadInbox", () => {
       expect.stringContaining("Beta old"),
       expect.stringContaining("Alpha new"),
     ]);
-    expect(
-      within(activeShelf)
-        .getAllByRole("link")
-        .every((link) => link.getAttribute("aria-keyshortcuts") === null),
-    ).toBe(true);
+    expect(rowLinks(activeShelf).every((link) => link.getAttribute("aria-keyshortcuts") === null)).toBe(true);
 
     fireEvent.keyDown(
       within(activeShelf).getByRole("button", {
@@ -279,9 +275,7 @@ describe("ThreadInbox", () => {
     ).toBeDefined();
     expect(within(activeShelf).getByRole("button", { name: "Alpha (2)", expanded: true })).toBeDefined();
     expect(
-      within(activeShelf)
-        .getAllByRole("link")
-        .every((link) => link.getAttribute("aria-keyshortcuts") === "Alt+ArrowUp Alt+ArrowDown"),
+      rowLinks(activeShelf).every((link) => link.getAttribute("aria-keyshortcuts") === "Alt+ArrowUp Alt+ArrowDown"),
     ).toBe(true);
     await waitFor(() => expect(window.localStorage.getItem("bb-sidebar:active-sort:v1")).toBe("project"));
   });

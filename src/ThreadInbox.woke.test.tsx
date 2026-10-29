@@ -98,11 +98,7 @@ describe("parking threads", () => {
 
     fireEvent.click(within(failedRow).getByRole("link", { name: "Failed wake" }));
     await waitFor(() => expect(acknowledged).toEqual(["pending", "failed"]));
-    expect(rendered.navigateCalls).toContainEqual({
-      method: "toThread",
-      threadId: "failed",
-      options: { split: false },
-    });
+    expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/failed", split: false });
   });
 
   // Dismissing the marker is a correction, not navigation: the row stays put
@@ -162,6 +158,7 @@ describe("parking threads", () => {
     expect(navigated).toBe(0);
     expect([
       ...rendered.navigateCalls,
+      ...rendered.linkCalls,
       ...rendered.sdkCalls,
       ...rendered.splitSourceCalls,
       ...rendered.threadActionCalls,
@@ -210,11 +207,7 @@ it("keeps parked threads parked when opened and offers Resume with Undo", async 
   expect(within(shelf).getByText("Waiting 5d")).toBeDefined();
   fireEvent.click(within(shelf).getByRole("link", { name: "bb · Awaiting review" }));
   expect(resume).not.toHaveBeenCalled();
-  expect(rendered.navigateCalls).toContainEqual({
-    method: "toThread",
-    threadId: "waiting",
-    options: { split: false },
-  });
+  expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/waiting", split: false });
   fireEvent.click(within(shelf).getByRole("button", { name: "Resume thread" }));
   await waitFor(() => expect(resume).toHaveBeenCalled());
   const toast = toastMocks.success.mock.calls.find(([message]) => message === "Thread returned to the inbox");

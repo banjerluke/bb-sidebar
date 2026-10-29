@@ -28,6 +28,24 @@ test("pin persists in Pinned after reload", async ({ page }) => {
   await expect(link(page, atlas.title, "Pinned")).toBeVisible();
 });
 
+// Rows link to the thread and bb routes the click in place. navigate.toThread
+// would also clear the thread's saved Full Screen, which bb keeps in this key.
+test("a row click opens the thread in place and keeps its Full Screen", async ({ page }) => {
+  const fullScreenKey = `bb.thread.conversation.collapsed-${encodeURIComponent(atlas.id)}`;
+  const row = link(page, atlas.title);
+  await expect(row).toHaveAttribute("href", new RegExp(`/threads/${atlas.id}$`));
+  await page.evaluate((key) => {
+    window.localStorage.setItem(key, "true");
+    window.__bbSidebarSamePage = true;
+  }, fullScreenKey);
+  await row.click();
+  await expect(page).toHaveURL(new RegExp(`/threads/${atlas.id}$`));
+  await expect(row).toHaveAttribute("aria-current", "page");
+  // A full page load would mean the click escaped bb's routing.
+  expect(await page.evaluate(() => window.__bbSidebarSamePage)).toBe(true);
+  expect(await page.evaluate((key) => window.localStorage.getItem(key), fullScreenKey)).toBe("true");
+});
+
 // bb owns the hold delay, numbering, and pill; the sidebar draws what it assigns.
 test("holding the shortcut modifier shows bb's jump keys on sidebar rows", async ({ page }) => {
   const modifier = process.platform === "darwin" ? "Meta" : "Control";

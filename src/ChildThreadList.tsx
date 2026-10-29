@@ -210,7 +210,7 @@ export function ChildThreadList(props: ChildThreadListProps) {
     expanded = true,
     showRunningChildrenWhenCollapsed = false,
     parentProjectId,
-    onOpenThread,
+    onThreadOpen,
   } = useInboxChildList(props);
   const disclosureId = useId();
   const { projects } = useSidebarThreads();
@@ -269,7 +269,7 @@ export function ChildThreadList(props: ChildThreadListProps) {
             now={now}
             isActive={child.id === activeThreadId}
             foreignProject={foreignProject}
-            onOpenThread={onOpenThread}
+            onThreadOpen={onThreadOpen}
             disclosure={
               descendants.length > 0
                 ? {
@@ -325,7 +325,7 @@ function ChildThreadRow({
   now,
   isActive = false,
   foreignProject,
-  onOpenThread,
+  onThreadOpen,
   disclosure,
 }: {
   thread: PluginSidebarThread;
@@ -335,7 +335,8 @@ function ChildThreadRow({
   isActive?: boolean;
   /** Set when the thread's project differs from its parent's. */
   foreignProject?: ForeignProject;
-  onOpenThread: (threadId: string) => void;
+  /** Runs on a click that bb's link routing opens; it does not navigate. */
+  onThreadOpen: () => void;
   disclosure?: GrandchildDisclosure;
 }) {
   const title = threadDisplayTitle(thread);
@@ -349,7 +350,7 @@ function ChildThreadRow({
     : threadStatusLabel(statusThread, workingSince.get(thread.id), effectiveNow);
   const [isRenaming, setIsRenaming] = useState(false);
   const { splitProps } = useSidebarThreadSplit(thread.id);
-  const RowAction = isRenaming ? "div" : "button";
+  const RowAction = isRenaming ? "div" : "a";
 
   return (
     <RowContextMenu thread={thread} canArchive={canParkThread(thread)} onRename={() => setIsRenaming(true)}>
@@ -378,12 +379,12 @@ function ChildThreadRow({
         <ThreadDetailsTooltip thread={thread} disabled={isRenaming}>
           <RowAction
             data-child-thread-id={thread.id}
-            type={isRenaming ? undefined : "button"}
+            href={isRenaming ? undefined : thread.href}
             aria-label={isRenaming ? undefined : childThreadOpenLabel(relation, title, visibleStatus, foreignProject)}
             aria-current={isActive && !isRenaming ? "page" : undefined}
             draggable={false}
             onPointerDown={isRenaming ? undefined : splitProps.onPointerDown}
-            onClick={isRenaming ? undefined : () => onOpenThread(thread.id)}
+            onClick={isRenaming ? undefined : onThreadOpen}
             onKeyDown={isRenaming ? (event) => event.stopPropagation() : undefined}
             className={cn(
               "flex min-w-0 flex-1 items-center text-left outline-none focus-visible:ring-1 focus-visible:ring-ring",

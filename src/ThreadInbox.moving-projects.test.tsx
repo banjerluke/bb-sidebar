@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
-import { inbox, defaultSidebarSettings, thread, listProps, loadInboxApp } from "./test-inbox";
+import { inbox, defaultSidebarSettings, thread, listProps, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -51,11 +51,9 @@ describe("ThreadInbox", () => {
         await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "getSidebarSettings")).toBe(true));
         const active = screen.getByRole("region", { name: "Active" });
         await waitFor(() =>
-          expect(
-            within(active)
-              .getAllByRole("link")
-              .map((row) => row.getAttribute("aria-label")),
-          ).toEqual(showAttention ? ["Attention root", "Active root"] : ["Active root"]),
+          expect(rowLinks(active).map((row) => row.getAttribute("aria-label"))).toEqual(
+            showAttention ? ["Attention root", "Active root"] : ["Active root"],
+          ),
         );
         expect(within(active).getByRole("button", { name: "Web (2)", expanded: false })).toBeDefined();
         expect(Boolean(within(active).queryByText("Queued failed leaf"))).toBe(showAttention);
@@ -113,10 +111,7 @@ describe("ThreadInbox", () => {
           },
         });
         const active = await screen.findByRole("region", { name: "Active" });
-        const rowOrder = () =>
-          within(active)
-            .getAllByRole("link")
-            .map((row) => row.getAttribute("aria-label"));
+        const rowOrder = () => rowLinks(active).map((row) => row.getAttribute("aria-label"));
         // A folded shelf keeps its rows in their projects' slots.
         await waitFor(() =>
           expect(rowOrder()).toEqual(singleton ? ["Web a", "Web b", "Hidden other project"] : ["Web a", "Web b"]),
@@ -190,10 +185,7 @@ describe("ThreadInbox", () => {
           },
         });
         const active = screen.getByRole("region", { name: "Active" });
-        const visible = () =>
-          within(active)
-            .getAllByRole("link")
-            .map((e) => e.getAttribute("aria-label"));
+        const visible = () => rowLinks(active).map((e) => e.getAttribute("aria-label"));
         await waitFor(() => expect(visible()).toEqual(["a", "b"]));
         await waitFor(() => expect(rendered.rpcCalls.some((c) => c.method === "listInboxOrder")).toBe(true));
         const a = within(active).getByRole("link", { name: "a" });
@@ -248,13 +240,7 @@ describe("ThreadInbox", () => {
         },
       });
       const active = screen.getByRole("region", { name: "Active" });
-      await waitFor(() =>
-        expect(
-          within(active)
-            .getAllByRole("link")
-            .map((e) => e.getAttribute("aria-label")),
-        ).toEqual(["a", "x"]),
-      );
+      await waitFor(() => expect(rowLinks(active).map((e) => e.getAttribute("aria-label"))).toEqual(["a", "x"]));
       const x = within(active).getByRole("link", { name: "x" });
       if (gesture === "keyboard") fireEvent.keyDown(x, { key: "ArrowUp", altKey: true });
       else {
@@ -268,11 +254,7 @@ describe("ThreadInbox", () => {
       // The unshown project keeps its slot after the project it followed.
       await waitFor(() => expect(savedProjectOrder()).toEqual(["api", "web", "hidden-project"]));
       expect(rendered.rpcCalls.filter((c) => c.method === "reorderInbox")).toEqual([]);
-      expect(
-        within(active)
-          .getAllByRole("link")
-          .map((e) => e.getAttribute("aria-label")),
-      ).toEqual(["x", "a"]);
+      expect(rowLinks(active).map((e) => e.getAttribute("aria-label"))).toEqual(["x", "a"]);
     });
 
     it("F1 rebases participating siblings onto a pushed order without moving hidden slots", async () => {
@@ -299,10 +281,7 @@ describe("ThreadInbox", () => {
         },
       });
       const active = screen.getByRole("region", { name: "Active" });
-      const visible = () =>
-        within(active)
-          .getAllByRole("link")
-          .map((row) => row.getAttribute("aria-label"));
+      const visible = () => rowLinks(active).map((row) => row.getAttribute("aria-label"));
       await waitFor(() => expect(visible()).toEqual(["a", "b"]));
       const a = within(active).getByRole("link", { name: "a" });
       vi.mocked(document.elementFromPoint).mockReturnValue(
@@ -366,10 +345,7 @@ describe("ThreadInbox", () => {
         },
       );
       const active = screen.getByRole("region", { name: "Active" });
-      const visible = () =>
-        within(active)
-          .getAllByRole("link")
-          .map((row) => row.getAttribute("aria-label"));
+      const visible = () => rowLinks(active).map((row) => row.getAttribute("aria-label"));
       await waitFor(() => expect(visible()).toEqual(["a", "x", "y"]));
       vi.mocked(document.elementFromPoint).mockReturnValue(
         within(active).getByRole("link", { name: "a" }).closest("li")!,
@@ -428,10 +404,7 @@ describe("ThreadInbox", () => {
         },
       });
       const active = screen.getByRole("region", { name: "Active" });
-      const visible = () =>
-        within(active)
-          .getAllByRole("link")
-          .map((row) => row.getAttribute("aria-label"));
+      const visible = () => rowLinks(active).map((row) => row.getAttribute("aria-label"));
       await waitFor(() => expect(visible()).toEqual(["a", "b"]));
       vi.mocked(document.elementFromPoint).mockReturnValue(
         within(active).getByRole("link", { name: "b" }).closest("li")!,

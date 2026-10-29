@@ -2,7 +2,7 @@
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
-import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp } from "./test-inbox";
+import { inbox, defaultSidebarSettings, thread, listProps, deferred, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -46,11 +46,7 @@ describe("ThreadInbox", () => {
       expect(rendered.rpcCalls.some((call) => call.method === "listLifecycle")).toBe(true);
     });
     const pinned = screen.getByRole("region", { name: "Pinned" });
-    expect(
-      within(pinned)
-        .getAllByRole("link")
-        .map((row) => row.getAttribute("aria-label")),
-    ).toEqual(["Attention root", "Idle root"]);
+    expect(rowLinks(pinned).map((row) => row.getAttribute("aria-label"))).toEqual(["Attention root", "Idle root"]);
     expect(within(pinned).getByRole("button", { name: /^1 child thread/, expanded: false })).toBeDefined();
     const card = within(pinned).getByRole("link", { name: "Attention root" });
     const target = within(pinned).getByRole("link", { name: "Idle root" }).closest("li")!;
@@ -69,12 +65,8 @@ describe("ThreadInbox", () => {
     fireEvent.pointerDown(card, { button: 0, clientX: 20, clientY: 0, pointerId: 1 });
     fireEvent.pointerMove(window, { buttons: 1, clientX: 20, clientY: 30, pointerId: 1 });
     expect(card.closest("ul")!.hasAttribute("data-drag-preview")).toBe(true);
-    expect(
-      within(pinned)
-        .getAllByRole("link")
-        .map((row) => row.getAttribute("aria-label")),
-    ).toEqual(["Idle root", "Attention root"]);
-    expect(within(pinned).getByRole("button", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
+    expect(rowLinks(pinned).map((row) => row.getAttribute("aria-label"))).toEqual(["Idle root", "Attention root"]);
+    expect(within(pinned).getByRole("link", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
     fireEvent.pointerUp(window, { clientX: 20, clientY: 30, pointerId: 1 });
     await waitFor(() =>
       expect(reorderInput).toEqual({
@@ -84,30 +76,18 @@ describe("ThreadInbox", () => {
       }),
     );
     fireEvent.click(within(pinned).getByRole("button", { name: /^Pinned/, expanded: true }));
-    expect(
-      within(pinned)
-        .getAllByRole("link")
-        .map((row) => row.getAttribute("aria-label")),
-    ).toEqual(["Attention root"]);
+    expect(rowLinks(pinned).map((row) => row.getAttribute("aria-label"))).toEqual(["Attention root"]);
     expect(within(pinned).queryByRole("link", { name: "Idle root" })).toBeNull();
-    expect(within(pinned).getByRole("button", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
+    expect(within(pinned).getByRole("link", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
     await act(async () => {
       pending.resolve({ pinnedThreadIds: ["idle-root", "attention-root"] });
       await pending.promise;
     });
-    expect(
-      within(pinned)
-        .getAllByRole("link")
-        .map((row) => row.getAttribute("aria-label")),
-    ).toEqual(["Attention root"]);
-    expect(within(pinned).getByRole("button", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
+    expect(rowLinks(pinned).map((row) => row.getAttribute("aria-label"))).toEqual(["Attention root"]);
+    expect(within(pinned).getByRole("link", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
     fireEvent.click(within(pinned).getByRole("button", { name: /^Pinned/, expanded: false }));
-    expect(
-      within(pinned)
-        .getAllByRole("link")
-        .map((row) => row.getAttribute("aria-label")),
-    ).toEqual(["Idle root", "Attention root"]);
-    expect(within(pinned).getByRole("button", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
+    expect(rowLinks(pinned).map((row) => row.getAttribute("aria-label"))).toEqual(["Idle root", "Attention root"]);
+    expect(within(pinned).getByRole("link", { name: "Open child thread: Attention child, Needs you" })).toBeDefined();
   });
 
   it.each(
@@ -369,7 +349,7 @@ describe("ThreadInbox", () => {
       pointerId: 1,
     });
 
-    const openCalls = () => rendered.navigateCalls.filter((call) => call.method === "toThread").length;
+    const openCalls = () => rendered.linkCalls.length;
     const settled = openCalls();
 
     // The gesture's own click.
@@ -472,11 +452,11 @@ describe("ThreadInbox", () => {
       clientY: 30,
       pointerId: 1,
     });
-    const openedBeforeClick = rendered.navigateCalls.filter((call) => call.method === "toThread").length;
+    const openedBeforeClick = rendered.linkCalls.length;
     // The browser raises this once the gesture ends. Cancelling a drag must not
     // navigate into the row the drag started from.
     fireEvent.click(card);
 
-    expect(rendered.navigateCalls.filter((call) => call.method === "toThread")).toHaveLength(openedBeforeClick);
+    expect(rendered.linkCalls).toHaveLength(openedBeforeClick);
   });
 });

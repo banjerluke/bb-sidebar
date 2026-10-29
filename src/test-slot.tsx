@@ -30,6 +30,18 @@ runtime.experimental_useSidebarThreadSplit = (threadId) => {
   };
 };
 
+/** A link click bb's slot wrapper would route: a plain open, or a split. */
+type LinkCall = { href: string; split: boolean };
+let linkCalls: LinkCall[] | null = null;
+// The official fake leaves anchors to jsdom, which cannot navigate. Mirror the
+// host: after React's handlers, take an unprevented primary click on a link.
+document.addEventListener("click", (event) => {
+  const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+  if (!linkCalls || !link || event.defaultPrevented || event.button !== 0 || event.altKey || event.shiftKey) return;
+  event.preventDefault();
+  linkCalls.push({ href: link.getAttribute("href") ?? "", split: event.metaKey || event.ctrlKey });
+});
+
 /** Supply core registrations explicitly: the official fake does not emulate them. */
 export function renderSlot<Props extends object>(
   slot: { component: ComponentType<Props> },
@@ -39,6 +51,8 @@ export function renderSlot<Props extends object>(
   } = {},
 ) {
   const threadActionCalls: Array<{ key: string; threadId: string }> = [];
+  const renderedLinkCalls: LinkCall[] = [];
+  linkCalls = renderedLinkCalls;
   const splitSourceCalls: Array<{ threadId: string }> = [];
   const response = async ({ threadId }: { threadId: string }) => makeThreadResponse({ id: threadId });
   const sdk = {
@@ -125,5 +139,5 @@ export function renderSlot<Props extends object>(
   };
   rendered.rerender = rerender;
   rendered.lifecycle.rerender = rerender;
-  return Object.assign(rendered, { threadActionCalls, splitSourceCalls });
+  return Object.assign(rendered, { threadActionCalls, splitSourceCalls, linkCalls: renderedLinkCalls });
 }

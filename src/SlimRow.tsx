@@ -42,7 +42,7 @@ export const SlimRow = memo(function SlimRow({
   childrenExpanded: boolean;
 }) {
   const { projectNameById, projectIconRevision, snoozePresets, lifecycle, childrenByParentId } = useInboxEnvironment();
-  const { navigate, onNavigate, parkThread, settleThread, snoozeThread, toggleChildExpansion } = useInboxActions();
+  const { onNavigate, parkThread, settleThread, snoozeThread, toggleChildExpansion } = useInboxActions();
   const { activeThreadId } = useInboxActivity();
   const childThreads = childrenByParentId.get(thread.id) ?? [];
   const childListId = useId();
@@ -94,10 +94,7 @@ export const SlimRow = memo(function SlimRow({
           isRenaming={isRenaming}
           onRenamingChange={setIsRenaming}
           linkProps={{ "aria-keyshortcuts": rowKeyshortcuts(shortcut?.ariaKeyshortcuts, false) }}
-          onOpen={() => {
-            navigate.toThread(thread.id, { split: false });
-            onNavigate();
-          }}
+          onOpen={onNavigate}
           trailing={
             <>
               <OpenPortsIndicator thread={thread} />

@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { renderSlot } from "./test-slot";
-import { inbox, thread, listProps, loadInboxApp } from "./test-inbox";
+import { inbox, thread, listProps, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 await loadInboxApp();
@@ -84,7 +84,7 @@ it("shows environment grouping only inside the Project sort picker and remembers
   fireEvent.click(within(picker).getByRole("radio", { name: "Manual order" }), { detail: 1 });
   expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
   expect(screen.queryByRole("region", { name: "search worktree" })).toBeNull();
-  expect(screen.getAllByRole("link")).toHaveLength(4);
+  expect(rowLinks()).toHaveLength(4);
   fireEvent.keyDown(screen.getByRole("button", { name: "Sort active threads: Manual order" }), { key: "ArrowDown" });
   expect(screen.queryByRole("checkbox", { name: "Group by worktree" })).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: "Project" }), { detail: 1 });
@@ -124,16 +124,8 @@ it("uses environment identity, excludes ordinary checkouts and singletons, and l
   });
   const groups = screen.getAllByRole("region", { name: "same-branch worktree" });
   expect(groups).toHaveLength(2);
-  expect(
-    within(groups[0]!)
-      .getAllByRole("link")
-      .map((link) => link.getAttribute("aria-label")),
-  ).toEqual(["one1", "one2"]);
-  expect(
-    within(groups[1]!)
-      .getAllByRole("link")
-      .map((link) => link.getAttribute("aria-label")),
-  ).toEqual(["two1", "two2"]);
+  expect(rowLinks(groups[0]!).map((link) => link.getAttribute("aria-label"))).toEqual(["one1", "one2"]);
+  expect(rowLinks(groups[1]!).map((link) => link.getAttribute("aria-label"))).toEqual(["two1", "two2"]);
   expect(screen.queryByRole("region", { name: "single worktree" })).toBeNull();
   expect(screen.queryByRole("region", { name: "checkout worktree" })).toBeNull();
   expect(within(screen.getByRole("region", { name: "Pinned" })).queryAllByRole("region")).toHaveLength(0);
@@ -151,13 +143,13 @@ it("keeps an open child's ancestor visible through environment, project, and she
   fireEvent.click(screen.getByRole("button", { name: "search (2)" }));
   expect(screen.queryByRole("link", { name: "Other root" })).toBeNull();
   expect(screen.getByRole("link", { name: "Parent" })).toBeDefined();
-  expect(screen.getByRole("button", { name: "Open child thread: Open child" })).toBeDefined();
+  expect(screen.getByRole("link", { name: "Open child thread: Open child" })).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Sidebar (2)" }));
   expect(screen.queryByRole("button", { name: "search (2)" })).toBeNull();
   expect(screen.getByRole("link", { name: "Parent" })).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Active" }));
   expect(screen.queryByRole("button", { name: "Sidebar (2)" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Open child thread: Open child" })).toBeDefined();
+  expect(screen.getByRole("link", { name: "Open child thread: Open child" })).toBeDefined();
 });
 
 it("keeps a running child's parent visible in a collapsed environment", () => {
@@ -186,9 +178,7 @@ it("reorders threads only within their environment and moves whole environments 
   fireEvent.keyDown(screen.getByRole("button", { name: "search (2)" }), { key: "ArrowDown", altKey: true });
   await waitFor(() => expect(rendered.save).toHaveBeenLastCalledWith({ inboxThreadIds: ["c", "d", "b", "a"] }));
   expect(
-    within(screen.getByRole("region", { name: "search worktree" }))
-      .getAllByRole("link")
-      .map((link) => link.getAttribute("aria-label")),
+    rowLinks(screen.getByRole("region", { name: "search worktree" })).map((link) => link.getAttribute("aria-label")),
   ).toEqual(["Search review", "Search implementation"]);
 });
 
@@ -208,10 +198,7 @@ it.each(["project", "shelf"].flatMap((fold) => ["keyboard", "pointer"].map((gest
     await waitFor(() => expect(rendered.rpcCalls.some((call) => call.method === "listInboxOrder")).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: fold === "project" ? "Sidebar (4)" : "Active" }));
     const active = screen.getByRole("region", { name: "Active" });
-    const visible = () =>
-      within(active)
-        .getAllByRole("link")
-        .map((link) => link.getAttribute("aria-label"));
+    const visible = () => rowLinks(active).map((link) => link.getAttribute("aria-label"));
     expect(visible()).toEqual(["Search implementation", "Menu implementation"]);
     expect(within(active).queryByRole("region", { name: "search worktree" })).toBeNull();
     const row = screen.getByRole("link", { name: "Search implementation" });
@@ -259,10 +246,7 @@ it.each([false, true].flatMap((enabled) => ["keyboard", "pointer"].map((gesture)
     await rendered.pushOrder(rows.map((row) => row.id));
     fireEvent.click(screen.getByRole("button", { name: "Active" }));
     const active = screen.getByRole("region", { name: "Active" });
-    const visible = () =>
-      within(active)
-        .getAllByRole("link")
-        .map((link) => link.getAttribute("aria-label"));
+    const visible = () => rowLinks(active).map((link) => link.getAttribute("aria-label"));
     // Folded rows stay in their projects' slots.
     expect(visible()).toEqual(["A", "C", "X", "Y"]);
     const row = within(active).getByRole("link", { name: "A" });

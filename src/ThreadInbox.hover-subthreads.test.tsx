@@ -39,7 +39,7 @@ it("shows direct subthreads in the hover card and opens them by keyboard or clic
   fireEvent.click(toggle);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
   const list = within(details).getByRole("list", { name: "Subthreads" });
-  const items = within(list).getAllByRole("button");
+  const items = within(list).getAllByRole("link");
   expect(items.map((item) => item.getAttribute("aria-label"))).toEqual([
     "Open subthread: Implementation",
     "Open subthread: Review",
@@ -58,8 +58,8 @@ it("shows direct subthreads in the hover card and opens them by keyboard or clic
   fireEvent.pointerMove(row, { pointerType: "mouse" });
   const reopened = await screen.findByRole("dialog", { name: "Thread details" });
   fireEvent.click(within(reopened).getByRole("button", { name: "Subthreads (2)", expanded: false }));
-  fireEvent.click(within(reopened).getByRole("button", { name: "Open subthread: Review" }));
-  expect(rendered.navigateCalls).toContainEqual({ method: "toThread", threadId: "b" });
+  fireEvent.click(within(reopened).getByRole("link", { name: "Open subthread: Review" }));
+  expect(rendered.linkCalls).toContainEqual({ href: "/projects/proj_1/threads/b", split: false });
   expect(screen.queryByRole("dialog", { name: "Thread details" })).toBeNull();
 });
 // SDK fake pointerdown is a source-binding probe, not a completed drop.
@@ -74,16 +74,18 @@ it("binds hover subthread sources only to their open buttons", async () => {
   fireEvent.pointerDown(toggle, { button: 0 });
   expect([
     ...rendered.navigateCalls,
+    ...rendered.linkCalls,
     ...rendered.sdkCalls,
     ...rendered.splitSourceCalls,
     ...rendered.threadActionCalls,
   ]).toEqual([]);
   fireEvent.click(toggle);
-  const source = within(details).getByRole("button", { name: "Open subthread: Child" });
+  const source = within(details).getByRole("link", { name: "Open subthread: Child" });
   expect(source.draggable).toBe(false);
   fireEvent.pointerDown(source, { button: 0 });
   expect(rendered.splitSourceCalls).toEqual([{ threadId: "child" }]);
   expect(rendered.navigateCalls).toEqual([]);
+  expect(rendered.linkCalls).toEqual([]);
   expect(rendered.sdkCalls).toEqual([]);
   expect(rendered.threadActionCalls).toEqual([]);
 });
@@ -117,7 +119,7 @@ it("binds collapsed-visible sidebar descendants without enabling parent reorder"
     ["child", "Child", "child"],
     ["grandchild", "Grandchild", "grandchild"],
   ]) {
-    const source = screen.getByRole("button", { name: new RegExp(`^Open ${relation} thread: ${title}`) });
+    const source = screen.getByRole("link", { name: new RegExp(`^Open ${relation} thread: ${title}`) });
     expect(source.draggable).toBe(false);
     expect(source.closest("[data-sidebar-thread-shortcut-target]")).toBeNull();
     fireEvent.pointerDown(source, { button: 0, clientX: 20, clientY: 50, pointerId: 1 });
@@ -127,6 +129,7 @@ it("binds collapsed-visible sidebar descendants without enabling parent reorder"
   }
   expect(rendered.splitSourceCalls).toHaveLength(2);
   expect(rendered.navigateCalls).toEqual([]);
+  expect(rendered.linkCalls).toEqual([]);
   expect(rendered.sdkCalls).toEqual([]);
   expect(rendered.threadActionCalls).toEqual([]);
   expect(mutations).toEqual([]);
@@ -161,7 +164,7 @@ it("orders hover card subthreads by the saved child sort", async () => {
     const list = within(details).getByRole("list", { name: "Subthreads" });
     expect(
       within(list)
-        .getAllByRole("button")
+        .getAllByRole("link")
         .map((item) => item.getAttribute("aria-label")),
     ).toEqual(["Open subthread: New", "Open subthread: Old"]);
   });

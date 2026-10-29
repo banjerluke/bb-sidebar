@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderSlot } from "./test-slot";
-import { inbox, thread, listProps, render, loadInboxApp } from "./test-inbox";
+import { inbox, thread, listProps, render, loadInboxApp, rowLinks } from "./test-inbox";
 
 vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 
@@ -127,11 +127,9 @@ describe("ThreadInbox", () => {
         }),
       );
       await waitFor(() =>
-        expect(
-          within(screen.getByRole("region", { name: "Pinned" }))
-            .getAllByRole("link")[0]!
-            .getAttribute("aria-label"),
-        ).toBe("Confirmed B"),
+        expect(rowLinks(screen.getByRole("region", { name: "Pinned" }))[0]!.getAttribute("aria-label")).toBe(
+          "Confirmed B",
+        ),
       );
       const pending = screen.getByRole("link", { name: "Provisional pin" });
       expect(pending.getAttribute("aria-keyshortcuts")).toBeNull();

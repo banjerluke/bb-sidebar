@@ -25,9 +25,9 @@ test("parent child-thread chip expands and collapses its children", async ({ pag
   await expect(chip).toHaveAttribute("aria-expanded", "true");
   const childList = row.getByRole("list", { name: "Child threads", exact: true });
   await expect(childList).toBeVisible();
-  await expect(childList.getByRole("button")).toHaveCount(2);
+  await expect(childList.getByRole("link")).toHaveCount(2);
   for (const { title } of children)
-    await expect(childList.getByRole("button", { name: new RegExp(title) })).toBeVisible();
+    await expect(childList.getByRole("link", { name: new RegExp(title) })).toBeVisible();
   await chip.click();
   await expect(chip).toHaveAttribute("aria-expanded", "false");
   await expect(childList).toBeHidden();
@@ -50,5 +50,5 @@ test("parent child-thread chip expands and collapses its children", async ({ pag
   await expect(settledChip).toHaveAttribute("aria-expanded", "true");
   const settledChildren = settledRow.getByRole("list", { name: "Child threads", exact: true });
   for (const { title } of children)
-    await expect(settledChildren.getByRole("button", { name: new RegExp(title) })).toBeVisible();
+    await expect(settledChildren.getByRole("link", { name: new RegExp(title) })).toBeVisible();
 });
