@@ -16,7 +16,7 @@ export function ThreadLocation({ thread }: { thread: PluginSidebarThread }) {
           aria-label={isWorktree ? "Worktree branch" : "Branch"}
           className="size-3 shrink-0 text-muted-foreground/60"
         />
-        <span className="truncate font-mono">{branchName}</span>
+        <span className="truncate text-muted-foreground/70">{branchName}</span>
       </span>
     );
   }

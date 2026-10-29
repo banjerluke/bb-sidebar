@@ -21,6 +21,7 @@
 - Project grouping gives every project a header, including projects with one Active thread.
 - The clock and check on a hovered thread are now one split button. Click the check to settle, as before. The three-dots button beside it opens the snooze presets, Pick date & time…, Park thread, and Archive, which was only in the context menu until now.
 - Scheduled threads, such as ones spawned with `--send-at`, wait on the Snoozed shelf with a countdown to their send time instead of sitting in Active.
+- Branch names on thread rows are dimmer and no longer monospace.
 
 ## [0.3.7] - 2026-10-23
 
