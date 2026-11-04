@@ -10,7 +10,6 @@ import { useThreadLimit } from "./RateLimits";
 import { threadDisplayTitle } from "./inbox";
 import { snoozeWakeLabel } from "./lifecycle";
 import { useProjectColor } from "./ProjectColors";
-import { OpenPortsIndicator } from "./OpenPorts";
 import { ShortcutHint } from "./bb-sdk";
 import { rowKeyshortcuts } from "./lib/keyshortcuts";
 import { useInboxActivity, useInboxEnvironment, useInboxActions } from "./InboxContext";
@@ -99,7 +98,6 @@ export const SlimRow = memo(function SlimRow({
           onOpen={onNavigate}
           trailing={
             <>
-              <OpenPortsIndicator thread={thread} />
               {childThreads.length > 0 ? (
                 // Positioned, so the chip sits above the row's full-bleed link.
                 <span className="pointer-events-none relative flex shrink-0 items-center">

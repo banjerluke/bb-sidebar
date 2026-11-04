@@ -83,7 +83,7 @@ export function OpenPortsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function useThreadPorts(thread: PluginSidebarThread) {
+export function useThreadPorts(thread: PluginSidebarThread) {
   const byEnvironment = useContext(OpenPortsContext);
   return thread.environment?.id ? byEnvironment.get(thread.environment.id) : undefined;
 }
@@ -230,19 +230,5 @@ function StopPortButton({ threadId, port, pid }: { threadId: string; port: numbe
       />
       {confirming ? "Stop" : null}
     </button>
-  );
-}
-
-export function OpenPortsIndicator({ thread }: { thread: PluginSidebarThread }) {
-  const ports = useThreadPorts(thread);
-  if (!ports?.some((port) => port.ownerThreadId === thread.id)) return null;
-  return (
-    <span
-      role="img"
-      aria-label="Open ports started by this thread"
-      className="pointer-events-none relative flex shrink-0 items-center text-muted-foreground/60"
-    >
-      <Icon name="Plug" aria-hidden className="size-3" />
-    </span>
   );
 }

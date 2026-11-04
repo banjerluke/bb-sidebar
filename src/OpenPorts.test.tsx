@@ -5,7 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 const mocks = vi.hoisted(() => ({ rpc: { call: vi.fn() } }));
 vi.mock("@get-bb/plugin-sdk/app", () => ({ useRpc: () => mocks.rpc, UrlLink: "a" }));
-import { OpenPortsProvider, OpenPortsIndicator } from "./OpenPorts";
+import { OpenPortsProvider, useThreadPorts } from "./OpenPorts";
+// Draws a marker while the thread owns a port, so a test can watch ownership arrive.
+function OwnedPorts({ thread }: { thread: PluginSidebarThread }) {
+  const ports = useThreadPorts(thread);
+  return ports?.some((port) => port.ownerThreadId === thread.id) ? (
+    <span role="img" aria-label="Open ports started by this thread" />
+  ) : null;
+}
 const thread = { id: "thr_a", environment: { id: "env_a" } } as PluginSidebarThread;
 const snapshot = (ownerThreadId = "thr_a") => ({
   groups: [{ environmentId: "env_a", ports: [{ port: 3000, ownerThreadId }] }],
@@ -28,7 +35,7 @@ async function show() {
     render(
       <OpenPortsProvider>
         <Profiler id="indicator" onRender={commits}>
-          <OpenPortsIndicator thread={thread} />
+          <OwnedPorts thread={thread} />
         </Profiler>
       </OpenPortsProvider>,
     );

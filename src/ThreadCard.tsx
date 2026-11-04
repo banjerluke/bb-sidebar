@@ -21,7 +21,6 @@ import { InlineThreadTitle } from "./InlineThreadTitle";
 import { isWorkingTree } from "./working-tree";
 import { ProjectFavicon, ProjectStripe } from "./ProjectFavicon";
 import { useProjectColor } from "./ProjectColors";
-import { OpenPortsIndicator } from "./OpenPorts";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { projectIconUrl as iconUrl } from "./project-icons";
@@ -267,7 +266,6 @@ export function ThreadCard({
               fadeContent
               trailing={
                 <span className="pointer-events-none relative flex shrink-0 items-center gap-1.5">
-                  <OpenPortsIndicator thread={thread} />
                   {childThreads.length > 0 ? (
                     <ChildThreadBadge
                       threads={childThreads}
@@ -310,12 +308,7 @@ export function ThreadCard({
               )}
             >
               {isSettling ? <span aria-hidden="true" className="bb-sidebar-settle-sweep" /> : null}
-              <ProjectStripe
-                projectId={thread.projectId}
-                view={stripeView}
-                unread={thread.isUnread}
-                inGroup={!showProject}
-              />
+              {showProject && projectName ? <ProjectStripe projectId={thread.projectId} view={stripeView} /> : null}
               <ThreadDetailsTooltip thread={thread} disabled={isRenaming || !!reorder?.isDragging}>
                 <a
                   // Both attributes, or bb's nine thread shortcuts stop finding rows.
@@ -433,7 +426,6 @@ export function ThreadCard({
                 }}
                 trailing={
                   <>
-                    <OpenPortsIndicator thread={thread} />
                     {childThreads.length > 0 ? (
                       <ChildThreadBadge
                         threads={childThreads}
