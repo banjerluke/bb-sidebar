@@ -16,10 +16,10 @@ const SECTIONS = [section("later", "Later"), section("ideas", "Ideas"), section(
 
 function setup({
   rows = [
-    thread({ id: "a", title: "Loose A", updatedAt: 1 }),
-    thread({ id: "b", title: "Later B", sectionId: "later", updatedAt: 3 }),
+    thread({ id: "a", title: "Loose A", latestAttentionAt: 101 }),
+    thread({ id: "b", title: "Later B", sectionId: "later", latestAttentionAt: 103 }),
     thread({ id: "c", title: "Review C", sectionId: "review" }),
-    thread({ id: "d", title: "Later D", sectionId: "later", updatedAt: 5 }),
+    thread({ id: "d", title: "Later D", sectionId: "later", latestAttentionAt: 105 }),
     thread({ id: "p", title: "Pinned idea", sectionId: "ideas", isPinned: true }),
   ],
   order = "manual",

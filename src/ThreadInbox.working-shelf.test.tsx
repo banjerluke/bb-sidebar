@@ -185,7 +185,7 @@ describe("parking threads", () => {
           thread({
             id: "thr_idle",
             title: "Idle work",
-            updatedAt: Date.now() - 2 * 60_000,
+            latestAttentionAt: Date.now() - 2 * 60_000,
           }),
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],

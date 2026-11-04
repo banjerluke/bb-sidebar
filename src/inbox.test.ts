@@ -249,19 +249,19 @@ describe("child threads", () => {
         id: "a",
         parentThreadId: "parent",
         createdAt: 10,
-        updatedAt: 30,
+        latestAttentionAt: 30,
       }),
       thread({
         id: "b",
         parentThreadId: "parent",
         createdAt: 20,
-        updatedAt: 25,
+        latestAttentionAt: 25,
       }),
       thread({
         id: "c",
         parentThreadId: "parent",
         createdAt: 30,
-        updatedAt: 40,
+        latestAttentionAt: 40,
       }),
     ];
 

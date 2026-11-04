@@ -188,7 +188,7 @@ describe("ThreadInbox", () => {
         id: "idle",
         title: "Idle child",
         parentThreadId: "parent",
-        updatedAt: minute - 31 * 60_000,
+        latestAttentionAt: minute - 31 * 60_000,
       }),
     ]);
 
@@ -269,7 +269,7 @@ describe("ThreadInbox", () => {
         parentThreadId: "parent",
         indicator: "something-bb-ships-later" as never,
         indicatorLabel: "Doing something new",
-        updatedAt: minute - 4 * 60_000,
+        latestAttentionAt: minute - 4 * 60_000,
       }),
       thread({
         id: "grandchild",
@@ -277,7 +277,7 @@ describe("ThreadInbox", () => {
         parentThreadId: "child",
         indicator: "another-thing-bb-ships-later" as never,
         indicatorLabel: "Also new",
-        updatedAt: minute - 7 * 60_000,
+        latestAttentionAt: minute - 7 * 60_000,
       }),
     ]);
 

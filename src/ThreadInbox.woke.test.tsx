@@ -38,7 +38,7 @@ describe("parking threads", () => {
       thread({
         id: "idle",
         title: "Idle wake",
-        updatedAt: now - 31 * 60_000,
+        latestAttentionAt: now - 31 * 60_000,
       }),
     ];
     let lifecycleRows = threads.map((candidate) => ({
@@ -127,7 +127,7 @@ describe("parking threads", () => {
               title: "Woke work",
               indicator: "unread-error",
               indicatorLabel: "Unread thread failed",
-              updatedAt: now,
+              latestAttentionAt: now,
             }),
           ],
           projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],

@@ -1,6 +1,6 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import type { OrderUnit } from "./pinned-order";
-import { visibleInboxThreads } from "./inbox";
+import { lastActivityAt, visibleInboxThreads } from "./inbox";
 
 export const ACTIVE_GROUPINGS = ["none", "project", "section"] as const;
 export type ActiveGrouping = (typeof ACTIVE_GROUPINGS)[number];
@@ -118,10 +118,12 @@ export function sameOrder(left: readonly string[], right: readonly string[]): bo
 
 export function sortActiveThreads(threads: readonly PluginSidebarThread[], order: ActiveOrder): PluginSidebarThread[] {
   if (order === "manual") return [...threads];
-  const primaryKey = order === "activity" ? "updatedAt" : "createdAt";
+  const primary = order === "activity" ? lastActivityAt : (thread: PluginSidebarThread) => thread.createdAt;
   return [...threads].sort(
     (left, right) =>
-      right[primaryKey] - left[primaryKey] || right.updatedAt - left.updatedAt || right.createdAt - left.createdAt,
+      primary(right) - primary(left) ||
+      lastActivityAt(right) - lastActivityAt(left) ||
+      right.createdAt - left.createdAt,
   );
 }
 

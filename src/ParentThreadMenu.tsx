@@ -5,7 +5,7 @@ import { useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "./lib/toast";
 import type { bbSidebarRpcContract } from "./contract";
 import { Icon } from "./components/Icon";
-import { threadDisplayTitle } from "./inbox";
+import { lastActivityAt, threadDisplayTitle } from "./inbox";
 import { usePortalScopeProps } from "./lib/portal-scope";
 import { parentCandidates } from "./parent-threads";
 
@@ -39,14 +39,14 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
         threadTitle,
         isPinned: candidate.isPinned,
         isOtherProject,
-        updatedAt: candidate.updatedAt,
+        activityAt: lastActivityAt(candidate),
       };
     })
     .filter((candidate) => candidate.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
     .sort(
       (left, right) =>
         Number(left.isOtherProject) - Number(right.isOtherProject) ||
-        right.updatedAt - left.updatedAt ||
+        right.activityAt - left.activityAt ||
         left.id.localeCompare(right.id),
     );
   const choices = [{ id: "", title: "None", projectName: null, threadTitle: "None", isPinned: false }, ...candidates];

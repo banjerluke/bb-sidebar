@@ -24,8 +24,8 @@ describe("ThreadInbox", () => {
             sidebarThreads: {
               status: "ready",
               threads: [
-                thread({ id: "a", projectId: "web", title: "Attention root", updatedAt: Date.now() }),
-                thread({ id: "b", projectId: "web", title: "Active root", updatedAt: Date.now() }),
+                thread({ id: "a", projectId: "web", title: "Attention root", latestAttentionAt: Date.now() }),
+                thread({ id: "b", projectId: "web", title: "Active root", latestAttentionAt: Date.now() }),
                 thread({ id: "child", projectId: "web", parentThreadId: "a", title: "Child" }),
                 thread({ id: "grandchild", projectId: "web", parentThreadId: "child", title: "Grandchild" }),
                 thread({
@@ -70,8 +70,10 @@ describe("ThreadInbox", () => {
         sidebarThreads: {
           status: "ready",
           threads: [
-            ...["a", "b", "c"].map((id) => thread({ id, projectId: "web", title: `Web ${id}`, updatedAt: Date.now() })),
-            thread({ id: "x", projectId: "api", title: "Hidden other project", updatedAt: Date.now() }),
+            ...["a", "b", "c"].map((id) =>
+              thread({ id, projectId: "web", title: `Web ${id}`, latestAttentionAt: Date.now() }),
+            ),
+            thread({ id: "x", projectId: "api", title: "Hidden other project", latestAttentionAt: Date.now() }),
             thread({ id: "a1", projectId: "web", parentThreadId: "a", title: "Child a" }),
             thread({ id: "a2", projectId: "web", parentThreadId: "a1", title: "Grandchild a" }),
             thread({ id: "a3", projectId: "web", parentThreadId: "a2", title: "Deep failed", queuedWork: "failed" }),
@@ -138,7 +140,9 @@ describe("ThreadInbox", () => {
             status: "ready",
             projects: [{ id: "web", name: "Web", isPersonal: false, href: "", settingsHref: "" }],
             threads: [
-              ...["a", "hidden", "b"].map((id) => thread({ id, title: id, projectId: "web", updatedAt: Date.now() })),
+              ...["a", "hidden", "b"].map((id) =>
+                thread({ id, title: id, projectId: "web", latestAttentionAt: Date.now() }),
+              ),
               thread({ id: "ca", title: "ca", projectId: "web", parentThreadId: "a", hasPendingInteraction: true }),
               thread({ id: "cb", title: "cb", projectId: "web", parentThreadId: "b", hasPendingInteraction: true }),
             ],
@@ -180,7 +184,7 @@ describe("ThreadInbox", () => {
           projects: [{ id: "web", name: "Web", isPersonal: false, href: "", settingsHref: "" }],
           threads: [
             ...["a", "hidden", "b", "z"].map((id) =>
-              thread({ id, title: id, projectId: "web", updatedAt: Date.now() }),
+              thread({ id, title: id, projectId: "web", latestAttentionAt: Date.now() }),
             ),
             thread({ id: "ca", title: "ca", projectId: "web", parentThreadId: "a", hasPendingInteraction: true }),
             thread({ id: "cb", title: "cb", projectId: "web", parentThreadId: "b", hasPendingInteraction: true }),
@@ -218,7 +222,7 @@ describe("ThreadInbox", () => {
       window.localStorage.setItem("bb-sidebar:active-sort:v1", "project");
       window.localStorage.setItem("bb-sidebar:shelf-expansion:v1", JSON.stringify({ active: false }));
       const rows = [
-        ...["a", "hidden", "b"].map((id) => thread({ id, title: id, projectId: "web", updatedAt: Date.now() })),
+        ...["a", "hidden", "b"].map((id) => thread({ id, title: id, projectId: "web", latestAttentionAt: Date.now() })),
         thread({ id: "ca", title: "ca", projectId: "web", parentThreadId: "a", hasPendingInteraction: true }),
         thread({ id: "cb", title: "cb", projectId: "web", parentThreadId: "b", hasPendingInteraction: true }),
       ];
@@ -272,10 +276,10 @@ describe("ThreadInbox", () => {
       });
       let lifecycleRows: Array<ReturnType<typeof settledRow>> = [];
       const rows = [
-        thread({ id: "w1", projectId: "web", title: "Web one", updatedAt: Date.now() }),
-        thread({ id: "x", projectId: "api", title: "Loose X", updatedAt: Date.now() }),
-        thread({ id: "y", projectId: "zed", title: "Loose Y", updatedAt: Date.now() }),
-        thread({ id: "w2", projectId: "web", title: "Web two", updatedAt: Date.now() }),
+        thread({ id: "w1", projectId: "web", title: "Web one", latestAttentionAt: Date.now() }),
+        thread({ id: "x", projectId: "api", title: "Loose X", latestAttentionAt: Date.now() }),
+        thread({ id: "y", projectId: "zed", title: "Loose Y", latestAttentionAt: Date.now() }),
+        thread({ id: "w2", projectId: "web", title: "Web two", latestAttentionAt: Date.now() }),
       ];
       const rendered = renderSlot(inbox, listProps, {
         sidebarThreads: {
@@ -321,7 +325,9 @@ describe("ThreadInbox", () => {
       await waitFor(() => expect(layout()).toEqual(["Web (2)", "Web one", "Web two", ...loose]));
 
       // A project new to the view starts at the top.
-      rows.push(thread({ id: "n1", projectId: "new", title: "New one", createdAt: Date.now(), updatedAt: Date.now() }));
+      rows.push(
+        thread({ id: "n1", projectId: "new", title: "New one", createdAt: Date.now(), latestAttentionAt: Date.now() }),
+      );
       await rendered.behavior.emitRealtime("lifecycle", {});
       await waitFor(() => expect(layout()).toEqual(["New (1)", "New one", "Web (2)", "Web one", "Web two", ...loose]));
       await waitFor(() => expect(savedProjectOrder()).toEqual(["new", "web", "api", "zed"]));
@@ -365,9 +371,9 @@ describe("ThreadInbox", () => {
         sidebarThreads: {
           status: "ready",
           threads: [
-            thread({ id: "w1", projectId: "web", title: "Web one", updatedAt: 1 }),
-            thread({ id: "y", projectId: "zed", title: "Loose Y", updatedAt: 3 }),
-            thread({ id: "w2", projectId: "web", title: "Web two", updatedAt: 2 }),
+            thread({ id: "w1", projectId: "web", title: "Web one", latestAttentionAt: 101 }),
+            thread({ id: "y", projectId: "zed", title: "Loose Y", latestAttentionAt: 103 }),
+            thread({ id: "w2", projectId: "web", title: "Web two", latestAttentionAt: 102 }),
           ],
           projects: ["web", "zed"].map((id) => ({ id, name: id, isPersonal: false, href: "", settingsHref: "" })),
         },

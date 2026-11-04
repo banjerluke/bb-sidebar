@@ -127,16 +127,20 @@ describe("mergeProjectOrder", () => {
 });
 describe("sortActiveThreads", () => {
   const rows = [
-    thread({ id: "a", createdAt: 3, updatedAt: 1 }),
-    thread({ id: "b", createdAt: 2, updatedAt: 4 }),
-    thread({ id: "c", createdAt: 1, updatedAt: 4 }),
+    thread({ id: "a", createdAt: 3, latestAttentionAt: 3 }),
+    thread({ id: "b", createdAt: 2, latestAttentionAt: 4 }),
+    thread({ id: "c", createdAt: 1, latestAttentionAt: 4 }),
   ];
   it("sorts activity ties by creation time without mutating the input", () => {
     expect(sortActiveThreads(rows, "activity").map((row) => row.id)).toEqual(["b", "c", "a"]);
     expect(rows.map((row) => row.id)).toEqual(["a", "b", "c"]);
   });
+  it("keeps a thread in place when reading it bumps only updatedAt", () => {
+    const read = rows.map((row) => (row.id === "a" ? { ...row, updatedAt: 99, lastReadAt: 99 } : row));
+    expect(sortActiveThreads(read, "activity").map((row) => row.id)).toEqual(["b", "c", "a"]);
+  });
   it("sorts creation ties by activity", () => {
-    const tied = [...rows, thread({ id: "d", createdAt: 3, updatedAt: 5 })];
+    const tied = [...rows, thread({ id: "d", createdAt: 3, latestAttentionAt: 5 })];
     expect(sortActiveThreads(tied, "created").map((row) => row.id)).toEqual(["d", "a", "b", "c"]);
   });
   it("copies manual order unchanged", () => {

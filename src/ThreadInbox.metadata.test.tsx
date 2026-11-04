@@ -218,7 +218,7 @@ describe("card metadata", () => {
   // Not exactly 3h: the card's clock is quantized to the minute, so a
   // timestamp sitting on a bucket boundary legitimately reads one unit lower.
   it("shows how long ago the thread was touched", async () => {
-    render([thread({ id: "thr_t", updatedAt: Date.now() - (3 * 3_600_000 + 60_000) })]);
+    render([thread({ id: "thr_t", latestAttentionAt: Date.now() - (3 * 3_600_000 + 60_000) })]);
     expect(await screen.findByText("3h")).toBeDefined();
   });
 
@@ -230,7 +230,7 @@ describe("card metadata", () => {
         id: "thr_run",
         indicator: "runtime",
         indicatorLabel: "Agent is working",
-        updatedAt: Date.now() - (3 * 3_600_000 + 60_000),
+        latestAttentionAt: Date.now() - (3 * 3_600_000 + 60_000),
       }),
     ]);
     expect(await screen.findByLabelText("Agent is working")).toBeDefined();
@@ -332,7 +332,7 @@ describe("card metadata", () => {
       thread({
         id: "thr_new",
         indicator: "something-bb-ships-later" as never,
-        updatedAt: Date.now() - (3 * 3_600_000 + 60_000),
+        latestAttentionAt: Date.now() - (3 * 3_600_000 + 60_000),
       }),
     ]);
     expect(await screen.findByText("3h")).toBeDefined();
@@ -353,7 +353,7 @@ describe("card metadata", () => {
             indicator: "unread-success",
             indicatorLabel: "Unread thread succeeded",
           }),
-          thread({ id: "thr_clean", title: "No draft", updatedAt: Date.now() - (3 * 3_600_000 + 60_000) }),
+          thread({ id: "thr_clean", title: "No draft", latestAttentionAt: Date.now() - (3 * 3_600_000 + 60_000) }),
         ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },

@@ -115,7 +115,7 @@ describe("row context menu", () => {
                 thread({ id: "current", title: "Current", createdAt: 50, updatedAt: 50 }),
                 thread({ id: "manual", title: "Manual first", createdAt: 20, updatedAt: 20 }),
                 thread({ id: "created", title: "Newest first", createdAt: 100, updatedAt: 100 }),
-                thread({ id: "activity", title: "Recent first", createdAt: 10, updatedAt: 200 }),
+                thread({ id: "activity", title: "Recent first", createdAt: 10, latestAttentionAt: 200 }),
                 thread({ id: "project", title: "Alpha first", projectId: "alpha", createdAt: 5 }),
               ],
               projects: [

@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { Disc } from "./Disc";
+import { lastActivityAt } from "./inbox";
 import { ProviderGlyph, type SidebarProvider } from "./ProviderGlyph";
 import {
   childThreadSortOf,
@@ -45,10 +46,10 @@ export function useChildThreadDisplayValue(
 export function compareChildThreads(
   sort: ChildThreadSort,
 ): (left: PluginSidebarThread, right: PluginSidebarThread) => number {
-  const key = sort.field === "activity" ? "updatedAt" : "createdAt";
+  const key = sort.field === "activity" ? lastActivityAt : (thread: PluginSidebarThread) => thread.createdAt;
   const sign = sort.direction === "descending" ? -1 : 1;
   return (left, right) =>
-    sign * (left[key] - right[key] || left.createdAt - right.createdAt || left.id.localeCompare(right.id));
+    sign * (key(left) - key(right) || left.createdAt - right.createdAt || left.id.localeCompare(right.id));
 }
 
 /**

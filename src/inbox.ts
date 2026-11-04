@@ -1,5 +1,15 @@
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 
+/**
+ * When the thread last did something: its creation, or the newest attention
+ * bb recorded for it. Never `updatedAt`, which bb also bumps when you read a
+ * thread, rename it, or move it, so a thread you just opened would jump to
+ * the top of an activity sort and show "now".
+ */
+export function lastActivityAt(thread: { readonly createdAt: number; readonly latestAttentionAt: number }): number {
+  return Math.max(thread.createdAt, thread.latestAttentionAt);
+}
+
 export function reconcileProjectScope(scope: string[], projects: readonly { id: string }[]): string[] {
   const available = new Set(projects.map((project) => project.id));
   const remaining = scope.filter((id) => available.has(id));
@@ -24,13 +34,13 @@ export function sortByCreatedAtDescending<T extends { readonly id: string; reado
 export function sortSettledThreads<
   T extends {
     readonly id: string;
+    readonly createdAt: number;
     readonly latestAttentionAt: number;
-    readonly updatedAt: number;
   },
 >(threads: readonly T[], settledAtFor: (thread: T) => number | null): T[] {
   return [...threads].sort((left, right) => {
-    const leftAt = settledAtFor(left) ?? Math.max(left.latestAttentionAt, left.updatedAt);
-    const rightAt = settledAtFor(right) ?? Math.max(right.latestAttentionAt, right.updatedAt);
+    const leftAt = settledAtFor(left) ?? lastActivityAt(left);
+    const rightAt = settledAtFor(right) ?? lastActivityAt(right);
     return rightAt - leftAt || left.id.localeCompare(right.id);
   });
 }

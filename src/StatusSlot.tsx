@@ -9,6 +9,7 @@ import { ThreadStatusGlyph } from "./bb-sdk";
 import { useMemo } from "react";
 import { isWorkingIndicator } from "./child-status";
 import { cn } from "./lib/utils";
+import { lastActivityAt } from "./inbox";
 import { relativeTimeLabel } from "./relative-time";
 import { useWorkingSinceContext } from "./useWorkingSince";
 import { statusWithDuration } from "./working-since";
@@ -62,7 +63,9 @@ export function StatusOrTime({
     return (
       <span className="flex items-center gap-1">
         <ThreadStatusGlyph indicator="none" rowStatus={rowStatus} size="compact" />
-        <span className="tabular-nums text-2xs text-muted-foreground">{relativeTimeLabel(thread.updatedAt, now)}</span>
+        <span className="tabular-nums text-2xs text-muted-foreground">
+          {relativeTimeLabel(lastActivityAt(thread), now)}
+        </span>
       </span>
     );
   }
@@ -83,7 +86,9 @@ export function StatusOrTime({
     );
   }
   return (
-    <span className="tabular-nums text-2xs text-muted-foreground">{relativeTimeLabel(thread.updatedAt, now)}</span>
+    <span className="tabular-nums text-2xs text-muted-foreground">
+      {relativeTimeLabel(lastActivityAt(thread), now)}
+    </span>
   );
 }
 
