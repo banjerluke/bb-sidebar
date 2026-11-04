@@ -54,4 +54,12 @@ describe("thread notes", () => {
     await harness.behavior.runCli(["note", "--clear"], { threadId: "thr_1" });
     expect(await notes()).toEqual({});
   });
+
+  it("sets the automatic line from the CLI, which the next finished turn replaces", async () => {
+    const { harness, notes, finishTurn } = await setup();
+    await harness.behavior.runCli(["note", "--auto", "Backfilled summary"], { threadId: "thr_1" });
+    expect(await notes()).toEqual({ thr_1: { text: "Backfilled summary", by: "auto" } });
+    await finishTurn("Fresh last line.");
+    expect(await notes()).toEqual({ thr_1: { text: "Fresh last line.", by: "auto" } });
+  });
 });

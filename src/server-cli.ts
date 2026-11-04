@@ -75,7 +75,7 @@ export function createServerCli(
   lifecycle: ReturnType<typeof createServerLifecycle>,
   handlers: CliHandlers,
   settleRequests: Pick<ReturnType<typeof createServerSettleRequests>, "request" | "list">,
-  notes: Pick<ReturnType<typeof createServerThreadNotes>, "setAgentNote">,
+  notes: Pick<ReturnType<typeof createServerThreadNotes>, "setAgentNote" | "setAutoNote">,
 ) {
   const { loadPolicyThreads, readOne, threadSignals } = lifecycle;
 
@@ -196,7 +196,14 @@ export function createServerCli(
       note: cliCommand({
         summary: "Say what the thread is doing or waiting on, under its title, until the user next messages it",
         positionals: [{ name: "text", description: 'One short line, e.g. "Waiting for CI on #57"' }],
-        options: { ...threadOption, clear: { type: "boolean", description: "Remove the note" } },
+        options: {
+          ...threadOption,
+          clear: { type: "boolean", description: "Remove the note" },
+          auto: {
+            type: "boolean",
+            description: "Set the unflagged automatic line instead, which the thread's next finished turn replaces",
+          },
+        },
         run: ({ positionals, options }, ctx) => {
           const threadId = targetThread(options.thread, ctx);
           const text = options.clear ? null : normalizeAgentNote(positionals.text ?? "");
@@ -207,7 +214,8 @@ export function createServerCli(
             });
           }
           return act(async () => {
-            notes.setAgentNote(threadId, text);
+            if (options.auto) notes.setAutoNote(threadId, text);
+            else notes.setAgentNote(threadId, text);
             return text === null ? `cleared the note on ${threadId}` : `noted on ${threadId}: ${text}`;
           });
         },
