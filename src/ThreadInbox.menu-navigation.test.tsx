@@ -20,22 +20,6 @@ vi.mock("sonner", async () => (await import("./test-inbox")).sonnerMock());
 await loadInboxApp();
 
 describe("row context menu", () => {
-  it("navigates when the host omits split for a compact or focused thread", async () => {
-    const rendered = renderSlot(inbox, listProps, {
-      sidebarThreads: {
-        status: "ready",
-        threads: [thread({ id: "compact", title: "Compact thread" })],
-        projects: [],
-      },
-      threadActions: () => [],
-    });
-    fireEvent.contextMenu(await screen.findByText("Compact thread"));
-    fireEvent.click(within(await screen.findByRole("menu", { name: "Thread actions" })).getByText("Open in split"));
-    expect(rendered.navigateCalls).toEqual([{ method: "toThread", threadId: "compact", options: { split: true } }]);
-    expect(rendered.threadActionCalls).toEqual([]);
-    expect(rendered.sdkCalls).toEqual([]);
-  });
-
   it("offers the plugin's own thread actions on right-click", async () => {
     render([thread({ id: "thr_menu", title: "Right click me" })]);
     const row = await screen.findByText("Right click me");
@@ -48,22 +32,21 @@ describe("row context menu", () => {
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
     ).toEqual([
-      "Open in split",
-      "Parent",
-      "Move to section",
-      "Project",
+      "Copy",
       "Pin",
+      "Mark unread",
+      "Rename",
+      "Regenerate title",
+      "Move to section",
       "Snooze",
       "Park thread",
       "Settle",
-      "Rename",
-      "Regenerate title",
-      "Mark unread",
-      "Copy",
+      "Parent",
+      "Project",
       "Archive",
       "Delete",
     ]);
-    expect(within(menu).getAllByRole("separator")).toHaveLength(4);
+    expect(within(menu).getAllByRole("separator")).toHaveLength(5);
   });
 
   it("reminds the user what settling released and what it left running", async () => {

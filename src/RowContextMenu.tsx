@@ -1,7 +1,7 @@
 import { useThreadActions, useSidebarThreads } from "./bb-sdk";
 import { useRef, useState, type ReactNode } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import { useBbNavigate, useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import { useRpc, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { toast } from "./lib/toast";
 import type { bbSidebarRpcContract } from "./contract";
 import { ParentThreadMenu } from "./ParentThreadMenu";
@@ -61,17 +61,11 @@ function RowMenuContents({
   onRename,
 }: Omit<RowContextMenuProps, "children">) {
   const actions = useThreadActions(thread, {
-    keys: ["bb--core/split", "bb--core/pin", "bb--core/read", "bb--core/rename"],
+    keys: ["bb--core/pin", "bb--core/read", "bb--core/rename"],
     requestRename: () => onRename?.(),
   });
-  const navigate = useBbNavigate();
-  // bb 0.46 always supplies pin/read/rename for sidebar rows. Split is
-  // omitted in compact mode and for the focused pane; navigation handles both.
-  const run = (key: string) => {
-    const entry = actions.find((entry) => entry.key === `bb--core/${key}`);
-    if (!entry && key === "split") return navigate.toThread(thread.id, { split: true });
-    return entry?.action.run();
-  };
+  // bb 0.46 always supplies pin/read/rename for sidebar rows.
+  const run = (key: string) => actions.find((entry) => entry.key === `bb--core/${key}`)?.action.run();
   const { projects, threads } = useSidebarThreads();
   const project = projects.find((project) => project.id === thread.projectId);
   // A child follows its parent's section; it files alone only once the parent is gone.
@@ -101,9 +95,7 @@ function RowMenuContents({
       finishTitleGeneration(thread.id);
     }
   };
-  const hasPinLifecycleItems = !!(
-    thread.isPinned ||
-    thread.parentThreadId == null ||
+  const hasLifecycleItems = !!(
     onPark ||
     onResume ||
     onSettle ||
@@ -146,42 +138,32 @@ function RowMenuContents({
               }}
               className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
             >
-              <Item icon="Split" onSelect={() => void run("split")}>
-                Open in split
-              </Item>
-              <ParentThreadMenu thread={thread} />
-              {notifiesParent(thread) ? (
-                <ParentNotificationsMenu thread={thread} pendingSave={pendingNotificationSave} />
-              ) : null}
-              {canMoveToSection ? <SectionMenu thread={thread} /> : null}
-              {projectItems ? (
-                <ContextMenu.Sub onOpenChange={onOpenChange}>
-                  <ContextMenu.SubTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
-                    <Icon name="FolderGit" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    Project
-                    <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
-                  </ContextMenu.SubTrigger>
-                  <ContextMenu.Portal>
-                    <ContextMenu.SubContent
-                      {...portalScope}
-                      aria-label="Project actions"
-                      sideOffset={4}
-                      className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
-                    >
-                      <ContextMenu.Label className="max-w-64 truncate px-2 py-1 text-xs text-muted-foreground">
-                        {project?.name}
-                      </ContextMenu.Label>
-                      {projectItems}
-                    </ContextMenu.SubContent>
-                  </ContextMenu.Portal>
-                </ContextMenu.Sub>
-              ) : null}
-              {hasPinLifecycleItems ? <Separator /> : null}
+              <CopySubmenu thread={thread} />
+              <Separator />
               {thread.isPinned || thread.parentThreadId == null ? (
                 <Item icon={thread.isPinned ? "PinOff" : "Pin"} onSelect={() => void togglePin()}>
                   {thread.isPinned ? "Unpin" : "Pin"}
                 </Item>
               ) : null}
+              <Item icon={thread.isUnread ? "MailOpen" : "Mail"} onSelect={() => void run("read")}>
+                {thread.isUnread ? "Mark read" : "Mark unread"}
+              </Item>
+              <Separator />
+              {onRename ? (
+                <Item
+                  icon="Edit"
+                  onSelect={() => {
+                    renameAfterClose.current = true;
+                  }}
+                >
+                  Rename
+                </Item>
+              ) : null}
+              <Item icon="Sparkles" disabled={regenerating} onSelect={() => void regenerate()}>
+                {regenerating ? "Regenerating title…" : "Regenerate title"}
+              </Item>
+              {canMoveToSection ? <SectionMenu thread={thread} /> : null}
+              {hasLifecycleItems ? <Separator /> : null}
               {canSnooze && onSnooze && snoozePresets.length > 0 ? (
                 <SnoozeSubmenu presets={snoozePresets} onSnooze={onSnooze} onPick={() => setPickingSnooze(true)} />
               ) : null}
@@ -211,24 +193,32 @@ function RowMenuContents({
                 </Item>
               ) : null}
               <Separator />
-              {onRename ? (
-                <Item
-                  icon="Edit"
-                  onSelect={() => {
-                    renameAfterClose.current = true;
-                  }}
-                >
-                  Rename
-                </Item>
+              <ParentThreadMenu thread={thread} />
+              {notifiesParent(thread) ? (
+                <ParentNotificationsMenu thread={thread} pendingSave={pendingNotificationSave} />
               ) : null}
-              <Item icon="Sparkles" disabled={regenerating} onSelect={() => void regenerate()}>
-                {regenerating ? "Regenerating title…" : "Regenerate title"}
-              </Item>
-              <Item icon={thread.isUnread ? "MailOpen" : "Mail"} onSelect={() => void run("read")}>
-                {thread.isUnread ? "Mark read" : "Mark unread"}
-              </Item>
-              <Separator />
-              <CopySubmenu thread={thread} />
+              {projectItems ? (
+                <ContextMenu.Sub onOpenChange={onOpenChange}>
+                  <ContextMenu.SubTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+                    <Icon name="FolderGit" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    Project
+                    <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
+                  </ContextMenu.SubTrigger>
+                  <ContextMenu.Portal>
+                    <ContextMenu.SubContent
+                      {...portalScope}
+                      aria-label="Project actions"
+                      sideOffset={4}
+                      className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                    >
+                      <ContextMenu.Label className="max-w-64 truncate px-2 py-1 text-xs text-muted-foreground">
+                        {project?.name}
+                      </ContextMenu.Label>
+                      {projectItems}
+                    </ContextMenu.SubContent>
+                  </ContextMenu.Portal>
+                </ContextMenu.Sub>
+              ) : null}
               <Separator />
               <Item icon="Archive" disabled={!canArchive} onSelect={archive}>
                 Archive

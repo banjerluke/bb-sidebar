@@ -42,7 +42,6 @@ import {
   UserAdd01Icon,
   WorkflowCircle03Icon,
   Yoga02Icon,
-  LayoutTwoColumnIcon,
   Notification03Icon,
   SparklesIcon,
   Copy01Icon,
@@ -53,7 +52,6 @@ import {
 import { cn } from "../lib/utils";
 
 const ICON_MAP = {
-  Split: LayoutTwoColumnIcon,
   Bell: Notification03Icon,
   Sparkles: SparklesIcon,
   Copy: Copy01Icon,
