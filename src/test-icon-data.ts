@@ -41,3 +41,10 @@ export { default as CheckmarkCircle02Icon } from "@hugeicons/core-free-icons/Che
 export { default as CheckUnread01Icon } from "@hugeicons/core-free-icons/CheckUnread01Icon";
 export { default as Flag02Icon } from "@hugeicons/core-free-icons/Flag02Icon";
 export { default as HierarchyIcon } from "@hugeicons/core-free-icons/HierarchyIcon";
+export { default as LayoutTwoColumnIcon } from "@hugeicons/core-free-icons/LayoutTwoColumnIcon";
+export { default as Notification03Icon } from "@hugeicons/core-free-icons/Notification03Icon";
+export { default as SparklesIcon } from "@hugeicons/core-free-icons/SparklesIcon";
+export { default as Copy01Icon } from "@hugeicons/core-free-icons/Copy01Icon";
+export { default as Delete02Icon } from "@hugeicons/core-free-icons/Delete02Icon";
+export { default as Link01Icon } from "@hugeicons/core-free-icons/Link01Icon";
+export { default as HashtagIcon } from "@hugeicons/core-free-icons/HashtagIcon";

@@ -82,8 +82,9 @@ export function ParentThreadMenu({ thread }: { thread: PluginSidebarThread }) {
     >
       <ContextMenu.SubTrigger
         disabled={saving}
-        className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[disabled]:opacity-50"
+        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[disabled]:opacity-50"
       >
+        <Icon name="Children" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         Parent
         <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
       </ContextMenu.SubTrigger>

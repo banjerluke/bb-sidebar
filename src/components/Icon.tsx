@@ -42,10 +42,24 @@ import {
   UserAdd01Icon,
   WorkflowCircle03Icon,
   Yoga02Icon,
+  LayoutTwoColumnIcon,
+  Notification03Icon,
+  SparklesIcon,
+  Copy01Icon,
+  Delete02Icon,
+  Link01Icon,
+  HashtagIcon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "../lib/utils";
 
 const ICON_MAP = {
+  Split: LayoutTwoColumnIcon,
+  Bell: Notification03Icon,
+  Sparkles: SparklesIcon,
+  Copy: Copy01Icon,
+  Trash: Delete02Icon,
+  Link: Link01Icon,
+  Hash: HashtagIcon,
   Archive: Archive02Icon,
   ArrowTurnBackward: ArrowTurnBackwardIcon,
   ArrowUpDown: ArrowUpDownIcon,

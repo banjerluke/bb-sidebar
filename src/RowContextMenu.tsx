@@ -146,7 +146,9 @@ function RowMenuContents({
               }}
               className="z-50 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
             >
-              <Item onSelect={() => void run("split")}>Open in split</Item>
+              <Item icon="Split" onSelect={() => void run("split")}>
+                Open in split
+              </Item>
               <ParentThreadMenu thread={thread} />
               {notifiesParent(thread) ? (
                 <ParentNotificationsMenu thread={thread} pendingSave={pendingNotificationSave} />
@@ -154,7 +156,8 @@ function RowMenuContents({
               {canMoveToSection ? <SectionMenu thread={thread} /> : null}
               {projectItems ? (
                 <ContextMenu.Sub onOpenChange={onOpenChange}>
-                  <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+                  <ContextMenu.SubTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+                    <Icon name="FolderGit" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                     Project
                     <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
                   </ContextMenu.SubTrigger>
@@ -210,6 +213,7 @@ function RowMenuContents({
               <Separator />
               {onRename ? (
                 <Item
+                  icon="Edit"
                   onSelect={() => {
                     renameAfterClose.current = true;
                   }}
@@ -217,17 +221,19 @@ function RowMenuContents({
                   Rename
                 </Item>
               ) : null}
-              <Item disabled={regenerating} onSelect={() => void regenerate()}>
+              <Item icon="Sparkles" disabled={regenerating} onSelect={() => void regenerate()}>
                 {regenerating ? "Regenerating title…" : "Regenerate title"}
               </Item>
-              <Item onSelect={() => void run("read")}>{thread.isUnread ? "Mark read" : "Mark unread"}</Item>
+              <Item icon={thread.isUnread ? "MailOpen" : "Mail"} onSelect={() => void run("read")}>
+                {thread.isUnread ? "Mark read" : "Mark unread"}
+              </Item>
               <Separator />
               <CopySubmenu thread={thread} />
               <Separator />
-              <Item disabled={!canArchive} onSelect={archive}>
+              <Item icon="Archive" disabled={!canArchive} onSelect={archive}>
                 Archive
               </Item>
-              <Item destructive onSelect={() => setConfirmingDelete(true)}>
+              <Item icon="Trash" destructive onSelect={() => setConfirmingDelete(true)}>
                 Delete
               </Item>
             </ContextMenu.Content>
@@ -266,10 +272,11 @@ function CopySubmenu({ thread }: { thread: PluginSidebarThread }) {
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger
         className={cn(
-          "flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none",
+          "flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none",
           "data-[state=open]:bg-accent data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
         )}
       >
+        <Icon name="Copy" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         Copy
         <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
       </ContextMenu.SubTrigger>
@@ -280,9 +287,17 @@ function CopySubmenu({ thread }: { thread: PluginSidebarThread }) {
           sideOffset={4}
           className="z-50 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
         >
-          <Item onSelect={() => void copyThreadLink()}>Copy thread link</Item>
-          {branchName ? <Item onSelect={() => copy(branchName)}>Copy branch</Item> : null}
-          <Item onSelect={() => copy(thread.id)}>Copy thread ID</Item>
+          <Item icon="Link" onSelect={() => void copyThreadLink()}>
+            Copy thread link
+          </Item>
+          {branchName ? (
+            <Item icon="GitBranch" onSelect={() => copy(branchName)}>
+              Copy branch
+            </Item>
+          ) : null}
+          <Item icon="Hash" onSelect={() => copy(thread.id)}>
+            Copy thread ID
+          </Item>
         </ContextMenu.SubContent>
       </ContextMenu.Portal>
     </ContextMenu.Sub>
@@ -371,7 +386,13 @@ function Item({
         destructive && "text-destructive-text",
       )}
     >
-      {icon ? <Icon name={icon} className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
+      {icon ? (
+        <Icon
+          name={icon}
+          className={cn("size-3.5 shrink-0", !destructive && "text-muted-foreground")}
+          aria-hidden="true"
+        />
+      ) : null}
       {children}
     </ContextMenu.Item>
   );

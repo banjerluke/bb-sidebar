@@ -91,7 +91,8 @@ export function ParentNotificationsMenu({
 
   return (
     <ContextMenu.Sub onOpenChange={(open) => open && load()}>
-      <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+      <ContextMenu.SubTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+        <Icon name="Bell" className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         Notify parent
         <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
       </ContextMenu.SubTrigger>
