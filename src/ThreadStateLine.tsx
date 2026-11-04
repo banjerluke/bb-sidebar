@@ -15,7 +15,6 @@ import {
   useThreadWithDraft,
 } from "./StatusSlot";
 import { useWorkingSinceContext } from "./useWorkingSince";
-import { isThreadWorking } from "./lifecycle";
 import type { ThreadNote } from "./thread-note";
 
 /**
@@ -103,8 +102,7 @@ function NoteFlag() {
  * A card's second line: what the thread is doing or waiting on, its note,
  * then the trailing badges. The sidebar's own states (a child that needs you,
  * children still working, a settle waiting on your read) come before bb's
- * indicator. The agent's note always shows; the automatic one would be stale
- * while the thread works, so it waits for the turn to end or for a question.
+ * indicator. While the thread works, the automatic line is its latest message.
  */
 export function ThreadStateLine({
   thread,
@@ -120,9 +118,7 @@ export function ThreadStateLine({
   trailing: ReactNode;
 }) {
   const state = useLineState(thread, inputs, now);
-  const shownNote =
-    note && (note.by === "agent" || thread.hasPendingInteraction || !isThreadWorking(thread)) ? note : null;
-  const flagInGutter = !state && shownNote?.by === "agent";
+  const flagInGutter = !state && note?.by === "agent";
   return (
     <div
       data-settle-fade=""
@@ -132,15 +128,15 @@ export function ThreadStateLine({
       <IconGutter>{flagInGutter ? <NoteFlag /> : state?.glyph}</IconGutter>
       <span className="flex min-w-0 flex-1 items-center gap-1">
         {state ? <span className="shrink-0">{state.label}</span> : null}
-        {state && shownNote ? <span aria-hidden="true">·</span> : null}
-        {state && shownNote?.by === "agent" ? <NoteFlag /> : null}
-        {shownNote ? (
+        {state && note ? <span aria-hidden="true">·</span> : null}
+        {state && note?.by === "agent" ? <NoteFlag /> : null}
+        {note ? (
           <span
-            title={shownNote.text}
-            data-note={shownNote.by}
-            className={cn("min-w-0 truncate", shownNote.by === "auto" && "text-muted-foreground/70")}
+            title={note.text}
+            data-note={note.by}
+            className={cn("min-w-0 truncate", note.by === "auto" && "text-muted-foreground/70")}
           >
-            {shownNote.text}
+            {note.text}
           </span>
         ) : null}
       </span>

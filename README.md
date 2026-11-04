@@ -20,7 +20,7 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Automatic project icons, with overrides from a project file, an uploaded image, or typed letters or an emoji
 - Expandable child-thread indicators with running and attention states, on shelf rows too
 - Two-line cards: the title and age, then what the thread is doing or waiting on (Working, Needs you, Child needs you, Waiting on N children, Settles once read, Done) and its note. Unread rows get a wide stripe
-- Thread notes: an agent's own line from `bb sidebar note`, cleared by your next message, or else the last line of its final message or what a pending question asks
+- Thread notes: an agent's own line from `bb sidebar note`, cleared by your next message, or else the last line of its latest message (progress while it works, its headline after) or what a pending question asks
 - Pull request badges and statuses set by other plugins
 - A `bb sidebar` command so agents can list, snooze, settle, park, resume, pin, note, and re-parent threads. An agent that settles its own thread waits until its turn ends and you have read it
 - Persistent provider-limit warnings with one-click scheduled Continue after reset and a cancel option

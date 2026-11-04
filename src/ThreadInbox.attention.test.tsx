@@ -67,7 +67,7 @@ describe("attention states", () => {
     expect(await within((await line("Self settled")) as HTMLElement).findByText("Settles once read")).toBeDefined();
   });
 
-  it("shows the agent's note with its flag, and hides a stale last line while work runs", async () => {
+  it("shows the agent's note with its flag, and the latest line while work runs", async () => {
     renderSlot(inbox, listProps, {
       sidebarThreads: {
         status: "ready",
@@ -83,7 +83,7 @@ describe("attention states", () => {
         listThreadNotes: () => ({
           notes: {
             noted: { text: "Waiting for Tyler", by: "agent" },
-            busy: { text: "Old last line", by: "auto" },
+            busy: { text: "Starting the dev server", by: "auto" },
             quiet: { text: "Pushed the fix.", by: "auto" },
           },
         }),
@@ -98,6 +98,6 @@ describe("attention states", () => {
     // With no state to show, the flag takes the icon column.
     expect(noted.firstElementChild!.querySelector('[data-icon="Flag"]')).not.toBeNull();
     expect(await within(await line("Quiet thread")).findByText("Pushed the fix.")).toBeDefined();
-    expect(within(await line("Busy thread")).queryByText("Old last line")).toBeNull();
+    expect(await within(await line("Busy thread")).findByText("Starting the dev server")).toBeDefined();
   });
 });

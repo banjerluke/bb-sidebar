@@ -204,8 +204,11 @@ export default async function plugin(bb: BbPluginApi) {
   ctx.bb.background.schedule("settle-requests", "* * * * *", async () => {
     await settleRequests.resolve();
   });
+  ctx.bb.events.on("experimental_thread.events", ({ thread }) => {
+    notes.followProgress(thread);
+  });
   ctx.bb.events.on("thread.idle", async ({ thread, lastAssistantText }) => {
-    notes.setAutoNote(thread.id, lastLineOf(lastAssistantText));
+    notes.endTurn(thread.id, lastLineOf(lastAssistantText));
     await settleRequests.resolve();
   });
   ctx.bb.events.on("interaction.pending", ({ thread, interaction }) => {
@@ -221,7 +224,7 @@ export default async function plugin(bb: BbPluginApi) {
     try {
       if (dispatch.initiator === "user") {
         settleRequests.drop(dispatch.thread.id);
-        notes.setAgentNote(dispatch.thread.id, null);
+        notes.userReplied(dispatch.thread.id);
       }
     } catch {
       // Never block a message over sidebar bookkeeping.

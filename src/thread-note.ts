@@ -2,7 +2,8 @@
  * A thread's note: one line under its title saying what it is up to or
  * waiting on. An agent sets its own with `bb sidebar note`, and a message
  * from the user clears it. Otherwise the row shows the last line of the
- * agent's final message, or what a pending question or approval asks.
+ * agent's latest message: its progress while a turn runs, its final headline
+ * after, or what a pending question or approval asks.
  */
 export interface ThreadNote {
   text: string;

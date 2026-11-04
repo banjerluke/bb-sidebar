@@ -27,7 +27,7 @@ describe("thread notes", () => {
     expect(await notes()).toEqual({ thr_1: { text: "Waiting for CI on #212", by: "agent" } });
   });
 
-  it("clears the agent's note when the user sends a message, not when an agent does", async () => {
+  it("clears both lines when the user sends a message, not when an agent does", async () => {
     const { harness, notes, finishTurn, send } = await setup();
     await finishTurn("Pushed the fix.");
     await harness.behavior.runCli(["note", "Waiting for Tyler"], { threadId: "thr_1" });
@@ -35,7 +35,7 @@ describe("thread notes", () => {
     expect(await send("agent")).toEqual({ action: "proceed" });
     expect((await notes()).thr_1).toEqual({ text: "Waiting for Tyler", by: "agent" });
     expect(await send("user")).toEqual({ action: "proceed" });
-    expect((await notes()).thr_1).toEqual({ text: "Pushed the fix.", by: "auto" });
+    expect(await notes()).toEqual({});
   });
 
   it("shows what a pending question asks", async () => {
@@ -62,4 +62,28 @@ describe("thread notes", () => {
     await finishTurn("Fresh last line.");
     expect(await notes()).toEqual({ thr_1: { text: "Fresh last line.", by: "auto" } });
   });
+
+  it("follows a working thread's latest message, without bringing back an answered headline", async () => {
+    const { harness, notes, finishTurn, send } = await setup();
+    let output = "Opened PR #212.\n\nWant me to merge it?";
+    harness.inspection.sdk.stub("threads.output", async () => ({ output }));
+    const progress = async () => {
+      await harness.behavior.emitThreadEvent("experimental_thread.events", {
+        thread: makeThreadResponse({ id: "thr_1", status: "active", visibility: "visible" }),
+        sequence: 1,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 3_100));
+    };
+    await finishTurn(output);
+    await send("user");
+    // Before the agent writes anything new, the read still returns the old reply.
+    await progress();
+    expect(await notes()).toEqual({});
+
+    output = "Lint passes. Starting the dev server to drive the panel in a browser.";
+    await progress();
+    expect(await notes()).toEqual({
+      thr_1: { text: "Lint passes. Starting the dev server to drive the panel in a browser.", by: "auto" },
+    });
+  }, 10_000);
 });
