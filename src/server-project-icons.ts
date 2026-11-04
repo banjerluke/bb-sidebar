@@ -6,6 +6,12 @@ import {
   normalizeProjectIconPath,
 } from "./project-icons";
 import { PROJECT_ICONS_CHANNEL } from "./contract";
+import { parseProjectGlyph } from "./project-glyph";
+
+export const PROJECT_ICON_GLYPHS_MIGRATION = `CREATE TABLE IF NOT EXISTS project_icon_glyphs (
+  project_id  TEXT PRIMARY KEY,
+  glyph       TEXT NOT NULL
+)`;
 interface StoredProjectIconRow {
   project_id: string;
   path: string;
@@ -81,6 +87,16 @@ export function createServerProjectIcons(ctx: ServerContext) {
   const projectIconGenerations = new Map<string, number>();
 
   const defaultProjectHostIds = new Map<string, Promise<string | null>>();
+
+  const readProjectIconGlyph = (projectId: string): string | null =>
+    (
+      ctx.db.prepare(`SELECT glyph FROM project_icon_glyphs WHERE project_id = ?`).get(projectId) as
+        | { glyph: string }
+        | undefined
+    )?.glyph ?? null;
+  // A project has one icon override at a time; choosing one clears the others.
+  const clearGlyph = (projectId: string) =>
+    ctx.db.prepare(`DELETE FROM project_icon_glyphs WHERE project_id = ?`).run(projectId);
 
   const readProjectIconOverride = (projectId: string): string | null =>
     (
@@ -261,6 +277,7 @@ export function createServerProjectIcons(ctx: ServerContext) {
             name: project.name,
             customPath: readProjectIconOverride(project.id),
             customUploadName: readProjectIconUpload(project.id)?.filename ?? null,
+            glyph: readProjectIconGlyph(project.id),
           })),
       };
     },
@@ -298,6 +315,7 @@ export function createServerProjectIcons(ctx: ServerContext) {
         ctx.db.transaction(() => {
           ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
           ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+          clearGlyph(projectId);
         })();
       } else {
         ctx.db.transaction(() => {
@@ -311,11 +329,12 @@ export function createServerProjectIcons(ctx: ServerContext) {
             )
             .run(projectId, normalized, Date.now());
           ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+          clearGlyph(projectId);
         })();
       }
       clearProjectIconCache(projectId);
       ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
-      return { customPath: normalized, customUploadName: null };
+      return { customPath: normalized, customUploadName: null, glyph: null };
     },
     async uploadProjectIcon({ projectId, filename, mimeType, contentBase64 }) {
       await ctx.bb.sdk.projects.get({ projectId });
@@ -345,17 +364,49 @@ export function createServerProjectIcons(ctx: ServerContext) {
           )
           .run(projectId, normalizedFilename, resolvedMimeType, canonicalBase64, bytes.byteLength, Date.now());
         ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+        clearGlyph(projectId);
       })();
       clearProjectIconCache(projectId);
       ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
       return {
         customPath: null,
         customUploadName: normalizedFilename,
+        glyph: null,
       };
+    },
+    async setProjectIconGlyph({ projectId, glyph }) {
+      await ctx.bb.sdk.projects.get({ projectId });
+      const parsed = parseProjectGlyph(glyph);
+      if (!parsed) throw new Error("Use one or two letters or digits, or a single emoji");
+      ctx.db.transaction(() => {
+        ctx.db
+          .prepare(
+            `INSERT INTO project_icon_glyphs (project_id, glyph) VALUES (?, ?)
+             ON CONFLICT(project_id) DO UPDATE SET glyph = excluded.glyph`,
+          )
+          .run(projectId, parsed.text);
+        ctx.db.prepare(`DELETE FROM project_icons WHERE project_id = ?`).run(projectId);
+        ctx.db.prepare(`DELETE FROM project_icon_uploads WHERE project_id = ?`).run(projectId);
+      })();
+      clearProjectIconCache(projectId);
+      ctx.bb.realtime.publish(PROJECT_ICONS_CHANNEL, { projectId });
+      return { customPath: null, customUploadName: null, glyph: parsed.text };
+    },
+    async listProjectIconGlyphs() {
+      const rows = ctx.db.prepare(`SELECT project_id, glyph FROM project_icon_glyphs`).all() as Array<{
+        project_id: string;
+        glyph: string;
+      }>;
+      return { glyphs: Object.fromEntries(rows.map((row) => [row.project_id, row.glyph])) };
     },
   } satisfies Pick<
     ServerHandlers,
-    "listProjectIconSettings" | "searchProjectIconFiles" | "setProjectIcon" | "uploadProjectIcon"
+    | "listProjectIconSettings"
+    | "searchProjectIconFiles"
+    | "setProjectIcon"
+    | "uploadProjectIcon"
+    | "setProjectIconGlyph"
+    | "listProjectIconGlyphs"
   >;
 
   return { resolveProjectIcon, clearProjectIconCache, defaultProjectHostIds, handlers };

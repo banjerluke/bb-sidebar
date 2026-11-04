@@ -17,7 +17,7 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Full cards, compact working threads, or compact all threads, with options to keep pinned or woken threads full
 - Searchable multi-project filtering, remembered per window across reloads
 - Optional project colors with per-project color selection. Names stay colored in every mode; show stripes in full and collapsed mode, full mode only, or grouped projects only
-- Automatic project icons with custom overrides
+- Automatic project icons, with overrides from a project file, an uploaded image, or typed letters or an emoji
 - Expandable child-thread indicators with running and attention states, on shelf rows too
 - Two-line cards: the title and age, then what the thread is doing or waiting on (Working, Needs you, Child needs you, Waiting on N children, Settles once read, Done) and its note. Unread rows get a wide stripe
 - Thread notes: an agent's own line from `bb sidebar note`, cleared by your next message, or else the last line of its final message or what a pending question asks

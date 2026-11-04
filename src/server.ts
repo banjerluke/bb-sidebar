@@ -9,7 +9,7 @@ import { createTitleRegenerator } from "./regenerate-title";
 import { AUTO_TITLE_RECOVERY_MIGRATION, createAutoTitleRecovery } from "./auto-title";
 import { createServerSettings, INSTALL_DEFAULTS_MIGRATIONS } from "./server-settings";
 import { createServerLifecycle, LIFECYCLE_BACKFILLS_MIGRATION } from "./server-lifecycle";
-import { createServerProjectIcons } from "./server-project-icons";
+import { createServerProjectIcons, PROJECT_ICON_GLYPHS_MIGRATION } from "./server-project-icons";
 import { createServerProjectColors } from "./server-project-colors";
 import { createServerProjectManagement } from "./server-project-management";
 import { createServerSettleCleanup } from "./server-settle-cleanup";
@@ -123,6 +123,7 @@ const migrations = [
    )`,
   SETTLE_REQUESTS_MIGRATION,
   THREAD_NOTES_MIGRATION,
+  PROJECT_ICON_GLYPHS_MIGRATION,
 ];
 
 /** What every thread's agent learns about the sidebar; kept short, since it rides on every turn. */

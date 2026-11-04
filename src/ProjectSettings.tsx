@@ -6,6 +6,7 @@ import { PROJECT_ICONS_CHANNEL } from "./realtime-channels";
 import { PROJECT_ICON_EXTENSIONS, projectIconUrl } from "./project-icons";
 import { ProjectMonogram } from "./ProjectFavicon";
 import { ProjectColorSetting } from "./ProjectColorSetting";
+import { parseProjectGlyph } from "./project-glyph";
 import { SettingRow, SettingsSelect, secondaryButtonClass } from "./settings-ui";
 
 interface ProjectIconSetting {
@@ -13,6 +14,7 @@ interface ProjectIconSetting {
   name: string;
   customPath: string | null;
   customUploadName: string | null;
+  glyph: string | null;
 }
 
 interface ProjectChoice {
@@ -51,6 +53,7 @@ export function ProjectAppearanceSettings() {
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [glyphDraft, setGlyphDraft] = useState("");
 
   const load = useCallback(async () => {
     const seq = ++loadRequestSeq.current;
@@ -92,13 +95,21 @@ export function ProjectAppearanceSettings() {
   const selected = choices.find((project) => project.id === selectedProjectId) ?? choices[0] ?? null;
   const selectedId = selected?.id ?? "";
   const icon = iconSettings.find((project) => project.id === selectedId) ?? null;
-  const hasCustomIcon = !!(icon?.customPath || icon?.customUploadName);
+  const hasCustomIcon = !!(icon?.customPath || icon?.customUploadName || icon?.glyph);
+  const glyph = icon?.glyph ? parseProjectGlyph(icon.glyph) : null;
 
   useEffect(() => {
     setPreviewFailed(false);
   }, [revision, selectedId]);
+  useEffect(() => {
+    setGlyphDraft(icon?.glyph ?? "");
+  }, [icon?.glyph]);
 
-  const applyIconResult = (result: { customPath: string | null; customUploadName: string | null }) => {
+  const applyIconResult = (result: {
+    customPath: string | null;
+    customUploadName: string | null;
+    glyph: string | null;
+  }) => {
     setIconSettings((current) =>
       current.map((project) => (project.id === selectedId ? { ...project, ...result } : project)),
     );
@@ -115,6 +126,27 @@ export function ProjectAppearanceSettings() {
       toast.success("Using automatic icon detection");
     } catch (error) {
       toast.error("Could not reset the project icon", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveGlyph = async () => {
+    if (!selectedId || saving) return;
+    const parsed = parseProjectGlyph(glyphDraft);
+    if (!parsed) {
+      toast.error("Use one or two letters or digits, or a single emoji");
+      return;
+    }
+    loadRequestSeq.current += 1;
+    setSaving(true);
+    try {
+      applyIconResult(await rpc.call("setProjectIconGlyph", { projectId: selectedId, glyph: parsed.text }));
+      toast.success("Project icon saved");
+    } catch (error) {
+      toast.error("Could not save the project icon", {
         description: error instanceof Error ? error.message : undefined,
       });
     } finally {
@@ -190,7 +222,16 @@ export function ProjectAppearanceSettings() {
       {icon ? (
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
-            {!previewFailed ? (
+            {glyph?.kind === "emoji" ? (
+              <span className="text-2xl leading-none">{glyph.text}</span>
+            ) : glyph ? (
+              <ProjectMonogram
+                name={icon.name}
+                letters={glyph.text}
+                projectId={icon.id}
+                className="size-full rounded-none text-lg tracking-normal"
+              />
+            ) : !previewFailed ? (
               <img
                 src={projectIconUrl(icon.id, revision)}
                 alt=""
@@ -204,11 +245,13 @@ export function ProjectAppearanceSettings() {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-foreground">Icon</p>
             <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
-              {icon.customUploadName
-                ? `Uploaded: ${icon.customUploadName}`
-                : icon.customPath
-                  ? `From project: ${icon.customPath}`
-                  : "Found automatically from the project's favicon."}
+              {glyph
+                ? `${glyph.kind === "emoji" ? "Emoji" : "Letters"}: ${glyph.text}`
+                : icon.customUploadName
+                  ? `Uploaded: ${icon.customUploadName}`
+                  : icon.customPath
+                    ? `From project: ${icon.customPath}`
+                    : "Found automatically from the project's favicon."}
             </p>
           </div>
           {hasCustomIcon ? (
@@ -243,6 +286,38 @@ export function ProjectAppearanceSettings() {
             {saving ? "Saving..." : "Upload image…"}
           </button>
         </div>
+      ) : null}
+      {icon ? (
+        <form
+          className="flex items-center gap-3 px-4 py-2.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveGlyph();
+          }}
+        >
+          <label htmlFor={`project-glyph-${icon.id}`} className="min-w-0 flex-1">
+            <span className="block text-sm text-foreground">Letters or emoji</span>
+            <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+              One or two letters on the project color, or a single emoji, in place of an image.
+            </span>
+          </label>
+          <input
+            id={`project-glyph-${icon.id}`}
+            value={glyphDraft}
+            maxLength={16}
+            placeholder="SM or 🎸"
+            disabled={saving}
+            onChange={(event) => setGlyphDraft(event.target.value)}
+            className="h-8 w-20 rounded-md border border-border bg-background px-2 text-center text-sm"
+          />
+          <button
+            type="submit"
+            disabled={saving || !glyphDraft.trim() || glyphDraft.trim() === icon.glyph}
+            className={secondaryButtonClass}
+          >
+            Use
+          </button>
+        </form>
       ) : null}
     </>
   );

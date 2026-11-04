@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "./lib/utils";
 import { projectMonogramColor, projectMonogramLetter } from "./project-monogram";
 import { useProjectColor, useProjectStripeColor, type ProjectStripeView } from "./ProjectColors";
+import { useProjectGlyph } from "./ProjectGlyphs";
 
 // Keyed by the icon route URL. A loaded entry holds the attempt URL that
 // succeeded. A failure is retried with backoff instead of blocking the icon
@@ -42,19 +43,24 @@ export function ProjectMonogram({
   name,
   className,
   projectId,
+  letters,
 }: {
   name: string;
   className?: string;
   projectId?: string;
+  /** Letters the user chose instead of the one drawn from the name; two get a smaller size. */
+  letters?: string;
 }) {
   const color = useProjectColor(projectId);
+  const text = letters ?? projectMonogramLetter(name);
   return (
     <span
       aria-hidden="true"
-      data-letter={projectMonogramLetter(name)}
+      data-letter={text}
       style={color}
       className={cn(
-        "bb-sidebar-monogram flex size-3.5 shrink-0 items-center justify-center rounded-[3px] text-[8px] font-semibold leading-none",
+        "bb-sidebar-monogram flex size-3.5 shrink-0 items-center justify-center rounded-[3px] font-semibold leading-none",
+        [...text].length > 1 ? "text-[6.5px] tracking-tighter" : "text-[8px]",
         color ? "bb-sidebar-project-monogram" : `bb-sidebar-monogram-${projectMonogramColor(name)}`,
         className,
       )}
@@ -105,6 +111,7 @@ export function ProjectFavicon({
   fallback?: ReactNode;
   projectId?: string;
 }) {
+  const glyph = useProjectGlyph(projectId);
   if (fallback === undefined) {
     fallback = name ? <ProjectMonogram name={name} projectId={projectId} className={className} /> : null;
   }
@@ -117,6 +124,21 @@ export function ProjectFavicon({
     const timer = setTimeout(rerender, retryAt - Date.now());
     return () => clearTimeout(timer);
   }, [src, retryAt]);
+  // Typed letters or an emoji replace any image.
+  if (glyph?.kind === "letters") {
+    return <ProjectMonogram name={name ?? ""} letters={glyph.text} projectId={projectId} className={className} />;
+  }
+  if (glyph?.kind === "emoji") {
+    return (
+      <span
+        aria-hidden="true"
+        data-glyph={glyph.text}
+        className={cn("flex size-3.5 shrink-0 items-center justify-center text-[11px] leading-none", className)}
+      >
+        {glyph.text}
+      </span>
+    );
+  }
   if (!src || retryAt !== null) return fallback;
 
   const loadedUrl = loadedSources.get(src);

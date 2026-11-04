@@ -147,6 +147,7 @@ export function ProjectScopeSelect({
                   : unpinnedScope.map((id, index) => (
                       <span key={id} className="flex min-w-0 max-w-full items-center gap-1.5">
                         <ProjectFavicon
+                          projectId={id}
                           src={projectIconUrl(id, projectIconRevision)}
                           name={scopeNames[index]}
                           className="size-3"
@@ -237,6 +238,7 @@ export function ProjectScopeSelect({
                   <span className="flex min-w-0 flex-1 items-center gap-1.5">
                     {option.id !== ALL_PROJECTS ? (
                       <ProjectFavicon
+                        projectId={option.id}
                         src={projectIconUrl(option.id, projectIconRevision)}
                         name={option.name}
                         className="size-3"

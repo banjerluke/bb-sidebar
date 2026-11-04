@@ -43,6 +43,7 @@ describe("project icons", () => {
           name: "Sidebar",
           customPath: null,
           customUploadName: null,
+          glyph: null,
         },
       ],
     });
@@ -61,6 +62,7 @@ describe("project icons", () => {
     ).resolves.toEqual({
       customPath: "public/brand.svg",
       customUploadName: null,
+      glyph: null,
     });
     await expect(harness.behavior.callRpc("listProjectIconSettings", {})).resolves.toEqual({
       projects: [
@@ -69,6 +71,7 @@ describe("project icons", () => {
           name: "Sidebar",
           customPath: "public/brand.svg",
           customUploadName: null,
+          glyph: null,
         },
       ],
     });
@@ -87,6 +90,7 @@ describe("project icons", () => {
     ).resolves.toEqual({
       customPath: null,
       customUploadName: "brand.svg",
+      glyph: null,
     });
     await expect(harness.behavior.callRpc("listProjectIconSettings", {})).resolves.toEqual({
       projects: [
@@ -95,6 +99,7 @@ describe("project icons", () => {
           name: "Sidebar",
           customPath: null,
           customUploadName: "brand.svg",
+          glyph: null,
         },
       ],
     });
@@ -240,6 +245,7 @@ describe("project icons", () => {
     ).resolves.toEqual({
       customPath: "new.svg",
       customUploadName: null,
+      glyph: null,
     });
     const secondResponse = await harness.behavior.fetchHttp("GET", "/project-icon?projectId=proj_1");
     expect(secondResponse.status).toBe(200);
@@ -258,5 +264,33 @@ describe("project icons", () => {
     const afterPendingResponse = await harness.behavior.fetchHttp("GET", "/project-icon?projectId=proj_1");
     expect(afterPendingResponse.status).toBe(200);
     await expect(afterPendingResponse.text()).resolves.toBe("new");
+  });
+});
+
+describe("typed project icons", () => {
+  it("keeps one override at a time and lists only typed icons", async () => {
+    const project = standardProject();
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "bb-sidebar",
+      sdk: { projects: { get: async () => project, list: async () => [project] } },
+    });
+    await plugin(bb);
+    disposers.push(() => harness.lifecycle.dispose());
+    const call = (method: string, input: object) => harness.behavior.callRpc(method, input);
+
+    await call("setProjectIcon", { projectId: project.id, path: "public/brand.svg" });
+    await expect(call("setProjectIconGlyph", { projectId: project.id, glyph: " 🎸 " })).resolves.toEqual({
+      customPath: null,
+      customUploadName: null,
+      glyph: "🎸",
+    });
+    await expect(call("listProjectIconSettings", {})).resolves.toMatchObject({
+      projects: [{ customPath: null, glyph: "🎸" }],
+    });
+    await expect(call("listProjectIconGlyphs", {})).resolves.toEqual({ glyphs: { [project.id]: "🎸" } });
+
+    await expect(call("setProjectIconGlyph", { projectId: project.id, glyph: "SMA" })).rejects.toThrow();
+    await call("setProjectIcon", { projectId: project.id, path: "public/brand.svg" });
+    await expect(call("listProjectIconGlyphs", {})).resolves.toEqual({ glyphs: {} });
   });
 });

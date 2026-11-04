@@ -128,6 +128,14 @@ export const cleanupResultSchema = z.object({
 export type SettledCleanupPreview = z.infer<typeof cleanupPreviewSchema>;
 export type SettledCleanupResult = z.infer<typeof cleanupResultSchema>;
 const projectIdSchema = z.string().trim().min(1);
+/** The one icon override a project has: a project file, an upload, or typed letters or an emoji. */
+const projectIconOverrideSchema = z
+  .object({
+    customPath: z.string().nullable(),
+    customUploadName: z.string().nullable(),
+    glyph: z.string().nullable(),
+  })
+  .strict();
 const projectIconPathSchema = z
   .string()
   .trim()
@@ -374,6 +382,7 @@ export const bbSidebarRpcContract = defineRpcContract({
               name: z.string(),
               customPath: z.string().nullable(),
               customUploadName: z.string().nullable(),
+              glyph: z.string().nullable(),
             })
             .strict(),
         ),
@@ -438,12 +447,17 @@ export const bbSidebarRpcContract = defineRpcContract({
         path: projectIconPathSchema.nullable(),
       })
       .strict(),
-    output: z
-      .object({
-        customPath: z.string().nullable(),
-        customUploadName: z.string().nullable(),
-      })
-      .strict(),
+    output: projectIconOverrideSchema,
+  },
+  /** Letters or an emoji as the icon; checked against `parseProjectGlyph`. */
+  setProjectIconGlyph: {
+    input: z.object({ projectId: projectIdSchema, glyph: z.string().trim().min(1).max(32) }).strict(),
+    output: projectIconOverrideSchema,
+  },
+  /** Every project's typed icon, for the rows to draw. */
+  listProjectIconGlyphs: {
+    input: z.object({}).strict(),
+    output: z.object({ glyphs: z.record(z.string(), z.string()) }).strict(),
   },
   uploadProjectIcon: {
     input: z
@@ -454,11 +468,6 @@ export const bbSidebarRpcContract = defineRpcContract({
         contentBase64: iconBase64Schema,
       })
       .strict(),
-    output: z
-      .object({
-        customPath: z.string().nullable(),
-        customUploadName: z.string().nullable(),
-      })
-      .strict(),
+    output: projectIconOverrideSchema,
   },
 });

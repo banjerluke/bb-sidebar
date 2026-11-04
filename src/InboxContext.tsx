@@ -17,6 +17,7 @@ import { useThreadNotes } from "./useThreadNotes";
 import type { ShelfExpansionState } from "./ThreadInboxView";
 import { ListAnimationContext, type ListAnimationController } from "./useListMotion";
 import { ProjectColorsProvider } from "./ProjectColors";
+import { ProjectGlyphsProvider } from "./ProjectGlyphs";
 import { WorkingSinceContext } from "./useWorkingSince";
 import type { WorkingSince } from "./working-since";
 import { ChildThreadDisplayContext, type ChildThreadDisplay } from "./ChildThreadDisplay";
@@ -158,17 +159,19 @@ export function InboxProvider({
         display={sidebarSettings?.projectColorDisplay ?? DEFAULT_SIDEBAR_SETTINGS.projectColorDisplay}
         projectIds={projectIds}
       >
-        <WorkingSinceContext.Provider value={workingSince}>
-          <ChildThreadDisplayContext.Provider value={childDisplay}>
-            <OpenPortsProvider>
-              <InboxEnvironmentContext.Provider value={value.environment}>
-                <InboxActionsContext.Provider value={value.actions}>
-                  <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
-                </InboxActionsContext.Provider>
-              </InboxEnvironmentContext.Provider>
-            </OpenPortsProvider>
-          </ChildThreadDisplayContext.Provider>
-        </WorkingSinceContext.Provider>
+        <ProjectGlyphsProvider>
+          <WorkingSinceContext.Provider value={workingSince}>
+            <ChildThreadDisplayContext.Provider value={childDisplay}>
+              <OpenPortsProvider>
+                <InboxEnvironmentContext.Provider value={value.environment}>
+                  <InboxActionsContext.Provider value={value.actions}>
+                    <InboxActivityContext.Provider value={value.activity}>{children}</InboxActivityContext.Provider>
+                  </InboxActionsContext.Provider>
+                </InboxEnvironmentContext.Provider>
+              </OpenPortsProvider>
+            </ChildThreadDisplayContext.Provider>
+          </WorkingSinceContext.Provider>
+        </ProjectGlyphsProvider>
       </ProjectColorsProvider>
     </ListAnimationContext.Provider>
   );

@@ -105,7 +105,7 @@ export function ThreadDetailsTooltip({
       <div className="flex flex-col gap-1.5 text-xs leading-4 text-muted-foreground">
         {project ? (
           <div className="flex items-center gap-2">
-            <ProjectFavicon src={projectIconUrl(project.id, iconRevision)} name={project.name} />
+            <ProjectFavicon projectId={project.id} src={projectIconUrl(project.id, iconRevision)} name={project.name} />
             <span className="truncate">
               <span className="sr-only">Project: </span>
               {project.name}

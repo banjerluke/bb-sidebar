@@ -476,7 +476,12 @@ function ForeignProjectMark({ project }: { project: ForeignProject }) {
   });
   return (
     <span data-foreign-project={project.id} className="flex shrink-0 items-center pl-1">
-      <ProjectFavicon src={projectIconUrl(project.id, iconRevision)} name={project.name} className="size-3" />
+      <ProjectFavicon
+        projectId={project.id}
+        src={projectIconUrl(project.id, iconRevision)}
+        name={project.name}
+        className="size-3"
+      />
     </span>
   );
 }

@@ -110,6 +110,7 @@ export function ProjectScopeControls({
                   />
                 ) : null}
                 <ProjectFavicon
+                  projectId={project.id}
                   src={projectIconUrl(project.id, projectIconRevision)}
                   name={project.name}
                   className="size-3"

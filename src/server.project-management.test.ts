@@ -119,6 +119,7 @@ describe("project management", () => {
           name: "Sidebar",
           customPath: null,
           customUploadName: null,
+          glyph: null,
         },
       ],
     });
