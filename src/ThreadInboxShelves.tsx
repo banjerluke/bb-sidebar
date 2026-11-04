@@ -287,7 +287,7 @@ export function ProjectGroups({
 }: {
   units: readonly ProjectViewUnit[];
   reorderControls: (unit: Extract<ProjectViewUnit, { kind: "group" }>, projectName: string) => ThreadReorderControls;
-  renderThread: (thread: PluginSidebarThread, grouped: boolean, environmentGrouped?: boolean) => React.ReactNode;
+  renderThread: (thread: PluginSidebarThread, grouped: boolean) => React.ReactNode;
   onToggleEnvironment: (key: string) => void;
 }) {
   const { projectNameById, projectIconRevision } = useInboxEnvironment();
@@ -322,7 +322,7 @@ export function ProjectGroups({
                       onToggle={() => onToggleEnvironment(child.key)}
                       reorder={reorderControls(child, environmentLabel(child.environment!))}
                     >
-                      {child.threads.map((thread) => renderThread(thread, true, true))}
+                      {child.threads.map((thread) => renderThread(thread, true))}
                     </EnvironmentGroup>
                   ),
                 )

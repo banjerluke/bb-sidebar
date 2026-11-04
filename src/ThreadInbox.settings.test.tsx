@@ -96,7 +96,7 @@ describe("sidebar settings", () => {
     expect(group.querySelectorAll("[data-project-stripe]")).toHaveLength(1);
   });
 
-  it("limits stripes by display mode while keeping all project names colored", async () => {
+  it("limits stripes by display mode while keeping every project icon colored", async () => {
     localStorage.setItem("bb-sidebar:active-sort:v1", "project");
     localStorage.setItem("bb-sidebar:shelf-expansion:v1", JSON.stringify({ settled: true, archived: true }));
     let settings = {
@@ -142,7 +142,6 @@ describe("sidebar settings", () => {
     await screen.findByText("Settled row");
     const assertColor = (element: Element, showStripe: boolean) => {
       expect(element.querySelectorAll("[data-project-stripe]")).toHaveLength(showStripe ? 1 : 0);
-      expect(element.querySelector(".bb-sidebar-project-name")).not.toBeNull();
       expect(element.querySelector(".bb-sidebar-project-monogram")).not.toBeNull();
     };
     const row = (title: string) => screen.getByText(title).closest("li")!;

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "./lib/utils";
 import { projectMonogramColor, projectMonogramLetter } from "./project-monogram";
 import { useProjectColor, useProjectStripeColor, type ProjectStripeView } from "./ProjectColors";
@@ -71,20 +71,36 @@ export function ProjectStripe({
   projectId,
   className,
   view,
+  unread = false,
+  inGroup = false,
 }: {
   projectId: string;
   className?: string;
   view?: ProjectStripeView;
+  /**
+   * An unread row always gets a wide, solid stripe, in the project colour when
+   * colours are on and a muted grey otherwise. A read row keeps the thin one
+   * the stripe setting allows, faded, so a glance down the edge finds what is new.
+   */
+  unread?: boolean;
+  /** Inside a project group, whose own stripe stands for its read rows. */
+  inGroup?: boolean;
 }) {
-  const color = useProjectStripeColor(projectId, view);
-  if (!color) return null;
+  const stripeColor = useProjectStripeColor(projectId, view);
+  const projectColor = useProjectColor(projectId);
+  const color = unread
+    ? (projectColor ?? ({ "--bb-sidebar-project": "var(--muted-foreground)" } as CSSProperties))
+    : stripeColor;
+  if (!color || (inGroup && !unread)) return null;
   return (
     <span
       aria-hidden="true"
       data-project-stripe=""
+      data-unread={unread ? "" : undefined}
       style={color}
       className={cn(
-        "bb-sidebar-project-stripe pointer-events-none absolute bottom-1.5 left-0.5 top-1.5 w-0.5 rounded-full",
+        "bb-sidebar-project-stripe pointer-events-none absolute bottom-1.5 top-1.5 rounded-full",
+        unread ? "left-0.5 w-[3px]" : "left-[3px] w-px opacity-60",
         className,
       )}
     />

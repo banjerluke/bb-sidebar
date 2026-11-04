@@ -92,6 +92,15 @@ export function StatusOrTime({
   );
 }
 
+/** How long ago the thread last did something, for a card's title line. */
+export function ThreadAge({ thread, now }: { thread: PluginSidebarThread; now: number }) {
+  return (
+    <span className="tabular-nums text-2xs text-muted-foreground">
+      {relativeTimeLabel(lastActivityAt(thread), now)}
+    </span>
+  );
+}
+
 const ROW_STATUS_YIELDS_TO = new Set<PluginSidebarThreadIndicator>(["runtime", "unread-error", "waiting-for-input"]);
 
 /**

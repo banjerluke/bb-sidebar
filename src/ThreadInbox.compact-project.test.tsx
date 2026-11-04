@@ -10,7 +10,7 @@ await loadInboxApp();
 
 describe("Compact project display", () => {
   it.each(["full", "compact-working", "compact-all", "working-shelf"])(
-    "updates project names without hiding icons or changing full cards (%s)",
+    "updates compact project names and keeps full cards to the icon (%s)",
     async (display) => {
       let settings = {
         ...defaultSidebarSettings,
@@ -47,9 +47,15 @@ describe("Compact project display", () => {
         await waitFor(() => {
           for (const title of ["Working thread", "Full pinned thread", "Parked thread"]) {
             const card = row(title);
+            const fullCard = title === "Full pinned thread" || (title === "Working thread" && display === "full");
             const iconOnly = compactProjectIconOnly && title === "Working thread" && display !== "full";
-            expect(within(card).getByText("Sidebar project").classList.contains("sr-only")).toBe(iconOnly);
             expect(card.querySelector("[data-letter]")).not.toBeNull();
+            // A full card leads its title with the icon alone; the name is in the hover card.
+            if (fullCard) {
+              expect(within(card).queryByText("Sidebar project")).toBeNull();
+              continue;
+            }
+            expect(within(card).getByText("Sidebar project").classList.contains("sr-only")).toBe(iconOnly);
             if (iconOnly) expect(within(card).queryByText("·")).toBeNull();
             else if (title === "Parked thread") expect(within(card).getByText("·")).toBeDefined();
           }

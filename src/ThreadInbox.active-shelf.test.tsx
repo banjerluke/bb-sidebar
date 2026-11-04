@@ -363,11 +363,10 @@ describe("ThreadInbox", () => {
     expect(within(active).getByRole("button", { name: "Web (2)" })).toBeDefined();
     fireEvent.click(within(active).getByRole("button", { name: "Active", expanded: true }));
     expect(within(active).queryByRole("button", { name: "Web (2)" })).toBeNull();
-    expect(
-      within(active)
-        .getAllByRole("listitem")
-        .map((row) => row.textContent),
-    ).toEqual([expect.stringMatching(/^Web.*Second/)]);
+    const rows = within(active).getAllByRole("listitem");
+    expect(rows.map((row) => row.textContent)).toEqual([expect.stringContaining("Second")]);
+    // Without its header, the row carries the project icon itself.
+    expect(rows[0]!.querySelector('[data-letter="W"]')).not.toBeNull();
   });
 
   it("collapses a project, keeping the open thread and the choice", async () => {

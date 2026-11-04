@@ -43,14 +43,7 @@ describe("ThreadInbox", () => {
     expect(badge.getAttribute("aria-expanded")).toBe("false");
     expect(badge.querySelectorAll("[data-child-thread-dot]")).toHaveLength(3);
     expect(badge.querySelector('[data-icon="ChevronDown"]')).not.toBeNull();
-    const parentCard = badge.closest("li");
-    expect(parentCard).not.toBeNull();
-    const machine = within(parentCard!).getByLabelText("Machine: Dev MacBook");
-    const providerGlyph = within(parentCard!).getByRole("img", {
-      name: "Codex",
-    });
-    expect(badge.compareDocumentPosition(machine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(machine.compareDocumentPosition(providerGlyph) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(badge.closest("[data-state-line]")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /No children.*child/i })).toBeNull();
     expect(screen.queryByText("One")).toBeNull();
   });

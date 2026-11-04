@@ -63,7 +63,6 @@ interface ThreadInboxViewProps {
     showProject?: boolean,
     compact?: boolean,
     renameShelf?: "active" | "working" | "inactive",
-    showEnvironment?: boolean,
   ) => ReactNode;
   activeView: ActiveView;
   inboxProjectView: readonly ProjectViewUnit[];
@@ -179,8 +178,8 @@ export function ThreadInboxView({
                               )
                             : NO_REORDER
                         }
-                        renderThread={(thread, grouped, environmentGrouped) =>
-                          renderActiveThread(thread, "inbox", true, !grouped, false, "active", !environmentGrouped)
+                        renderThread={(thread, grouped) =>
+                          renderActiveThread(thread, "inbox", true, !grouped, false, "active")
                         }
                       />
                     ) : activeView.group === "section" && expandedShelves.active ? (

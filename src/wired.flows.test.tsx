@@ -157,7 +157,7 @@ it("saves settings in the real settings slot and publishes the Working shelf to 
   expect(await wired.call("getSidebarSettings")).toMatchObject({ workingShelf: true });
 });
 
-it("publishes a custom project color to both stripe and name", async () => {
+it("publishes a custom project color to both stripe and project icon", async () => {
   const wired = await createWired([item()]);
   await wired.call("updateSidebarSettings", { projectColorsEnabled: true });
   const slot = wired.mount();
@@ -175,7 +175,7 @@ it("publishes a custom project color to both stripe and name", async () => {
     ).toBe("#123456"),
   );
   expect(
-    (row().querySelector(".bb-sidebar-project-name") as HTMLElement).style.getPropertyValue("--bb-sidebar-project"),
+    (row().querySelector(".bb-sidebar-project-monogram") as HTMLElement).style.getPropertyValue("--bb-sidebar-project"),
   ).toBe("#123456");
   expect(wired.db.prepare("SELECT * FROM project_colors").all()).toEqual([{ project_id: "proj_1", color: "#123456" }]);
 });

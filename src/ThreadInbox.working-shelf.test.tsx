@@ -194,7 +194,7 @@ describe("parking threads", () => {
     });
 
     expect(await screen.findByText("Failed")).toBeDefined();
-    expect(screen.getByText("Unread")).toBeDefined();
+    expect(screen.getByText("Done")).toBeDefined();
     expect(screen.getByText(/^\d+m$/)).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: "Unpin Failed work" }));
@@ -247,8 +247,8 @@ describe("parking threads", () => {
       await waitFor(() => expect(card("Busy work").classList.contains("h-8")).toBe(compactWorkingThreads));
       expect(card("Asking work").classList.contains("h-8")).toBe(false);
       expect(card("Idle work").classList.contains("h-8")).toBe(false);
-      // The folded row keeps bb's spinner and the full label for screen readers.
-      expect(card("Busy work").querySelector('[data-icon="Loading"]') !== null).toBe(compactWorkingThreads);
+      // Folded or not, the row keeps bb's spinner and the full label for screen readers.
+      expect(card("Busy work").querySelector('[data-icon="Loading"]')).not.toBeNull();
       expect(within(card("Busy work") as HTMLElement).getByText("Working")).toBeDefined();
     },
   );
@@ -411,7 +411,6 @@ describe("parking threads", () => {
       for (const title of ["Busy work", "Waiting on child"]) {
         const row = screen.getByRole("link", { name: title }).closest("[data-parent-card]")! as HTMLElement;
         expect(row.classList.contains("h-8")).toBe(true);
-        expect(within(row).getByRole("img", { name: "codex" }).querySelector(".rounded-full")).not.toBeNull();
       }
     },
   );

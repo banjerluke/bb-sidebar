@@ -32,6 +32,10 @@ export interface LifecycleApi {
   /** When a thread that is only waiting on a scheduled message will send it. */
   scheduledSendAtFor(thread: PluginSidebarThread): number | null;
   settledAtFor(thread: PluginSidebarThread): number | null;
+  /** An agent asked to settle it once it finishes and the user reads it. */
+  settlesOnceRead(thread: PluginSidebarThread): boolean;
+  /** A child or grandchild is waiting on the user. */
+  childNeedsYou(thread: PluginSidebarThread): boolean;
   wokeFor(thread: PluginSidebarThread): boolean;
   acknowledgeWake(threadId: string): Promise<boolean>;
   parkedAtFor(thread: PluginSidebarThread): number | null;
@@ -103,6 +107,7 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
     () => lifecycleCache.read(rpc) ?? new Map(),
   );
   const [now, setNow] = useState(() => Date.now());
+  const [settleRequests, setSettleRequests] = useState<ReadonlySet<string>>(() => new Set());
   const scheduledSends = useScheduledSends(threads);
   // Keyed by membership, so the API below keeps its identity across the
   // thread updates that do not change who is waiting on a child.
@@ -123,6 +128,13 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
   const portPromptVersions = useRef(new Map<string, number>());
   const refresh = useCallback(async () => {
     const seq = ++requestSeq.current;
+    // Separate from the rows, so a backend without it still lists them.
+    void rpc
+      .call("listSettleRequests", {})
+      .then(({ threadIds }) => {
+        if (seq === requestSeq.current) setSettleRequests(new Set(threadIds));
+      })
+      .catch(() => undefined);
     try {
       const result = await rpc.call("listLifecycle", {});
       if (seq !== requestSeq.current) return;
@@ -340,6 +352,8 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       park: (threadId) => mutate({ method: "park", threadId }),
       resume: (threadId) => mutate({ method: "resume", threadId }),
       settledAtFor: (thread) => rows.get(thread.id)?.settledAt ?? null,
+      settlesOnceRead: (thread) => settleRequests.has(thread.id),
+      childNeedsYou: (thread) => askingParentIds.has(thread.id),
       wokeFor: (thread) => resolveWakeReason(rows.get(thread.id), signalsFor(thread), now) !== null,
       acknowledgeWake: (threadId) => mutate({ method: "acknowledgeWake", threadId }),
       settle: (threadId) => mutate({ method: "settle", threadId }),
@@ -347,5 +361,5 @@ export function useLifecycle(threads: readonly PluginSidebarThread[]): Lifecycle
       unsnooze: (threadId) => mutate({ method: "unsnooze", threadId }),
       snooze: (threadId, snoozedUntil) => mutate({ method: "snooze", threadId, snoozedUntil }),
     };
-  }, [askingParentIds, now, rows, rpc, recovery, scheduledSends]);
+  }, [askingParentIds, now, rows, rpc, recovery, scheduledSends, settleRequests]);
 }

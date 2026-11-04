@@ -37,3 +37,7 @@ export { default as Tick02Icon } from "@hugeicons/core-free-icons/Tick02Icon";
 export { default as UserAdd01Icon } from "@hugeicons/core-free-icons/UserAdd01Icon";
 export { default as WorkflowCircle03Icon } from "@hugeicons/core-free-icons/WorkflowCircle03Icon";
 export { default as Yoga02Icon } from "@hugeicons/core-free-icons/Yoga02Icon";
+export { default as CheckmarkCircle02Icon } from "@hugeicons/core-free-icons/CheckmarkCircle02Icon";
+export { default as CheckUnread01Icon } from "@hugeicons/core-free-icons/CheckUnread01Icon";
+export { default as Flag02Icon } from "@hugeicons/core-free-icons/Flag02Icon";
+export { default as HierarchyIcon } from "@hugeicons/core-free-icons/HierarchyIcon";

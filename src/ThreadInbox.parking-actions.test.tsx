@@ -60,7 +60,7 @@ describe("parking threads", () => {
     const minute = Math.floor(Date.now() / 60_000) * 60_000;
     const parkable = [
       ["Touch failed", "unread-error", "Failed"],
-      ["Touch unread", "unread-success", "Unread"],
+      ["Touch unread", "unread-success", "Done"],
       // A question bb reports without a pending interaction is still parkable.
       ["Touch asked", "waiting-for-input", "Needs you"],
       ["Touch idle", "none", "4m"],
@@ -82,7 +82,7 @@ describe("parking threads", () => {
     });
 
     await screen.findByText("Touch failed");
-    for (const [title, , statusText] of parkable) {
+    for (const [title, indicator, statusText] of parkable) {
       const row = screen.getByText(title).closest("li")!;
       // The actions the touch layout has to sit beside, not on top of.
       expect(within(row).getByRole("combobox", { name: "Snooze, park, or archive" })).toBeDefined();
@@ -90,7 +90,12 @@ describe("parking threads", () => {
       // The card's anchor is a sibling of the controls, not their ancestor.
       expect(nestedInteractiveControls(row)).toEqual([]);
 
-      const { status, statusWrapper, slot, actions } = statusSlotParts(row, statusText);
+      // The state sits on its own line, never under the actions.
+      if (indicator !== "none") {
+        expect(within(row).getByText(statusText).closest("[data-state-line]")).not.toBeNull();
+      }
+      // The age shares the slot with the actions.
+      const { status, statusWrapper, slot, actions } = statusSlotParts(row, "4m");
       expect(actions).not.toBe(statusWrapper);
       expect(status.getAttribute("aria-hidden")).toBeNull();
       expect(status.hasAttribute("hidden")).toBe(false);
@@ -101,21 +106,28 @@ describe("parking threads", () => {
         expect(statusWrapper.className).toContain(className);
         expect(actions.className).toContain(className);
       }
-      expect(slot.className).toContain("[@media(hover:none)]:w-auto");
+      expect(slot.className).toContain("w-auto");
       expect(slot.className).toContain("[@media(hover:none)]:gap-1.5");
       expect(statusWrapper.className).not.toContain("[@media(hover:none)]:opacity-0");
-      // A hover device still trades the status for the actions.
+      // A hover device still trades the age for the actions.
       expect(statusWrapper.className).toContain("[@media(hover:hover)]:group-hover/card:opacity-0");
     }
   });
 
   // Opening the snooze menu pins the actions open on a hover device by hiding
-  // the status. On touch the two already share the row, so the status stays.
-  it("keeps the touch status visible while the snooze menu is open", async () => {
+  // the age. On touch the two already share the row, so the age stays.
+  it("keeps the touch age visible while the snooze menu is open", async () => {
     renderSlot(inbox, listProps, {
       sidebarThreads: {
         status: "ready",
-        threads: [thread({ id: "thr_open", title: "Menu open", indicator: "unread-error" })],
+        threads: [
+          thread({
+            id: "thr_open",
+            title: "Menu open",
+            indicator: "unread-error",
+            latestAttentionAt: Math.floor(Date.now() / 60_000) * 60_000 - 4 * 60_000,
+          }),
+        ],
         projects: [{ id: "proj_1", name: "bb", isPersonal: false, href: "", settingsHref: "" }],
       },
       rpc: { listLifecycle: () => ({ rows: [] }) },
@@ -125,15 +137,15 @@ describe("parking threads", () => {
     fireEvent.keyDown(within(row).getByRole("combobox", { name: "Snooze, park, or archive" }), { key: "Enter" });
     await screen.findByRole("option", { name: "1 hour" });
 
-    const { statusWrapper } = statusSlotParts(row, "Failed");
-    expect(within(row).getByText("Failed")).toBeDefined();
+    const { statusWrapper } = statusSlotParts(row, "4m");
+    expect(within(row).getByText("Failed").closest("[data-state-line]")).not.toBeNull();
     expect(statusWrapper.className).toContain("opacity-0");
     expect(statusWrapper.className).toContain("[@media(hover:none)]:opacity-100");
   });
 
   // A working or blocked thread cannot be parked, so it has no actions to
-  // share the slot with — but it must still show its status on touch.
-  it("keeps the status on rows that offer no park actions", async () => {
+  // share the slot with — but it must still show its status and age on touch.
+  it("keeps the status and age on rows that offer no park actions", async () => {
     const now = Math.floor(Date.now() / 60_000) * 60_000;
     window.localStorage.setItem("bb-sidebar:working-since:v1", JSON.stringify({ thr_working: now - 5 * 60_000 }));
     renderSlot(inbox, listProps, {
@@ -168,12 +180,12 @@ describe("parking threads", () => {
       const row = screen.getByText(title).closest("li")!;
       expect(within(row).queryByRole("combobox", { name: "Snooze, park, or archive" })).toBeNull();
       expect(within(row).queryByRole("button", { name: "Settle thread" })).toBeNull();
-      const { status, statusWrapper, slot } = statusSlotParts(row, statusText);
+      expect(within(row).getByText(statusText).closest("[data-state-line]")).not.toBeNull();
+      const { status, statusWrapper, slot } = statusSlotParts(row, "now");
       expect(status.getAttribute("aria-hidden")).toBeNull();
       expect(statusWrapper.className).not.toContain("opacity-0");
-      // Intrinsic width with a floor: nothing is layered over the status.
+      // Intrinsic width: nothing is layered over the age.
       expect(slot.className).toContain("w-auto");
-      expect(slot.className).toContain("min-w-20");
     }
   });
 

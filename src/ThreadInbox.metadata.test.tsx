@@ -62,75 +62,12 @@ describe("card metadata", () => {
     },
   );
 
-  it("always shows the provider glyph, even without a branch", async () => {
-    render([thread({ id: "thr_p", providerId: "claude-code" })]);
-    expect(await screen.findByLabelText("Claude Code")).toBeDefined();
-  });
-
-  it("falls back to a neutral glyph for an unknown provider", async () => {
-    render([thread({ id: "thr_p", providerId: "some-new-agent" })]);
-    expect(await screen.findByLabelText("some-new-agent")).toBeDefined();
-  });
-
-  // A personal-project thread has a machine but no worktree, so the machine
-  // takes the branch's place instead of leaving the line blank.
-  it("shows the machine when the thread has no branch", async () => {
-    render([
-      thread({
-        id: "thr_m",
-        host: { id: "host_1", name: "Dev MacBook" },
-      }),
-    ]);
-    expect(await screen.findByText("Dev MacBook")).toBeDefined();
-  });
-
-  it("prefers the branch over the machine when both exist", async () => {
-    render([
-      thread({
-        id: "thr_b",
-        host: { id: "host_1", name: "Dev MacBook" },
-        environment: {
-          id: "env_1",
-          name: "Worktree",
-          branchName: "bb/feature",
-          workspaceDisplayKind: "managed-worktree",
-          path: null,
-          isWorktree: true,
-          providerId: null,
-        },
-      }),
-    ]);
-    expect(await screen.findByText("bb/feature")).toBeDefined();
-    expect(screen.queryByText("Dev MacBook")).toBeNull();
-    expect(await screen.findByLabelText("Worktree branch")).toBeDefined();
-    expect(screen.getByLabelText("Machine: Dev MacBook")).toBeDefined();
-  });
-
-  it("shows a plain branch cue for non-worktree checkouts", async () => {
-    render([
-      thread({
-        id: "thr_checkout",
-        environment: {
-          id: "env_1",
-          name: "Checkout",
-          branchName: "main",
-          workspaceDisplayKind: "other",
-          path: null,
-          isWorktree: null,
-          providerId: null,
-        },
-      }),
-    ]);
-    expect(await screen.findByLabelText("Branch")).toBeDefined();
-    expect(screen.queryByLabelText("Worktree branch")).toBeNull();
-  });
-
   it.each([
     ["managed-worktree", true, "FolderGit", "Worktree branch"],
     ["unmanaged-worktree", true, "FolderGit", "Worktree branch"],
     ["other", false, "GitBranch", "Branch"],
   ] as const)(
-    "shows one branch line with matching icons for %s",
+    "shows the branch with a matching icon in the details card for %s",
     async (workspaceDisplayKind, isWorktree, icon, branchLabel) => {
       render([
         thread({
@@ -147,7 +84,6 @@ describe("card metadata", () => {
         }),
       ]);
 
-      expect(screen.getByLabelText(branchLabel).getAttribute("data-icon")).toBe(icon);
       act(() => screen.getByRole("link", { name: "Unnamed worktree thread" }).focus());
       const details = await screen.findByRole("dialog", { name: "Thread details" });
       const label = within(details).getByText(`${branchLabel}:`);
@@ -222,9 +158,8 @@ describe("card metadata", () => {
     expect(await screen.findByText("3h")).toBeDefined();
   });
 
-  // Status and age share one slot. Live work uses a short readable label;
-  // idle rows use their age.
-  it("replaces the age label with a readable status while work runs", async () => {
+  // The age stays on the title line; live work gets a short readable label below it.
+  it("shows a readable status under the title while work runs", async () => {
     render([
       thread({
         id: "thr_run",
@@ -234,8 +169,9 @@ describe("card metadata", () => {
       }),
     ]);
     expect(await screen.findByLabelText("Agent is working")).toBeDefined();
+    expect(screen.getByText("Working").closest("[data-state-line]")).not.toBeNull();
     expect(screen.getByText("Working").className).toContain("text-[color:var(--bb-sidebar-tone-working)]");
-    expect(screen.queryByText("3h")).toBeNull();
+    expect(screen.getByText("3h")).toBeDefined();
   });
 
   // The host says only that a thread is working, so the sidebar keeps its own
@@ -365,7 +301,7 @@ describe("card metadata", () => {
     expect(screen.getByText("Draft").className).toContain("text-[color:var(--bb-sidebar-tone-draft)]");
     expect(screen.getByLabelText("Thread working with unsubmitted draft")).toBeDefined();
     expect(screen.getByText("Drafting")).toBeDefined();
-    expect(screen.getByText("Unread")).toBeDefined();
+    expect(screen.getByText("Done")).toBeDefined();
     expect(screen.getByText("3h")).toBeDefined();
   });
 });
