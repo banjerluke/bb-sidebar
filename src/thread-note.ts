@@ -24,11 +24,16 @@ export function normalizeAgentNote(text: string): string | null {
 
 /** Markdown reduced to the words a reader would see on one line. */
 function plainLine(line: string): string {
-  return line
-    .replace(/^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/, "")
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/(\*\*|\*|~~|`)(.+?)\1/g, "$2")
-    .trim();
+  return (
+    line
+      .replace(/^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/, "")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/(\*\*|\*|~~|`)(.+?)\1/g, "$2")
+      .trim()
+      // A line set in _italics_ whole, such as an agent's headline. Underscores
+      // inside a line stay, so snake_case names survive.
+      .replace(/^_(.+)_$/, "$1")
+  );
 }
 
 /**

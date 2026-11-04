@@ -22,6 +22,11 @@ describe("lastLineOf", () => {
     );
   });
 
+  it("drops the italics an agent sets its headline in", () => {
+    expect(lastLineOf("Done.\n\n*Merged #212; nothing left*")).toBe("Merged #212; nothing left");
+    expect(lastLineOf("Done.\n\n_Needs your call: squash or rebase?_")).toBe("Needs your call: squash or rebase?");
+  });
+
   it("clips a long line to one row's worth", () => {
     const line = lastLineOf("word ".repeat(100))!;
     expect(line.length).toBeLessThanOrEqual(160);

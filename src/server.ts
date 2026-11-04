@@ -128,7 +128,7 @@ const migrations = [
 
 /** What every thread's agent learns about the sidebar; kept short, since it rides on every turn. */
 const AGENT_INSTRUCTIONS = `## BB Sidebar
-- Every turn: end your final message with this thread's headline, which the sidebar shows under its title. Under 60 characters: where it stands or what you need ("Merged #212; nothing left", "Needs your call: squash or rebase?").
+- Every turn: end your final message with this thread's headline in italics, which the sidebar shows under its title. Under 60 characters: where it stands or what you need (*Merged #212; nothing left*, *Needs your call: squash or rebase?*).
 - Blocked on something outside bb (CI, a review, a person): pin a headline that outlasts this turn with \`bb sidebar note "Waiting for CI on #57"\`. When the wait ends, pin another or run \`bb sidebar note --clear\`.
 - Done (the PR merged, or the user says the work is finished): \`bb sidebar settle\`. Safe mid-turn: the thread files away after the user reads your reply.`;
 
