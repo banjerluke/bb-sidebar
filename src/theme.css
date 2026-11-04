@@ -297,15 +297,16 @@
 @keyframes bb-sidebar-unread-pulse {
   0%,
   100% {
-    opacity: 1;
+    opacity: 0.75;
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.5;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-unread-glow]::before {
     animation: none;
+    opacity: 0.75;
   }
 }
 
