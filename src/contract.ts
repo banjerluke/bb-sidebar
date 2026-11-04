@@ -449,7 +449,7 @@ export const bbSidebarRpcContract = defineRpcContract({
       .strict(),
     output: projectIconOverrideSchema,
   },
-  /** Letters or an emoji as the icon; checked against `parseProjectGlyph`. */
+  /** Characters or an emoji as the icon; checked against `parseProjectGlyph`. */
   setProjectIconGlyph: {
     input: z.object({ projectId: projectIdSchema, glyph: z.string().trim().min(1).max(32) }).strict(),
     output: projectIconOverrideSchema,

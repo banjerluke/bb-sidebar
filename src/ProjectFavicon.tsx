@@ -48,7 +48,7 @@ export function ProjectMonogram({
   name: string;
   className?: string;
   projectId?: string;
-  /** Letters the user chose instead of the one drawn from the name; two get a smaller size. */
+  /** Characters the user chose instead of the letter drawn from the name; two get a smaller size. */
   letters?: string;
 }) {
   const color = useProjectColor(projectId);
@@ -125,7 +125,7 @@ export function ProjectFavicon({
     return () => clearTimeout(timer);
   }, [src, retryAt]);
   // Typed letters or an emoji replace any image.
-  if (glyph?.kind === "letters") {
+  if (glyph?.kind === "text") {
     return <ProjectMonogram name={name ?? ""} letters={glyph.text} projectId={projectId} className={className} />;
   }
   if (glyph?.kind === "emoji") {

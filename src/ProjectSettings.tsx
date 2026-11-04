@@ -137,7 +137,7 @@ export function ProjectAppearanceSettings() {
     if (!selectedId || saving) return;
     const parsed = parseProjectGlyph(glyphDraft);
     if (!parsed) {
-      toast.error("Use one or two letters or digits, or a single emoji");
+      toast.error("Use one or two characters, or a single emoji");
       return;
     }
     loadRequestSeq.current += 1;
@@ -246,7 +246,7 @@ export function ProjectAppearanceSettings() {
             <p className="text-sm text-foreground">Icon</p>
             <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
               {glyph
-                ? `${glyph.kind === "emoji" ? "Emoji" : "Letters"}: ${glyph.text}`
+                ? `${glyph.kind === "emoji" ? "Emoji" : "Characters"}: ${glyph.text}`
                 : icon.customUploadName
                   ? `Uploaded: ${icon.customUploadName}`
                   : icon.customPath
@@ -296,9 +296,9 @@ export function ProjectAppearanceSettings() {
           }}
         >
           <label htmlFor={`project-glyph-${icon.id}`} className="min-w-0 flex-1">
-            <span className="block text-sm text-foreground">Letters or emoji</span>
+            <span className="block text-sm text-foreground">Characters or emoji</span>
             <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-              One or two letters on the project color, or a single emoji, in place of an image.
+              One or two characters on the project color (SM, ←, ♪), or a single emoji, in place of an image.
             </span>
           </label>
           <input

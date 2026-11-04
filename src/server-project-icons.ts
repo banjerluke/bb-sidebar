@@ -377,7 +377,7 @@ export function createServerProjectIcons(ctx: ServerContext) {
     async setProjectIconGlyph({ projectId, glyph }) {
       await ctx.bb.sdk.projects.get({ projectId });
       const parsed = parseProjectGlyph(glyph);
-      if (!parsed) throw new Error("Use one or two letters or digits, or a single emoji");
+      if (!parsed) throw new Error("Use one or two characters, or a single emoji");
       ctx.db.transaction(() => {
         ctx.db
           .prepare(
