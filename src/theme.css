@@ -259,6 +259,56 @@
   pointer-events: none !important;
 }
 
+/*
+ * Unread rows glow faintly in the tone of what is new (unreadGlowTone in
+ * row-state.ts), on a layer behind the row so the pulse animates opacity only.
+ */
+[data-unread-glow] {
+  isolation: isolate;
+}
+[data-unread-glow="error"] {
+  --bb-sidebar-glow: var(--bb-sidebar-tone-error);
+}
+[data-unread-glow="pending"] {
+  --bb-sidebar-glow: var(--bb-sidebar-tone-pending);
+}
+[data-unread-glow="working"] {
+  --bb-sidebar-glow: var(--bb-sidebar-tone-working);
+}
+[data-unread-glow="draft"] {
+  --bb-sidebar-glow: var(--bb-sidebar-tone-draft);
+}
+[data-unread-glow="success"] {
+  --bb-sidebar-glow: var(--bb-sidebar-tone-success);
+}
+[data-unread-glow]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: color-mix(in oklch, var(--bb-sidebar-glow) 7%, transparent);
+  animation: bb-sidebar-unread-pulse 2s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+.dark [data-unread-glow]::before {
+  background: color-mix(in oklch, var(--bb-sidebar-glow) 12%, transparent);
+}
+@keyframes bb-sidebar-unread-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-unread-glow]::before {
+    animation: none;
+  }
+}
+
 /* Optional project accents. Each project supplies its own color. */
 .bb-sidebar-project-stripe {
   background-color: var(--bb-sidebar-project);

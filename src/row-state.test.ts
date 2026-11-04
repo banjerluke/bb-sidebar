@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk";
 import { idleSidebarThreadFields } from "./test-fixtures";
-import { sidebarRowState, sidebarRowStateLabel } from "./row-state";
+import { sidebarRowState, sidebarRowStateLabel, unreadGlowTone } from "./row-state";
 
 function thread(overrides: Partial<PluginSidebarThread> = {}): PluginSidebarThread {
   return {
@@ -77,5 +77,22 @@ describe("sidebarRowState", () => {
     ["its own work", { indicator: "runtime" }],
   ] as const)("leaves bb's state alone for %s", (_, overrides) => {
     expect(stateOf(thread(overrides), [busy("a")], { childNeedsYou: true, settlesOnceRead: true })).toBeNull();
+  });
+});
+
+describe("unreadGlowTone", () => {
+  it.each([
+    ["a failure", { indicator: "unread-error" }, null, "error"],
+    ["a question", { hasPendingInteraction: true }, null, "pending"],
+    ["a child's question", {}, { kind: "child-needs-you" }, "pending"],
+    ["work still running", { indicator: "runtime" }, null, "working"],
+    ["children still working", {}, { kind: "waiting-on-children", count: 2 }, "working"],
+    ["a finished result", { indicator: "unread-success" }, null, "success"],
+  ] as const)("glows for %s", (_, overrides, own, tone) => {
+    expect(unreadGlowTone(thread({ isUnread: true, ...overrides }), own)).toBe(tone);
+  });
+
+  it("leaves read rows alone", () => {
+    expect(unreadGlowTone(thread({ indicator: "unread-error" }), null)).toBeNull();
   });
 });

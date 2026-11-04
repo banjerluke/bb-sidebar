@@ -60,3 +60,22 @@ export function sidebarRowStateLabel(state: SidebarRowState): string {
       return "Settles once read";
   }
 }
+
+/** A sidebar status tone, as named by the `--bb-sidebar-tone-*` palette. */
+type StatusTone = "error" | "pending" | "working" | "draft" | "success";
+
+/**
+ * The tone an unread row glows in: the colour of what is new in it. A
+ * failure, then a question, then work still under way; anything else that
+ * is unread is a finished result.
+ */
+export function unreadGlowTone(thread: PluginSidebarThread, own: SidebarRowState | null): StatusTone | null {
+  if (!thread.isUnread) return null;
+  if (thread.indicator === "unread-error" || thread.queuedWork === "failed") return "error";
+  if (thread.hasPendingInteraction || thread.indicator === "waiting-for-input" || own?.kind === "child-needs-you") {
+    return "pending";
+  }
+  if (own?.kind === "waiting-on-children" || isWorkingIndicator(thread.indicator)) return "working";
+  if (thread.indicator === "draft") return "draft";
+  return "success";
+}

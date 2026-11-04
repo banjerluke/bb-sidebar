@@ -26,6 +26,7 @@ import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { projectIconUrl as iconUrl } from "./project-icons";
 import { useArchiveThread } from "./useArchiveThread";
 import { useRestoreRowFocus } from "./useRestoreRowFocus";
+import { sidebarRowState, unreadGlowTone } from "./row-state";
 import "./settle-button.css";
 
 /** How long the settle sweep plays before the thread actually moves. */
@@ -167,6 +168,13 @@ export function ThreadCard({
   const showChildrenWhenCollapsed = showRunningChildrenWhenCollapsed && !compact;
   const emphasis = isWoke ? "woke" : thread.isUnread ? "unread" : thread.indicator === "none" ? "read-idle" : "active";
   const showParkActions = !isWoke && canPark;
+  const stateInputs = {
+    childNeedsYou: lifecycle.childNeedsYou(thread),
+    settlesOnceRead: lifecycle.settlesOnceRead(thread),
+    children: childThreads,
+    childrenByParent,
+  };
+  const glowTone = unreadGlowTone(thread, sidebarRowState(thread, stateInputs)) ?? undefined;
 
   const unpinButton = thread.isPinned ? (
     <Tooltip label="Unpin thread">
@@ -247,7 +255,11 @@ export function ThreadCard({
                 if (isWoke) onAcknowledgeWake();
                 onNavigate();
               }}
-              rowProps={{ "data-parent-card": "", "data-settling": isSettling ? "" : undefined }}
+              rowProps={{
+                "data-parent-card": "",
+                "data-settling": isSettling ? "" : undefined,
+                "data-unread-glow": glowTone,
+              }}
               linkProps={{
                 draggable: false,
                 "aria-keyshortcuts": rowKeyshortcuts(shortcut?.ariaKeyshortcuts, !!reorder),
@@ -291,6 +303,7 @@ export function ThreadCard({
             <div
               data-parent-card=""
               data-settling={isSettling ? "" : undefined}
+              data-unread-glow={glowTone}
               className={cn(
                 "group/card relative rounded-md px-2.5 transition-colors duration-150 ease-out motion-reduce:transition-none",
                 compact ? "flex h-8 items-center gap-2 text-xs" : "py-2",
@@ -418,12 +431,7 @@ export function ThreadCard({
                 thread={thread}
                 now={now}
                 note={threadNotes.get(thread.id) ?? null}
-                inputs={{
-                  childNeedsYou: lifecycle.childNeedsYou(thread),
-                  settlesOnceRead: lifecycle.settlesOnceRead(thread),
-                  children: childThreads,
-                  childrenByParent,
-                }}
+                inputs={stateInputs}
                 trailing={
                   <>
                     {childThreads.length > 0 ? (
