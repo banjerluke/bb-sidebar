@@ -19,8 +19,10 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Optional project colors with per-project color selection. Names stay colored in every mode; show stripes in full and collapsed mode, full mode only, or grouped projects only
 - Automatic project icons with custom overrides
 - Expandable child-thread indicators with running and attention states, on shelf rows too
-- Live status, branch, pull request, and provider details, plus statuses set by other plugins
-- A `bb sidebar` command so agents can list, snooze, settle, park, resume, pin, and re-parent threads
+- Two-line cards: the title and age, then what the thread is doing or waiting on (Working, Needs you, Child needs you, Waiting on N children, Settles once read, Done) and its note. Unread rows get a wide stripe
+- Thread notes: an agent's own line from `bb sidebar note`, cleared by your next message, or else the last line of its final message or what a pending question asks
+- Pull request badges and statuses set by other plugins
+- A `bb sidebar` command so agents can list, snooze, settle, park, resume, pin, note, and re-parent threads. An agent that settles its own thread waits until its turn ends and you have read it
 - Persistent provider-limit warnings with one-click scheduled Continue after reset and a cancel option
 - Workspace port discovery, hover-card details, and optional browser links
 - A Clean button in Settled that previews and closes live terminals and verified thread-owned listening ports, while protecting Active and Working threads

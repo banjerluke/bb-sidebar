@@ -66,4 +66,38 @@ describe("attention states", () => {
     expect(within((await line("Coordinator")) as HTMLElement).getByText("Waiting on 2 children")).toBeDefined();
     expect(await within((await line("Self settled")) as HTMLElement).findByText("Settles once read")).toBeDefined();
   });
+
+  it("shows the agent's note with its flag, and hides a stale last line while work runs", async () => {
+    renderSlot(inbox, listProps, {
+      sidebarThreads: {
+        status: "ready",
+        threads: [
+          thread({ id: "noted", title: "Noted thread" }),
+          thread({ id: "busy", title: "Busy thread", indicator: "runtime" }),
+          thread({ id: "quiet", title: "Quiet thread" }),
+        ],
+        projects: [],
+      },
+      rpc: {
+        listLifecycle: () => ({ rows: [] }),
+        listThreadNotes: () => ({
+          notes: {
+            noted: { text: "Waiting for Tyler", by: "agent" },
+            busy: { text: "Old last line", by: "auto" },
+            quiet: { text: "Pushed the fix.", by: "auto" },
+          },
+        }),
+      },
+    });
+    const line = async (title: string) =>
+      (await screen.findByRole("link", { name: title }))
+        .closest("li")!
+        .querySelector<HTMLElement>("[data-state-line]")!;
+    const noted = await line("Noted thread");
+    expect(await within(noted).findByText("Waiting for Tyler")).toBeDefined();
+    // With no state to show, the flag takes the icon column.
+    expect(noted.firstElementChild!.querySelector('[data-icon="Flag"]')).not.toBeNull();
+    expect(await within(await line("Quiet thread")).findByText("Pushed the fix.")).toBeDefined();
+    expect(within(await line("Busy thread")).queryByText("Old last line")).toBeNull();
+  });
 });

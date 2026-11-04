@@ -3,6 +3,8 @@ import type { PluginCliContext } from "@get-bb/plugin-sdk";
 import type { ServerHandlers } from "./server-context";
 import type { createServerLifecycle } from "./server-lifecycle";
 import type { createServerSettleRequests } from "./server-settle-requests";
+import type { createServerThreadNotes } from "./server-thread-notes";
+import { normalizeAgentNote } from "./thread-note";
 import {
   configuredSnoozePresetError,
   formatSnoozeWakeTime,
@@ -73,12 +75,13 @@ export function createServerCli(
   lifecycle: ReturnType<typeof createServerLifecycle>,
   handlers: CliHandlers,
   settleRequests: Pick<ReturnType<typeof createServerSettleRequests>, "request" | "list">,
+  notes: Pick<ReturnType<typeof createServerThreadNotes>, "setAgentNote">,
 ) {
   const { loadPolicyThreads, readOne, threadSignals } = lifecycle;
 
   return defineCli({
     name: "sidebar",
-    summary: "Snooze, settle, park, pin, and re-parent threads in the BB Sidebar",
+    summary: "Snooze, settle, park, pin, note, and re-parent threads in the BB Sidebar",
     commands: {
       list: cliCommand({
         summary: "List threads with their sidebar shelf",
@@ -187,6 +190,25 @@ export function createServerCli(
             return outcome === "settled"
               ? `settled ${threadId}`
               : `${threadId} will settle once it finishes and the user has read it; a failure or a new message from the user cancels this`;
+          });
+        },
+      }),
+      note: cliCommand({
+        summary: "Say what the thread is doing or waiting on, under its title, until the user next messages it",
+        positionals: [{ name: "text", description: 'One short line, e.g. "Waiting for CI on #57"' }],
+        options: { ...threadOption, clear: { type: "boolean", description: "Remove the note" } },
+        run: ({ positionals, options }, ctx) => {
+          const threadId = targetThread(options.thread, ctx);
+          const text = options.clear ? null : normalizeAgentNote(positionals.text ?? "");
+          if (!options.clear && text === null) {
+            throw new PluginCliError("Give the note text, or --clear to remove it", {
+              code: "invalid_value",
+              hint: 'bb sidebar note "Waiting for CI on #57"',
+            });
+          }
+          return act(async () => {
+            notes.setAgentNote(threadId, text);
+            return text === null ? `cleared the note on ${threadId}` : `noted on ${threadId}: ${text}`;
           });
         },
       }),

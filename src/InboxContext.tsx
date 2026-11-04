@@ -13,6 +13,7 @@ import type { SidebarProvider } from "./ProviderGlyph";
 import { DEFAULT_SIDEBAR_SETTINGS, type SidebarSettingsValues } from "./sidebar-settings";
 import type { ConfiguredSnoozePreset } from "./lifecycle";
 import type { LifecycleApi } from "./useLifecycle";
+import { useThreadNotes } from "./useThreadNotes";
 import type { ShelfExpansionState } from "./ThreadInboxView";
 import { ListAnimationContext, type ListAnimationController } from "./useListMotion";
 import { ProjectColorsProvider } from "./ProjectColors";
@@ -71,6 +72,7 @@ export function useInboxContextValues({
   setSettledLimit,
   toggleProjectCollapse,
 }: InboxContextInputs) {
+  const threadNotes = useThreadNotes();
   const environment = useMemo(
     () => ({
       providerById,
@@ -81,6 +83,7 @@ export function useInboxContextValues({
       snoozePresets,
       lifecycle,
       childrenByParentId,
+      threadNotes,
     }),
     [
       providerById,
@@ -91,6 +94,7 @@ export function useInboxContextValues({
       snoozePresets,
       lifecycle,
       childrenByParentId,
+      threadNotes,
     ],
   );
   const actions = useMemo(

@@ -91,6 +91,7 @@ export function ThreadCard({
     childrenByParentId: childrenByParent,
     sidebarSettings,
     lifecycle,
+    threadNotes,
   } = useInboxEnvironment();
   const { onNavigate, parkThread, settleThread, snoozeThread, acknowledgeWake, toggleChildExpansion } =
     useInboxActions();
@@ -423,6 +424,7 @@ export function ThreadCard({
               <ThreadStateLine
                 thread={thread}
                 now={now}
+                note={threadNotes.get(thread.id) ?? null}
                 inputs={{
                   childNeedsYou: lifecycle.childNeedsYou(thread),
                   settlesOnceRead: lifecycle.settlesOnceRead(thread),

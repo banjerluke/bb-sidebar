@@ -66,7 +66,7 @@ Do not adopt the SDK's thread menu components for this sidebar.
 
 The sidebar RPC contract and its schemas live in shared `src/contract.ts` as
 `bbSidebarRpcContract`. App code imports its types with `import type`. The
-contract re-exports all six realtime channels from `src/realtime-channels.ts`;
+contract re-exports every realtime channel from `src/realtime-channels.ts`;
 browser value imports use that pure module to avoid loading schemas. The host
 port contract lives in `src/port-scan-contract.ts`.
 

@@ -311,6 +311,6 @@ export function createServerHandlers(
     ...handlers,
   } satisfies Omit<
     ServerHandlers,
-    "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue" | "listSettleRequests"
+    "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue" | "listSettleRequests" | "listThreadNotes"
   >;
 }

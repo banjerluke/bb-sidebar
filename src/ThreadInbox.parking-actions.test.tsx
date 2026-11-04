@@ -181,6 +181,11 @@ describe("parking threads", () => {
       expect(within(row).queryByRole("combobox", { name: "Snooze, park, or archive" })).toBeNull();
       expect(within(row).queryByRole("button", { name: "Settle thread" })).toBeNull();
       expect(within(row).getByText(statusText).closest("[data-state-line]")).not.toBeNull();
+      // A working row's duration stands in for its age.
+      if (title === "Still working") {
+        expect(within(row).queryByText("now")).toBeNull();
+        continue;
+      }
       const { status, statusWrapper, slot } = statusSlotParts(row, "now");
       expect(status.getAttribute("aria-hidden")).toBeNull();
       expect(statusWrapper.className).not.toContain("opacity-0");

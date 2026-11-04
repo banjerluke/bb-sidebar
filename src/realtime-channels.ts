@@ -5,3 +5,4 @@ export const PROJECT_COLORS_CHANNEL = "project-colors";
 export const PROJECT_ICONS_CHANNEL = "project-icons";
 export const RATE_LIMITS_CHANNEL = "rate-limits";
 export const SECTION_ORDER_CHANNEL = "section-order";
+export const THREAD_NOTES_CHANNEL = "thread-notes";

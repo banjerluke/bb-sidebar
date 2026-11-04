@@ -158,7 +158,7 @@ describe("card metadata", () => {
     expect(await screen.findByText("3h")).toBeDefined();
   });
 
-  // The age stays on the title line; live work gets a short readable label below it.
+  // Live work gets a short readable label under the title, which stands in for the age.
   it("shows a readable status under the title while work runs", async () => {
     render([
       thread({
@@ -171,7 +171,7 @@ describe("card metadata", () => {
     expect(await screen.findByLabelText("Agent is working")).toBeDefined();
     expect(screen.getByText("Working").closest("[data-state-line]")).not.toBeNull();
     expect(screen.getByText("Working").className).toContain("text-[color:var(--bb-sidebar-tone-working)]");
-    expect(screen.getByText("3h")).toBeDefined();
+    expect(screen.queryByText("3h")).toBeNull();
   });
 
   // The host says only that a thread is working, so the sidebar keeps its own

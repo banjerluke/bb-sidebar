@@ -15,6 +15,8 @@ import {
   useThreadWithDraft,
 } from "./StatusSlot";
 import { useWorkingSinceContext } from "./useWorkingSince";
+import { isThreadWorking } from "./lifecycle";
+import type { ThreadNote } from "./thread-note";
 
 /**
  * The fixed first column of a card. The project icon sits in it on the title
@@ -93,31 +95,55 @@ function useLineState(
   };
 }
 
+function NoteFlag() {
+  return <Icon name="Flag" aria-label="Agent's note" className="size-3 shrink-0 text-muted-foreground" />;
+}
+
 /**
- * A card's second line: what the thread is doing or waiting on, then the
- * trailing badges. The sidebar's own states (a child that needs you, children
- * still working, a settle waiting on your read) come before bb's indicator.
+ * A card's second line: what the thread is doing or waiting on, its note,
+ * then the trailing badges. The sidebar's own states (a child that needs you,
+ * children still working, a settle waiting on your read) come before bb's
+ * indicator. The agent's note always shows; the automatic one would be stale
+ * while the thread works, so it waits for the turn to end or for a question.
  */
 export function ThreadStateLine({
   thread,
   inputs,
+  note,
   now,
   trailing,
 }: {
   thread: PluginSidebarThread;
   inputs: Parameters<typeof sidebarRowState>[1];
+  note: ThreadNote | null;
   now: number;
   trailing: ReactNode;
 }) {
   const state = useLineState(thread, inputs, now);
+  const shownNote =
+    note && (note.by === "agent" || thread.hasPendingInteraction || !isThreadWorking(thread)) ? note : null;
+  const flagInGutter = !state && shownNote?.by === "agent";
   return (
     <div
       data-settle-fade=""
       data-state-line=""
       className="pointer-events-none relative mt-0.5 flex h-4 min-w-0 items-center gap-1.5 text-2xs text-muted-foreground"
     >
-      <IconGutter>{state?.glyph}</IconGutter>
-      <span className="flex min-w-0 flex-1 items-center gap-1 truncate">{state?.label}</span>
+      <IconGutter>{flagInGutter ? <NoteFlag /> : state?.glyph}</IconGutter>
+      <span className="flex min-w-0 flex-1 items-center gap-1">
+        {state ? <span className="shrink-0">{state.label}</span> : null}
+        {state && shownNote ? <span aria-hidden="true">·</span> : null}
+        {state && shownNote?.by === "agent" ? <NoteFlag /> : null}
+        {shownNote ? (
+          <span
+            title={shownNote.text}
+            data-note={shownNote.by}
+            className={cn("min-w-0 truncate", shownNote.by === "auto" && "text-muted-foreground/70")}
+          >
+            {shownNote.text}
+          </span>
+        ) : null}
+      </span>
       {trailing}
     </div>
   );

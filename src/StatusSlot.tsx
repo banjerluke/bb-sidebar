@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { isWorkingIndicator } from "./child-status";
 import { cn } from "./lib/utils";
 import { lastActivityAt } from "./inbox";
+import { isThreadWorking } from "./lifecycle";
 import { relativeTimeLabel } from "./relative-time";
 import { useWorkingSinceContext } from "./useWorkingSince";
 import { statusWithDuration } from "./working-since";
@@ -92,8 +93,12 @@ export function StatusOrTime({
   );
 }
 
-/** How long ago the thread last did something, for a card's title line. */
+/**
+ * How long ago the thread last did something, for a card's title line. A
+ * thread at work has none: its state line already says how long it has run.
+ */
 export function ThreadAge({ thread, now }: { thread: PluginSidebarThread; now: number }) {
+  if (isThreadWorking(thread)) return null;
   return (
     <span className="tabular-nums text-2xs text-muted-foreground">
       {relativeTimeLabel(lastActivityAt(thread), now)}

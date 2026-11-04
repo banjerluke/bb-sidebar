@@ -17,6 +17,7 @@ export {
   PROJECT_ICONS_CHANNEL,
   RATE_LIMITS_CHANNEL,
   SECTION_ORDER_CHANNEL,
+  THREAD_NOTES_CHANNEL,
 } from "./realtime-channels";
 
 export const openPortSchema = z.object({
@@ -283,6 +284,13 @@ export const bbSidebarRpcContract = defineRpcContract({
           snoozedAt: z.number().nullable(),
         }),
       ),
+    }),
+  },
+  /** Each thread's note: the agent's own, else its last line or pending question. */
+  listThreadNotes: {
+    input: z.object({}),
+    output: z.object({
+      notes: z.record(z.string(), z.object({ text: z.string(), by: z.enum(["agent", "auto"]) })),
     }),
   },
   /** Threads an agent asked to settle once they finish and the user reads them. */

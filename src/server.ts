@@ -20,6 +20,8 @@ import { createServerHandlers } from "./server-handlers";
 import { createServerRateLimits } from "./server-rate-limits";
 import { createServerCli } from "./server-cli";
 import { createServerSettleRequests, SETTLE_REQUESTS_MIGRATION } from "./server-settle-requests";
+import { createServerThreadNotes, THREAD_NOTES_MIGRATION } from "./server-thread-notes";
+import { interactionSummary, lastLineOf } from "./thread-note";
 
 export type { StoredLifecycleRow } from "./server-lifecycle";
 
@@ -120,7 +122,14 @@ const migrations = [
      sort_index  INTEGER NOT NULL
    )`,
   SETTLE_REQUESTS_MIGRATION,
+  THREAD_NOTES_MIGRATION,
 ];
+
+/** What every thread's agent learns about the sidebar; kept short, since it rides on every turn. */
+const AGENT_INSTRUCTIONS = `## BB Sidebar
+The user's sidebar shows one line under each thread's title.
+- When you stop to wait on something outside this thread (CI, a review, a person), say so: \`bb sidebar note "Waiting for CI on #57"\`. One short line; the user's next message clears it.
+- When the work is finished and handed back (merged, or nothing left to do), run \`bb sidebar settle\`. The thread moves to Settled once this turn ends and the user has read it, and new activity brings it back.`;
 
 export default async function plugin(bb: BbPluginApi) {
   const ctx: ServerContext = { bb, db: bb.storage.database() };
@@ -154,9 +163,11 @@ export default async function plugin(bb: BbPluginApi) {
     { icons, colors, projects, settle, sections: createServerSections(ctx) },
   );
   const settleRequests = createServerSettleRequests(ctx, lifecycle, (threadId) => settle.handlers.settle({ threadId }));
+  const notes = createServerThreadNotes(ctx);
   const userHandlers = {
     ...settleRequests.overriddenBy(handlers),
     listSettleRequests: async () => ({ threadIds: settleRequests.list() }),
+    listThreadNotes: async () => ({ notes: notes.list() }),
   };
   const { resolveProjectIcon } = icons;
   const { wakeAncestors, clearSettlingState, clear } = lifecycle;
@@ -186,22 +197,31 @@ export default async function plugin(bb: BbPluginApi) {
     await policy.evaluatePolicies();
   });
   ctx.bb.rpc.register(bbSidebarRpcContract, { ...userHandlers, ...createServerRateLimits(ctx, lifecycle) });
-  ctx.bb.cli.register(createServerCli(lifecycle, userHandlers, settleRequests));
+  ctx.bb.cli.register(createServerCli(lifecycle, userHandlers, settleRequests, notes));
   // Waiting settles carry out once you have read the thread, which raises no
   // event, so check each minute; the check is one query while none wait.
   ctx.bb.background.schedule("settle-requests", "* * * * *", async () => {
     await settleRequests.resolve();
   });
-  ctx.bb.events.on("thread.idle", async () => {
+  ctx.bb.events.on("thread.idle", async ({ thread, lastAssistantText }) => {
+    notes.setAutoNote(thread.id, lastLineOf(lastAssistantText));
     await settleRequests.resolve();
+  });
+  ctx.bb.events.on("interaction.pending", ({ thread, interaction }) => {
+    const asked = interactionSummary(interaction);
+    if (asked) notes.setAutoNote(thread.id, asked);
   });
   ctx.bb.events.on("thread.failed", ({ thread }) => {
     settleRequests.drop(thread.id);
   });
+  ctx.bb.agents.contributeInstructions(() => AGENT_INSTRUCTIONS);
   // bb fails a send when a dispatch hook throws, so this only ever proceeds.
   ctx.bb.experimental_hooks?.on("message.dispatch", (dispatch) => {
     try {
-      if (dispatch.initiator === "user") settleRequests.drop(dispatch.thread.id);
+      if (dispatch.initiator === "user") {
+        settleRequests.drop(dispatch.thread.id);
+        notes.setAgentNote(dispatch.thread.id, null);
+      }
     } catch {
       // Never block a message over sidebar bookkeeping.
     }
@@ -222,6 +242,7 @@ export default async function plugin(bb: BbPluginApi) {
   // thread reusing the id, and stale rows accumulate otherwise.
   ctx.bb.events.on("thread.deleted", ({ thread }) => {
     clear(thread.id);
+    notes.remove(thread.id);
     const removed = ctx.db.prepare(`DELETE FROM inbox_order WHERE thread_id = ?`).run(thread.id);
     if (removed.changes > 0) {
       ctx.bb.realtime.publish(INBOX_ORDER_CHANNEL, {});
