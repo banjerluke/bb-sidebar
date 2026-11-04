@@ -23,7 +23,7 @@ Inbox context: `src/InboxContext.tsx` shares environment, actions, and activity.
 - Node server entry: `src/server.ts`. Node host entry: `src/ports-host.ts`.
   Flat `src/server-*.ts` modules share `ServerContext` explicitly.
   Their other supporting Node modules are `port-scan`, `auto-title`,
-  `cloud-title`, `regenerate-title`, `port-discovery`, `thread-ports`,
+  `regenerate-title`, `port-discovery`, `thread-ports`,
   `thread-pull-requests`, and `thread-tasks`, all under `src/`.
   Node/SDK server or host APIs are allowed. These modules must not import React,
   TSX, browser `.ts` modules, `use*` hooks, `lib/**`, or `components/**`, even
@@ -47,7 +47,7 @@ Inbox context: `src/InboxContext.tsx` shares environment, actions, and activity.
 
 App experimental SDK hooks use stable names from `src/bb-sdk.ts`.
 Pin to the SDK the latest stable bb-app ships; migrate experimental_* breaks
-through `src/bb-sdk.ts`. The minimum host is bb 0.47.0 with SDK 0.6.75.
+through `src/bb-sdk.ts`. The minimum host is bb 0.48.1 with SDK 0.6.104, for bb's title regeneration.
 Pull request data comes from the bundled GitHub PR Status plugin
 (`src/github-pr-status.ts`): rows through `useEnvironmentPullRequest` in
 `src/bb-sdk.ts`, and `plugins.callRpc` in `server-policy`. A failed or

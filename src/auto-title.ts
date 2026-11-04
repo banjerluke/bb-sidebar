@@ -35,7 +35,7 @@ export function createAutoTitleRecovery(bb: BbPluginApi, regenerateTitle: Return
       const { selections } = await bb.sdk.system.aiServices();
       if (disposed || deleted.has(threadId) || selections["thread-title"].mode === "off") return;
       if (claim.run(threadId).changes === 0) return;
-      await regenerateTitle(threadId, { onlyIfUntitled: true });
+      await regenerateTitle(threadId);
     } catch (error) {
       if (!disposed)
         bb.log.info(

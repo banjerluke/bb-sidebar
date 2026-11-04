@@ -29,8 +29,8 @@ A stable thread list for [bb](https://github.com/get-bb/bb). Threads stay where 
 - Configurable inactive-thread and automatic cleanup rules
 - Native bb navigation, split, rename, archive, and delete flows
 - Project submenu on thread cards for settings, rename, local paths, and removal
-- Regenerate a thread title from its last three accepted user messages
-- Automatically retry missing thread titles once in the background, respecting the selected AI title service and manual edits
+- Regenerate a thread title with bb's own title service
+- Automatically retry missing thread titles once in the background, respecting manual edits
 
 Hover a thread and click the check to settle it. The three-dots button beside it holds the other ways to clear a row: snooze presets, a date picker, **Park thread**, and **Archive**.
 
@@ -44,7 +44,7 @@ Use **Parent** in a thread's context menu to search threads in the same project,
 bb plugin install git:https://github.com/yusuf8834/bb-sidebar.git
 ```
 
-Requires bb 0.47.0 or later. Pull request badges and automatic settling read pull request status from bb's bundled GitHub PR Status plugin. While it is disabled, badges are hidden and threads with a workspace are not settled automatically.
+Requires bb 0.48.1 or later. Pull request badges and automatic settling read pull request status from bb's bundled GitHub PR Status plugin. While it is disabled, badges are hidden and threads with a workspace are not settled automatically.
 
 Then choose **BB Sidebar** under **Settings > Appearance > Sidebar**.
 

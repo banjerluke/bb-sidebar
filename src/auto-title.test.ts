@@ -71,7 +71,7 @@ describe("automatic title recovery", () => {
     await vi.advanceTimersByTimeAsync(9_999);
     expect(state.regenerate).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
-    expect(state.regenerate).toHaveBeenCalledExactlyOnceWith("target", { onlyIfUntitled: true });
+    expect(state.regenerate).toHaveBeenCalledExactlyOnceWith("target");
     await state.active();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(state.regenerate).toHaveBeenCalledTimes(1);
@@ -187,67 +187,14 @@ describe("automatic title recovery", () => {
     expect(state.regenerate).toHaveBeenCalledTimes(3);
   });
 
-  it.each(["Check this sidebar pull request", "Is this working?"])(
-    "names an untitled thread through selected Codex, including short prompts: %s",
-    async (text) => {
-      const state = setupCodex(text);
-      await state.active();
-      await vi.advanceTimersByTimeAsync(10_000);
-      expect(state.harness.logEntries).toEqual([]);
-      expect(state.sdk.callsTo("threads.wait")[0]![0]).toMatchObject({ timeoutMs: 45_000 });
-      expect(state.sdk.callsTo("threads.update")[0]![0]).toEqual({
-        threadId: "target",
-        title: "Review sidebar pull request",
-      });
-      expect(state.sdk.callsTo("plugins.callRpc")).toHaveLength(0);
-    },
-  );
-
-  it.each(["manual title", "titles off", "archived"])(
-    "keeps user changes made during generation: %s",
-    async (change) => {
-      const state = setupCodex();
-      state.sdk.stub("threads.wait", async () => {
-        if (change === "manual title") state.setThread({ title: "My title" });
-        else if (change === "titles off") state.setOff();
-        else state.setThread({ archivedAt: 1 });
-        return { matched: true };
-      });
-      await state.active();
-      await vi.advanceTimersByTimeAsync(10_000);
-      expect(state.sdk.callsTo("threads.spawn")).toHaveLength(1);
-      expect(state.sdk.callsTo("threads.update")).toHaveLength(0);
-      expect(state.sdk.callsTo("threads.delete")).toHaveLength(1);
-    },
-  );
+  it("names an untitled thread through bb's own title service", async () => {
+    const state = setup(true);
+    state.sdk.stub("threads.experimental_regenerateTitle", async ({ threadId }: { threadId: string }) =>
+      makeThreadResponse({ id: threadId, title: "Review sidebar pull request" }),
+    );
+    await state.active();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(state.sdk.callsTo("threads.experimental_regenerateTitle")).toEqual([[{ threadId: "target" }]]);
+    expect(state.harness.logEntries).toEqual([]);
+  });
 });
-
-function setupCodex(text = "Check this sidebar pull request") {
-  const state = setup(true);
-  state.sdk.stub("threads.timeline", async () => ({
-    rows: [
-      {
-        kind: "conversation",
-        role: "user",
-        initiator: "user",
-        id: "message",
-        text,
-        createdAt: 1,
-        sourceSeqStart: 1,
-        turnRequest: { status: "accepted" },
-      },
-    ],
-    timelinePage: { olderCursor: null },
-  }));
-  state.sdk.stub("providers.list", async () => [{ id: "codex", available: true }]);
-  state.sdk.stub("providers.models", async () => ({
-    models: [{ id: "gpt-6-luna", model: "gpt-6-luna", isDefault: true }],
-  }));
-  state.sdk.stub("threads.spawn", async () => makeThreadResponse({ id: "helper" }));
-  state.sdk.stub("threads.wait", async () => ({ matched: true }));
-  state.sdk.stub("threads.output", async () => ({ output: '{"title":"Review sidebar pull request"}' }));
-  state.sdk.stub("threads.stop", async () => ({ ok: true }));
-  state.sdk.stub("threads.delete", async () => ({ ok: true }));
-  state.sdk.stub("threads.update", async () => makeThreadResponse({ title: "Review sidebar pull request" }));
-  return state;
-}

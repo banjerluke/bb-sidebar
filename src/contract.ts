@@ -251,7 +251,7 @@ export const bbSidebarRpcContract = defineRpcContract({
   },
   regenerateTitle: {
     input: threadIdSchema.strict(),
-    output: z.object({ title: z.string().min(1).max(100) }).strict(),
+    output: z.object({ title: z.string().min(1) }).strict(),
   },
   getProjectColors: {
     input: z.object({}).strict(),
