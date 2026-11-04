@@ -201,7 +201,7 @@ function RowMenuContents({
                 </Item>
               ) : null}
               {onSettle ? (
-                <Item icon="Meditation" onSelect={onSettle}>
+                <Item icon="Check" onSelect={onSettle}>
                   Settle
                 </Item>
               ) : null}
