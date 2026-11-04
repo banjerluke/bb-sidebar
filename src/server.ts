@@ -128,9 +128,8 @@ const migrations = [
 
 /** What every thread's agent learns about the sidebar; kept short, since it rides on every turn. */
 const AGENT_INSTRUCTIONS = `## BB Sidebar
-The user's sidebar shows one line under each thread's title.
-- When you stop to wait on something outside this thread (CI, a review, a person), say so: \`bb sidebar note "Waiting for CI on #57"\`. One short line; the user's next message clears it.
-- When the work is finished and handed back (merged, or nothing left to do), run \`bb sidebar settle\`. The thread moves to Settled once this turn ends and the user has read it, and new activity brings it back.`;
+- Blocked on something outside bb (CI, a review, a person): \`bb sidebar note "Waiting for CI on #57"\` shows that line under this thread's title. When the wait ends, replace it or run \`bb sidebar note --clear\`.
+- Done (the PR merged, or the user says the work is finished): \`bb sidebar settle\`. Safe to run mid-turn: the thread files away after the user reads your reply.`;
 
 export default async function plugin(bb: BbPluginApi) {
   const ctx: ServerContext = { bb, db: bb.storage.database() };
