@@ -285,6 +285,11 @@ export const bbSidebarRpcContract = defineRpcContract({
       ),
     }),
   },
+  /** Threads an agent asked to settle once they finish and the user reads them. */
+  listSettleRequests: {
+    input: z.object({}),
+    output: z.object({ threadIds: z.array(z.string()) }),
+  },
   pin: { input: threadIdSchema, output: z.object({ ok: z.boolean() }) },
   settle: {
     input: threadIdSchema,

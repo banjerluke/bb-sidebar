@@ -309,5 +309,8 @@ export function createServerHandlers(
     ...modules.projects.handlers,
     ...modules.sections.handlers,
     ...handlers,
-  } satisfies Omit<ServerHandlers, "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue">;
+  } satisfies Omit<
+    ServerHandlers,
+    "getThreadLimits" | "scheduleLimitContinue" | "cancelLimitContinue" | "listSettleRequests"
+  >;
 }

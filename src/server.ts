@@ -19,6 +19,7 @@ import { createServerPolicy } from "./server-policy";
 import { createServerHandlers } from "./server-handlers";
 import { createServerRateLimits } from "./server-rate-limits";
 import { createServerCli } from "./server-cli";
+import { createServerSettleRequests, SETTLE_REQUESTS_MIGRATION } from "./server-settle-requests";
 
 export type { StoredLifecycleRow } from "./server-lifecycle";
 
@@ -118,6 +119,7 @@ const migrations = [
      section_id  TEXT PRIMARY KEY,
      sort_index  INTEGER NOT NULL
    )`,
+  SETTLE_REQUESTS_MIGRATION,
 ];
 
 export default async function plugin(bb: BbPluginApi) {
@@ -151,6 +153,11 @@ export default async function plugin(bb: BbPluginApi) {
     regenerateTitle,
     { icons, colors, projects, settle, sections: createServerSections(ctx) },
   );
+  const settleRequests = createServerSettleRequests(ctx, lifecycle, (threadId) => settle.handlers.settle({ threadId }));
+  const userHandlers = {
+    ...settleRequests.overriddenBy(handlers),
+    listSettleRequests: async () => ({ threadIds: settleRequests.list() }),
+  };
   const { resolveProjectIcon } = icons;
   const { wakeAncestors, clearSettlingState, clear } = lifecycle;
   ctx.bb.http.route("GET", "/project-icon", async (context) => {
@@ -178,8 +185,28 @@ export default async function plugin(bb: BbPluginApi) {
   ctx.bb.background.schedule("auto-settle", "*/5 * * * *", async () => {
     await policy.evaluatePolicies();
   });
-  ctx.bb.rpc.register(bbSidebarRpcContract, { ...handlers, ...createServerRateLimits(ctx, lifecycle) });
-  ctx.bb.cli.register(createServerCli(lifecycle, handlers));
+  ctx.bb.rpc.register(bbSidebarRpcContract, { ...userHandlers, ...createServerRateLimits(ctx, lifecycle) });
+  ctx.bb.cli.register(createServerCli(lifecycle, userHandlers, settleRequests));
+  // Waiting settles carry out once you have read the thread, which raises no
+  // event, so check each minute; the check is one query while none wait.
+  ctx.bb.background.schedule("settle-requests", "* * * * *", async () => {
+    await settleRequests.resolve();
+  });
+  ctx.bb.events.on("thread.idle", async () => {
+    await settleRequests.resolve();
+  });
+  ctx.bb.events.on("thread.failed", ({ thread }) => {
+    settleRequests.drop(thread.id);
+  });
+  // bb fails a send when a dispatch hook throws, so this only ever proceeds.
+  ctx.bb.experimental_hooks?.on("message.dispatch", (dispatch) => {
+    try {
+      if (dispatch.initiator === "user") settleRequests.drop(dispatch.thread.id);
+    } catch {
+      // Never block a message over sidebar bookkeeping.
+    }
+    return { action: "proceed" };
+  });
   // New or resumed child work reopens the ancestor path, keeping its existing
   // sidebar nesting reachable. Siblings retain their own settled state.
   ctx.bb.events.on("thread.created", async ({ thread }) => {

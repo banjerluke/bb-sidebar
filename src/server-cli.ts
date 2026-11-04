@@ -2,6 +2,7 @@ import { PluginCliError, cliCommand, defineCli } from "@get-bb/plugin-sdk";
 import type { PluginCliContext } from "@get-bb/plugin-sdk";
 import type { ServerHandlers } from "./server-context";
 import type { createServerLifecycle } from "./server-lifecycle";
+import type { createServerSettleRequests } from "./server-settle-requests";
 import {
   configuredSnoozePresetError,
   formatSnoozeWakeTime,
@@ -68,7 +69,11 @@ function parseWake(value: string, now = new Date()): number {
   return wake;
 }
 
-export function createServerCli(lifecycle: ReturnType<typeof createServerLifecycle>, handlers: CliHandlers) {
+export function createServerCli(
+  lifecycle: ReturnType<typeof createServerLifecycle>,
+  handlers: CliHandlers,
+  settleRequests: Pick<ReturnType<typeof createServerSettleRequests>, "request" | "list">,
+) {
   const { loadPolicyThreads, readOne, threadSignals } = lifecycle;
 
   return defineCli({
@@ -113,6 +118,7 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
                 left.thread.id.localeCompare(right.thread.id),
             );
           const total = matching.length;
+          const settleRequested = new Set(settleRequests.list());
           const { offset } = options;
           const threads = matching.slice(offset, offset + options.limit);
           const nextOffset = offset + threads.length < total ? offset + threads.length : null;
@@ -124,6 +130,7 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
               pinned: thread.pinnedAt !== null,
               parentThreadId: thread.parentThreadId,
               snoozedUntil: shelf === "snoozed" ? (row?.snoozedUntil ?? null) : null,
+              settlesOnceRead: settleRequested.has(thread.id),
             }));
             return { exitCode: 0, stdout: `${JSON.stringify({ threads: rows, total, offset, nextOffset })}\n` };
           }
@@ -131,8 +138,9 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
             const until =
               shelf === "snoozed" && row?.snoozedUntil ? ` until ${formatSnoozeWakeTime(row.snoozedUntil)}` : "";
             const pinned = thread.pinnedAt !== null ? " pinned" : "";
+            const settles = settleRequested.has(thread.id) ? " (settles once read)" : "";
             const parent = thread.parentThreadId ? ` (child of ${thread.parentThreadId})` : "";
-            return `${thread.id}\t${shelf}${pinned}${until}\t${thread.title ?? "Untitled"}${parent}`;
+            return `${thread.id}\t${shelf}${settles}${pinned}${until}\t${thread.title ?? "Untitled"}${parent}`;
           });
           if (total === 0) return { exitCode: 0, stdout: "No threads\n" };
           if (threads.length === 0) return { exitCode: 0, stdout: `No threads at offset ${offset}; ${total} match\n` };
@@ -168,13 +176,17 @@ export function createServerCli(lifecycle: ReturnType<typeof createServerLifecyc
         },
       }),
       settle: cliCommand({
-        summary: "Settle an idle thread and its children",
+        summary: "Settle a thread and its children, now or once it finishes and the user reads it",
         options: threadOption,
         run: ({ options }, ctx) => {
           const threadId = targetThread(options.thread, ctx);
           return act(async () => {
-            await handlers.settle({ threadId });
-            return `settled ${threadId}`;
+            // A thread settling itself is mid-turn, and its result is unread.
+            // Both wait, so the user still sees the answer before it moves.
+            const outcome = await settleRequests.request(threadId);
+            return outcome === "settled"
+              ? `settled ${threadId}`
+              : `${threadId} will settle once it finishes and the user has read it; a failure or a new message from the user cancels this`;
           });
         },
       }),
