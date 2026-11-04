@@ -128,9 +128,9 @@ const migrations = [
 
 /** What every thread's agent learns about the sidebar; kept short, since it rides on every turn. */
 const AGENT_INSTRUCTIONS = `## BB Sidebar
-- End the last message of every turn with a one-line status, which the sidebar shows under this thread's title: what is done, or what you need from the user ("Merged #212; nothing left", "Needs your call: squash or rebase?").
-- Blocked on something outside bb (CI, a review, a person): \`bb sidebar note "Waiting for CI on #57"\` shows that line under this thread's title. When the wait ends, replace it or run \`bb sidebar note --clear\`.
-- Done (the PR merged, or the user says the work is finished): \`bb sidebar settle\`. Safe to run mid-turn: the thread files away after the user reads your reply.`;
+- Every turn: end your final message with this thread's headline, which the sidebar shows under its title. Under 60 characters: where it stands or what you need ("Merged #212; nothing left", "Needs your call: squash or rebase?").
+- Blocked on something outside bb (CI, a review, a person): pin a headline that outlasts this turn with \`bb sidebar note "Waiting for CI on #57"\`. When the wait ends, pin another or run \`bb sidebar note --clear\`.
+- Done (the PR merged, or the user says the work is finished): \`bb sidebar settle\`. Safe mid-turn: the thread files away after the user reads your reply.`;
 
 export default async function plugin(bb: BbPluginApi) {
   const ctx: ServerContext = { bb, db: bb.storage.database() };
